@@ -68,8 +68,13 @@ class ResearchTests(unittest.TestCase):
             failed = research.main(["analysts", "AAPL"])
             self.assertEqual(failed["summary"], first["summary"])
             self.assertTrue(failed["stale"])
-            self.assertEqual(research.main(["analysts", "AAPL", "--force"]), failed)
+            self.assertEqual(research.main(["analysts", "AAPL"]), failed)
             self.assertEqual(load.call_count, 2)
+            load.side_effect = None
+            recovered = research.main(["analysts", "AAPL", "--force"])
+            self.assertFalse(recovered["stale"])
+            self.assertNotIn("retryAfter", recovered)
+            self.assertEqual(load.call_count, 3)
 
     def test_news_is_deduplicated_and_safe_to_open(self):
         row = {"uuid": "one", "title": "Apple earnings", "publisher": "Publisher",
@@ -190,8 +195,14 @@ class ResearchTests(unittest.TestCase):
             failed = research.main(["news", "AAPL", "--force"])
             self.assertEqual(failed["articles"], first["articles"])
             self.assertTrue(failed["stale"])
-            self.assertEqual(research.main(["news", "AAPL", "--force"]), failed)
+            self.assertEqual(research.main(["news", "AAPL"]), failed)
             self.assertEqual(load.call_count, 2)
+            load.side_effect = None
+            recovered = research.main(["news", "AAPL", "--force"])
+            self.assertEqual(recovered["articles"], first["articles"])
+            self.assertFalse(recovered["stale"])
+            self.assertEqual(recovered["error"], "")
+            self.assertEqual(load.call_count, 3)
             self.assertFalse((Path(temporary.name) / "watchlist.json").exists())
             json.dumps(failed, allow_nan=False)
 

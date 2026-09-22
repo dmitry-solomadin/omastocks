@@ -57,5 +57,11 @@ class EarningsCallsTests(unittest.TestCase):
             failed = research.main(["calls", "ACME"])
             self.assertEqual(failed["calls"], first["calls"])
             self.assertTrue(failed["stale"])
-            self.assertEqual(research.main(["calls", "ACME", "--force"]), failed)
+            self.assertEqual(research.main(["calls", "ACME"]), failed)
             self.assertEqual(fetch.call_count, 2)
+            fetch.side_effect = None
+            recovered = research.main(["calls", "ACME", "--force"])
+            self.assertEqual(recovered["calls"], first["calls"])
+            self.assertFalse(recovered["stale"])
+            self.assertEqual(recovered["error"], "")
+            self.assertEqual(fetch.call_count, 3)

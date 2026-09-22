@@ -229,7 +229,8 @@ and per-request caches under the state's `research/` directory. They do not take
 the watchlist lock or wait behind the price/chart queue. News caches for ten minutes,
 earnings for six hours, daily-average history for one hour, and comparison charts
 for one minute intraday or one hour historically. Failed refreshes retain saved
-data and back off before retrying. Each section has its own loading/error state;
+data and back off before automatic retries. Manual refresh bypasses both the
+cache and retry cooldown. Each section has its own loading/error state;
 Ctrl+R also refreshes these sections. Volume and event visibility are saved in
 plugin settings. Moving-average and comparison choices last for the shell session.
 

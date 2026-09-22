@@ -153,11 +153,13 @@ class StateTests(unittest.TestCase):
         self.assertEqual(failed["price"], initial["price"])
         self.assertEqual(failed["fetched"], initial["fetched"])
         self.assertTrue(failed["stale"])
-        with patch.object(stocks.time, "time", return_value=failed["retryAfter"] + 1):
+        with patch.object(stocks.time, "time", return_value=failed["retryAfter"] - 119):
             request.side_effect = None
             recovered = self.repository.chart("AAPL", "1D", force=True)
         self.assertFalse(recovered["stale"])
         self.assertEqual(recovered["error"], "")
+        self.assertNotIn("retryAfter", recovered)
+        self.assertEqual(request.call_count, 3)
 
     @patch.object(stocks, "fetch", return_value=SAMPLE)
     def test_fresh_cache_prevents_duplicate_requests(self, request):
@@ -166,10 +168,12 @@ class StateTests(unittest.TestCase):
         request.assert_called_once()
 
     @patch.object(stocks, "fetch", side_effect=ValueError("rate limiting"))
-    def test_failed_symbol_backs_off_even_on_force(self, request):
+    def test_failed_symbol_backs_off_automatically_but_manual_refresh_retries(self, request):
         self.repository.chart("AAPL", "1D")
-        self.repository.chart("AAPL", "1D", force=True)
+        self.repository.chart("AAPL", "1D")
         request.assert_called_once()
+        self.repository.chart("AAPL", "1D", force=True)
+        self.assertEqual(request.call_count, 2)
 
 
 if __name__ == "__main__":

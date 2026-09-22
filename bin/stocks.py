@@ -184,7 +184,7 @@ class Repository:
         ttl = 60 if period == "1D" else 3600
         if cached.get("schema") == 2 and not force and now - cached.get("fetched", 0) < ttl:
             return cached
-        if now < cached.get("retryAfter", 0):
+        if not force and now < cached.get("retryAfter", 0):
             return cached
         try:
             span, interval = RANGES[period]

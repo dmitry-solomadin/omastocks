@@ -257,7 +257,7 @@ def main(arguments):
         saved = read_json(path, {})
         now = time.time()
         current_schema = (action != "events" or saved.get("earningsSchema") == 2) and (action != "news" or saved.get("newsSchema") == 3)
-        if saved.get("retryAfter", 0) > now or (current_schema and saved.get("fetched", 0) + ttl > now and "--force" not in arguments):
+        if "--force" not in arguments and (saved.get("retryAfter", 0) > now or (current_schema and saved.get("fetched", 0) + ttl > now)):
             return saved
         try:
             result = {**load(action, ticker, period), "fetched": now, "stale": False, "error": ""}
