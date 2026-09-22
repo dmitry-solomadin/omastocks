@@ -117,6 +117,13 @@ Item {
         return (session ? session.label + " · " : "")
             + Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" || period === "1W" ? "d MMM yyyy, hh:mm" : "d MMM yyyy")
     }
+    function hoverText(index) {
+        const point = points[index]
+        if (!point) return ""
+        const extended = sessions.some(session => session.kind !== "regular" && point[0] >= session.start && point[0] < session.end)
+        return StockStore.price(point[1]) + "  ·  " + hoverTime(point[0])
+            + (showVolume && !extended ? "  ·  Vol " + StockStore.compact(volumes[index]) : "")
+    }
     function timeLabel(timestamp) {
         return Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" ? "hh:mm" : period === "5Y" ? "MMM yyyy" : "d MMM")
     }
@@ -343,11 +350,11 @@ Item {
         border.width: 2
     }
     Label {
+        objectName: "chartHoverReadout"
         visible: !root.miniature && !root.comparing && root.hoveredPoint !== null
         x: root.leftInset; y: Style.space(23)
         width: root.plotWidth
-        text: root.hoveredPoint ? StockStore.price(root.hoveredPoint[1]) + "  ·  " + root.hoverTime(root.hoveredPoint[0])
-            + (root.showVolume ? "  ·  Vol " + StockStore.compact(root.volumes[root.hoveredIndex]) : "") : ""
+        text: root.hoverText(root.hoveredIndex)
         color: root.lineColor
         font.pixelSize: Style.font.bodySmall
     }

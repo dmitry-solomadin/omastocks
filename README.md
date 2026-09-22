@@ -51,7 +51,7 @@ rendered width, plus an 18-unit gap between entries and 8.5-unit padding on each
 side, compared with the available width (capped at `maxWidth`, default 360).
 Spacing and the width cap follow Omarchy's UI scale. Text is remeasured when
 quotes, favorites, selected fields, or fonts change. Vertical bars use the Omastocks
-icon and show all favorites in the tooltip.
+icon. The favorites widget has no hover tooltip.
 
 ### Update and remove
 
@@ -112,7 +112,8 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 ## Chart analysis and company news
 
 - **Settings → Chart → Volume bars** shows per-interval trading volume below the price chart. Hover a
-  price point to see its volume. Missing volume is left blank rather than invented.
+  regular-session price point to see its volume. Pre-market and after-hours hover
+  readouts omit volume. Missing volume is left blank rather than invented.
 - **20D MA / 50D MA / 200D MA** toggle daily simple moving averages, using up to
   ten years of daily price history for warm-up. Colors match the buttons. They are
   available on **1M and longer** ranges, and sample daily averages at their chart

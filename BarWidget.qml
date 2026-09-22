@@ -29,8 +29,6 @@ Ui.BarWidget {
     readonly property real cycleWidth: contentWidth + entryGap
     readonly property bool overflowing: !vertical && favorites.length > 0 && contentWidth > viewport.width + .5
     property real scrollOffset: 0
-    readonly property string fullText: favorites.map(entry => entry.symbol + "  " + Stocks.StockStore.price(entry.price)
-        + "  " + Stocks.StockStore.percent(entry.percent) + "  " + changeText(entry) + (entry.stale ? "  ◷" : "")).join("\n")
     function changeText(entry) {
         if (entry.change === undefined || entry.change === null) return "—"
         const symbols = {USD: "$", GBP: "£", EUR: "€", JPY: "¥", CNY: "¥"}
@@ -62,7 +60,7 @@ Ui.BarWidget {
         width: root.width
         text: "\uf201"
         labelVisible: root.vertical || !root.favorites.length
-        tooltipText: "Stocks\n" + (root.fullText || "Star stocks in the app to show them here")
+        tooltipText: ""
         onPressed: mouseButton => { if (mouseButton === Qt.MiddleButton) Stocks.StockStore.refresh(true); else Stocks.StockStore.openRequested() }
         Item {
             id: viewport
