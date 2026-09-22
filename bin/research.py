@@ -18,6 +18,7 @@ from stocks import RANGES, fetch, number, parse_chart, read_json, state_director
 from financials import statements, valuation
 from extended import extended
 from earnings_calls import earnings_calls
+from social import stocktwits, reddit_buzz
 
 
 def web_url(value):
@@ -215,6 +216,10 @@ def moving_averages(points, dates, windows=(20, 50, 200)):
 
 
 def load(action, ticker, period):
+    if action == "social":
+        return stocktwits(ticker)
+    if action == "buzz":
+        return reddit_buzz()
     if action == "news":
         return parse_news(fetch("/v1/finance/search", q=ticker, quotesCount=1, newsCount=12), ticker)
     if action == "events":
@@ -241,8 +246,10 @@ def load(action, ticker, period):
 
 def main(arguments):
     action, ticker = arguments[0], symbol(arguments[1])
-    if action not in ("news", "events", "calls", "averages", "compare", "financials", "valuation", "extended", "analysts"):
+    if action not in ("news", "events", "calls", "social", "buzz", "averages", "compare", "financials", "valuation", "extended", "analysts"):
         raise ValueError("Unknown research request.")
+    if action == "buzz":
+        ticker = "ALL"
     period = arguments[2] if action in ("compare", "financials") else ""
     if action == "compare" and period not in RANGES:
         raise ValueError("Unknown chart range.")
@@ -250,7 +257,7 @@ def main(arguments):
     directory.mkdir(parents=True, exist_ok=True)
     key = hashlib.sha256(f"{action}:{ticker}:{period}".encode()).hexdigest()
     path = directory / (key + ".json")
-    ttl = {"news": 600, "events": 21600, "calls": 86400, "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
+    ttl = {"news": 600, "social": 300, "buzz": 1800, "events": 21600, "calls": 86400, "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
            "compare": 60 if period in ("1D", "1W") else 3600}[action]
     with (directory / (key + ".lock")).open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)

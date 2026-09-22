@@ -165,6 +165,31 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
   rank headlines first. Missing or different listing tags do not exclude stories.
   No API key is required. This is a headline feed, not a full-article reader.
 
+## Social chatter
+
+Expand **Social chatter** below Latest News for two free, keyless sources:
+
+- **Stocktwits** shows up to 20 recent posts for the selected symbol, with the
+  author, timestamp, likes when supplied, and a link to the original post. Long
+  posts are abbreviated in the list. Bullish/Bearish labels are the author's own
+  selection; missing sentiment is left blank. Symbol coverage varies by market.
+- **Reddit buzz** uses ApeWisdom's `all-stocks` rankings: mentions, upvotes, rank,
+  and mention change versus its 24-hours-ago snapshot. These are activity counts,
+  not a computed bullish/bearish rating. Missing values display as **—**; a symbol
+  absent from the rankings is reported as unlisted, not as having zero mentions.
+  ApeWisdom tracks selected stock-focused subreddits rather than all of Reddit.
+
+Both sources load only while the section is expanded and the window is open.
+Stocktwits is cached for five minutes; ApeWisdom for 30 minutes, shared across
+symbols. ApeWisdom pagination includes up to 20 pages (2,000 ranked entries).
+Manual refresh bypasses the cache and failure cooldown. Provider failures retain
+saved data with an error message. No account, API key, or paid fallback is used.
+The public endpoints can change or become unavailable.
+
+Source references: [Stocktwits](https://stocktwits.com/),
+[ApeWisdom API](https://apewisdom.io/api),
+[ApeWisdom methodology](https://apewisdom.io/methodology).
+
 ## Financial statements and valuations
 
 Expand **Financials** below Market Details. Choose **Income**, **Balance Sheet**,
@@ -261,8 +286,8 @@ plugin settings API, preserving the other settings in `shell.json`.
 
 ### Network and storage
 
-The helpers contact `query1.finance.yahoo.com`, `finance.yahoo.com`, `api.nasdaq.com` and
-`scanner.tradingview.com` over HTTPS. The current ticker/search query is sent to
+The helpers contact `query1.finance.yahoo.com`, `finance.yahoo.com`, `api.nasdaq.com`,
+`scanner.tradingview.com`, `api.stocktwits.com` and `apewisdom.io` over HTTPS. The current ticker/search query is sent to
 the corresponding provider; watchlist files stay local. News thumbnails load
 from image URLs supplied by Yahoo. News, earnings searches and filing links open
 in your default browser. No telemetry, credentials or paid services are used.

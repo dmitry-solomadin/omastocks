@@ -460,6 +460,8 @@ FloatingWindow {
                     AnalystsPanel { Layout.fillWidth: true }
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                     CompanyNews { Layout.fillWidth: true }
+                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                    SocialPanel { Layout.fillWidth: true }
                 }
                 Label {
                     visible: !StockStore.selected

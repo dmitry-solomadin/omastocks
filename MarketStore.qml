@@ -17,6 +17,9 @@ QtObject {
     readonly property var compareColors: ["#4e9eff", "#f6bf4f", "#be8cff", "#41c9b4", "#f07eaa"]
     property string compareValidation: ""
     readonly property var news: newsRequest.data
+    property bool socialOpen: false
+    readonly property var social: socialRequest.data
+    readonly property var buzz: buzzRequest.data
     readonly property var earnings: eventsRequest.data
     property bool earningsCallsOpen: false
     readonly property var earningsCalls: callsRequest.data
@@ -73,6 +76,8 @@ QtObject {
     }
     function refresh(force) {
         newsRequest.reload(force)
+        socialRequest.reload(force)
+        buzzRequest.reload(force)
         eventsRequest.reload(force)
         callsRequest.reload(force)
         averagesRequest.reload(force)
@@ -83,6 +88,10 @@ QtObject {
         comparisonRequests.forEach(request => request.reload(force))
     }
     property DataRequest newsRequest: DataRequest { arguments: root.active ? ["news", StockStore.selected] : [] }
+    property DataRequest socialRequest: DataRequest { arguments: root.active && root.socialOpen ? ["social", StockStore.selected] : [] }
+    property DataRequest buzzRequest: DataRequest { arguments: root.active && root.socialOpen ? ["buzz", "ALL"] : [] }
+    property Timer socialPoll: Timer { interval: 300000; running: root.active && root.socialOpen; repeat: true; onTriggered: root.socialRequest.reload(false) }
+    property Timer buzzPoll: Timer { interval: 1800000; running: root.active && root.socialOpen; repeat: true; onTriggered: root.buzzRequest.reload(false) }
     property DataRequest financialsRequest: DataRequest {
         arguments: root.active && root.financialsOpen ? ["financials", StockStore.selected, root.financialFrequency] : []
     }

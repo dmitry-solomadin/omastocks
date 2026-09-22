@@ -3,6 +3,7 @@ singleton MarketStore 1.0 MarketStore.qml
 DataRequest 1.0 DataRequest.qml
 ChartTools 1.0 ChartTools.qml
 CompanyNews 1.0 CompanyNews.qml
+SocialPanel 1.0 SocialPanel.qml
 EarningsPanel 1.0 EarningsPanel.qml
 FastWheel 1.0 FastWheel.qml
 FinancialsPanel 1.0 FinancialsPanel.qml
