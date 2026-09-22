@@ -1,4 +1,51 @@
-# Watchlist membership snapshot
+# Watchlist membership snapshots
+
+## Yahoo sector Top Companies
+
+`yahoo-sector-presets.json` is the smaller snapshot downloaded on 2026-09-22
+from <https://finance.yahoo.com/sectors/> and its sector data endpoints. It
+contains **11 lists of 50 stocks each (550 distinct tickers)**:
+
+- Technology
+- Financial Services
+- Consumer Cyclical
+- Communication Services
+- Healthcare
+- Industrials
+- Consumer Defensive
+- Energy
+- Basic Materials
+- Real Estate
+- Utilities
+
+Each list preserves Yahoo's `data.topCompanies` array and ordering. These are
+capped Top Companies lists, **not complete sector memberships**. The website
+may initially display fewer rows than the endpoint returns. Each record includes
+the full sector's reported company count separately, plus the source URL,
+endpoint, retrieval timestamp, and response SHA-256 hash. Provider-omitted names
+are stored as `null`; tickers and share classes are preserved as returned.
+
+The download used an anonymous Yahoo cookie/crumb session, without an account or
+API key. No cookies or crumbs are stored in this repository. This is a static
+membership snapshot, not a runtime data source or a scheduled download; individual
+quote/earnings coverage has not been checked. Overview and Calendar do not yet
+load these lists.
+
+Print the Yahoo lists:
+
+```sh
+python3 - <<'PY'
+import json
+from pathlib import Path
+from textwrap import fill
+snapshot = json.loads(Path('data/yahoo-sector-presets.json').read_text())
+for group in snapshot['lists']:
+    print(f"\n{group['name']} — {group['count']} entries")
+    print(fill(', '.join(row['symbol'] for row in group['members']), width=100))
+PY
+```
+
+## Stock Analysis full memberships
 
 `watchlist-presets.json` contains a one-time download from Stock Analysis on
 2026-09-22. It stores symbols, company names, source URLs, retrieval timestamps,
