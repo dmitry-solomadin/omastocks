@@ -7,6 +7,11 @@ import qs.Commons
 QtObject {
     id: root
     property var entries: []
+    property var watchlists: []
+    property string activeWatchlist: "default"
+    property var favoriteEntries: []
+    property string view: "stock"
+    readonly property string watchlistName: (watchlists.find(row => row.id === activeWatchlist) || {}).name || "Watchlist"
     property var results: []
     property string searchQuery: ""
     property string completedQuery: ""
@@ -23,7 +28,7 @@ QtObject {
     property var barSettings: ({})
     property bool running: false
     readonly property bool busy: active !== null || queue.length > 0
-    readonly property var favorites: entries.filter(entry => entry.favorite)
+    readonly property var favorites: favoriteEntries
     readonly property var quote: {
         const entry = entries.find(entry => entry.symbol === selected)
         if (entry) return entry
@@ -78,6 +83,7 @@ QtObject {
         return unit + (kind === "perShare" ? price(value) : compact(value))
     }
     function select(ticker) {
+        view = "stock"
         selected = ticker
         if (!entries.some(entry => entry.symbol === ticker)) request(["quote", ticker])
         request(["chart", ticker, period])
@@ -131,6 +137,8 @@ QtObject {
         request(["move", ticker, before])
     }
     function request(args) {
+        if (["add", "remove", "favorite", "move"].indexOf(args[0]) >= 0)
+            args = args.concat(["--list", activeWatchlist])
         // Supersede reads, but preserve every watchlist mutation in order.
         let pending = queue.slice()
         if (["chart", "quote", "search", "refresh"].indexOf(args[0]) >= 0)
@@ -172,10 +180,19 @@ QtObject {
             else {
                 if (active[0] !== "snapshot") error = ""
                 if (data.entries) {
+                    const changedList = data.activeWatchlist && data.activeWatchlist !== activeWatchlist
+                    if (data.watchlists) watchlists = data.watchlists
+                    if (data.activeWatchlist) activeWatchlist = data.activeWatchlist
+                    if (data.favoriteEntries) favoriteEntries = data.favoriteEntries
                     // A reply started before a drop must not undo optimistic moves.
                     entries = queue.filter(args => args[0] === "move").reduce(
-                        (rows, args) => movedEntries(rows, args[1], args[2]), data.entries)
-                    if (!selected && entries.length) select(entries[0].symbol)
+                        (rows, args) => args[args.length - 1] === activeWatchlist ? movedEntries(rows, args[1], args[2]) : rows, data.entries)
+                    if (changedList) {
+                        selected = entries.length ? entries[0].symbol : ""
+                        search("")
+                        if (selected) request(["chart", selected, period])
+                        request(["refresh"])
+                    } else if (!selected && entries.length) select(entries[0].symbol)
                 }
                 if (data.chart && data.chart.symbol === selected && data.chart.range === period) chart = data.chart
                 if (data.quote) {

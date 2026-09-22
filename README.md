@@ -2,8 +2,8 @@
 
 A window-first stock watchlist for Omarchy, with an optional favorites strip.
 
-Six chart ranges, five-stock comparisons, moving averages, earnings and news,
-plus quarterly/annual financial statements and valuation ratios. No API keys.
+Named watchlists, performance overviews, earnings calendars, price and fundamental
+comparisons, company filings, insider activity, charts, financials and news. No API keys.
 
 Built with Quickshell and Omarchy's live theme tokens. The main view is a regular
 Wayland window: tile it, move it to a workspace, or put it in the scratchpad.
@@ -83,8 +83,10 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
   Yahoo's alternate `^GSPC` listing is consolidated into `^SPX` in search results.
 - Click **+** beside a search result to add it directly to your watchlist, or
   click the result to preview it first.
-- Star a stock to show it in the bar. Removing it from the watchlist also removes
-  its star. Use **+ Watchlist** to add the stock back; star it again if desired.
+- Star a stock to show it in the bar. Favorites are shared across watchlists and
+  appear once in the bar, in first-list / first-occurrence order. Removing a stock
+  from one list keeps its star if it remains starred in another list. Removing
+  its last membership removes it from the bar; re-adding it starts unstarred.
 - Choose 1D, 1W, 1M, 3M, 1Y or 5Y; hover the chart to inspect a price.
 - Market Details uses equal-width columns. Its 52-week range gauge shows the low
   and high at either end, with a dot for the current price; hover for exact values.
@@ -116,6 +118,55 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 - Ctrl+W closes the window.
 - Mouse-wheel scrolling moves 96 scaled UI pixels per notch in both panes;
   high-resolution touchpad pixel deltas retain their native movement.
+
+## Watchlist workspace
+
+The navigation above the detail pane switches between **Stock**, **Overview**,
+**Fundamentals**, and **Calendar**. Clicking a symbol returns to its stock detail.
+Ctrl+R refreshes the current workspace view as well as prices. Tables scroll
+horizontally in narrow windows; vertical wheel scrolling still moves the page.
+
+- **Multiple watchlists:** use the dropdown above search to switch lists, **+**
+  to create one, and **⋯** to rename or remove one. Up to 12 lists, 60 stocks each.
+  Lists keep separate membership and order; quotes and favorites are shared.
+  Search/add/remove/reorder apply to the active list. The original watchlist is
+  migrated in memory and persisted on the next edit, preserving order, favorites,
+  names and extra metadata. The last list cannot be removed. No research notes.
+- **Overview:** sortable 1D, 1W, 1M, YTD and 1Y price-return columns, an optional
+  equal-sized heatmap, and S&P 500 / Nasdaq Composite / Russell 2000 / VIX context.
+  Returns exclude dividends. 1D uses the prior regular-session close; longer
+  periods compare the latest regular price with the close on or before the
+  calendar-date boundary (YTD uses the prior year-end). Hover for baseline and
+  quote timestamps. IPOs or insufficient history show **—**. New requests and
+  five-minute polling use a five-minute history cache.
+- **Fundamentals:** select up to five stocks from the active watchlist. Compare
+  growth, margins, revenue, free cash flow, net debt, leverage and valuation ratios.
+  Annual/quarterly select the latest reported 12M/3M statement records, not TTM.
+  Each cell retains its fiscal date and reporting currency; companies may have
+  different fiscal years. Valuations are current provider snapshots with their
+  own definitions (P/E is TTM). Missing latest cells stay missing rather than
+  falling back to older periods. Data loads on demand with a one-hour cache.
+- **Calendar:** This week, Next week or All upcoming, sorted by estimated report
+  date. Shows a next-quarter EPS estimate when supplied and the last reported EPS
+  surprise. Negative EPS estimates use their absolute value as the surprise
+  denominator; zero estimates leave the percentage unavailable. Timing is shown
+  only if explicitly supplied. Nasdaq/Zacks dates are estimates; unsupported
+  instruments and missing dates are listed separately. Six-hour cache.
+- **Company activity:** expand beneath Analysts in the Stock view. **Filings**
+  shows up to 40 recent records with form, filing date, description and reporting
+  owner, linking to Nasdaq's QuoteMedia document or SEC when supplied. **Insiders**
+  shows up to 30 reported transactions with trade date, person, role, transaction
+  type, shares, price, direct/indirect ownership and shares held. Types such as
+  automatic sales, option exercises and non-open-market dispositions retain the
+  provider's wording; they are not recategorized as discretionary buys/sells.
+  Insider links open the Nasdaq insider page, not an inferred matching Form 4.
+  Both tabs load only when viewed and cache independently for one hour.
+
+Research batches run at most four symbol requests concurrently, separately from
+the watchlist lock. Changing a list/view discards obsolete replies. Manual refresh
+bypasses TTL and failure cooldowns. Errors remain attached to the affected symbol;
+cached results survive failed refreshes. Partial fundamental-provider failures
+show the available provider's metrics and an explicit notice.
 
 ## Chart analysis and company news
 
@@ -295,7 +346,32 @@ These are public, unofficial endpoints and may change or be rate-limited.
 The MIT license covers the code; external market data and publisher images
 remain subject to their respective providers' terms.
 
+Company activity uses the existing Nasdaq host; document/insider/SEC links open
+only on click in the browser (including `app.quotemedia.com` for provider-hosted
+filings). No direct SEC background feed, new credentials or paid API is required.
+
 ## Development
+
+### Feature boundaries
+
+The watchlist additions are separate modules to make iteration/removal contained:
+
+| Feature | UI | Backend |
+|---|---|---|
+| Named lists | `WatchlistSelector.qml`, small `StockStore.qml` adapter | `bin/watchlists.py`, `Repository` adapter in `bin/stocks.py` |
+| Overview | `WatchlistOverview.qml` | `bin/overview.py` |
+| Fundamental comparison | `FundamentalComparison.qml` | `bin/fundamental_compare.py` |
+| Earnings calendar | `EarningsCalendar.qml` | `bin/earnings_calendar.py` |
+| Filings / insiders | `CompanyActivity.qml` | `bin/company_activity.py` |
+
+`WatchlistWorkspace.qml` mounts the three workspace views; `WatchlistBatch.qml`
+owns bounded requests and `FeatureTable.qml` owns their common table presentation.
+`StocksWindow.qml` only adds navigation, the list selector and the activity panel.
+Research actions are registered in `bin/research.py` and use its cache/backoff.
+Each view can be disconnected at its mount/registration without editing the other
+feature implementations. Named-list state remains in `watchlist.json`; `entries`
+is maintained as a mirror of the active list for the existing storage contract.
+Removing a UI feature need not remove its saved state or caches.
 
 For a development checkout:
 

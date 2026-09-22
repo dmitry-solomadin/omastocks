@@ -216,6 +216,18 @@ def moving_averages(points, dates, windows=(20, 50, 200)):
 
 
 def load(action, ticker, period):
+    if action == "calendar":
+        from earnings_calendar import calendar
+        return calendar(ticker, nasdaq, parse_earnings)
+    if action == "overview":
+        from overview import overview
+        return overview(ticker)
+    if action == "fundamentals":
+        from fundamental_compare import fundamentals
+        return fundamentals(ticker, period)
+    if action in ("filings", "insiders"):
+        from company_activity import activity
+        return activity(action, ticker, nasdaq, date_string)
     if action == "social":
         return stocktwits(ticker)
     if action == "buzz":
@@ -246,11 +258,11 @@ def load(action, ticker, period):
 
 def main(arguments):
     action, ticker = arguments[0], symbol(arguments[1])
-    if action not in ("news", "events", "calls", "social", "buzz", "averages", "compare", "financials", "valuation", "extended", "analysts"):
+    if action not in ("calendar", "overview", "fundamentals", "filings", "insiders", "news", "events", "calls", "social", "buzz", "averages", "compare", "financials", "valuation", "extended", "analysts"):
         raise ValueError("Unknown research request.")
     if action == "buzz":
         ticker = "ALL"
-    period = arguments[2] if action in ("compare", "financials") else ""
+    period = arguments[2] if action in ("compare", "financials", "fundamentals") else ""
     if action == "compare" and period not in RANGES:
         raise ValueError("Unknown chart range.")
     directory = state_directory() / "research"
@@ -258,6 +270,7 @@ def main(arguments):
     key = hashlib.sha256(f"{action}:{ticker}:{period}".encode()).hexdigest()
     path = directory / (key + ".json")
     ttl = {"news": 600, "social": 300, "buzz": 1800, "events": 21600, "calls": 86400, "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
+           "calendar": 21600, "overview": 300, "fundamentals": 3600, "filings": 3600, "insiders": 3600,
            "compare": 60 if period in ("1D", "1W") else 3600}[action]
     with (directory / (key + ".lock")).open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)

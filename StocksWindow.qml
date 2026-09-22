@@ -35,7 +35,7 @@ FloatingWindow {
         anchors.fill: parent
         focus: true
         Shortcut { sequence: "Ctrl+K"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened; onActivated: { search.forceActiveFocus(); search.selectAll() } }
-        Shortcut { sequence: "Ctrl+R"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: StockStore.refresh(true) }
+        Shortcut { sequence: "Ctrl+R"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: { StockStore.refresh(true); if (StockStore.view !== "stock") workspace.refresh(); else companyActivity.refresh() } }
         Shortcut { sequence: "Ctrl+W"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.visible = false }
         Shortcut { sequence: "Escape"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened; onActivated: {
             if (list.dragSymbol) list.cancelDrag()
@@ -46,6 +46,7 @@ FloatingWindow {
         Keys.onDownPressed: list.moveSelection(1)
         Keys.onUpPressed: list.moveSelection(-1)
         SettingsMenu { id: settingsMenu; parent: content; shell: window.shell }
+        Connections { target: StockStore; function onActiveWatchlistChanged() { search.clear(); list.cancelDrag() } }
         Rectangle {
             id: sidebar
             width: Style.space(window.width < Style.space(900) ? 245 : 300)
@@ -66,6 +67,7 @@ FloatingWindow {
                     ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.busy; onClicked: StockStore.refresh(true); font.pixelSize: Style.space(18) }
                     ActionButton { text: "\uf013"; hint: "Settings"; font.pixelSize: Style.space(18); onClicked: settingsMenu.open() }
                 }
+                WatchlistSelector { Layout.fillWidth: true }
                 Controls.TextField {
                     id: search
                     objectName: "stockSearch"
@@ -177,7 +179,7 @@ FloatingWindow {
                         currentIndex = index
                         forceActiveFocus()
                         positionViewAtIndex(index, ListView.Contain)
-                        if (StockStore.selected !== rows[index].symbol) StockStore.select(rows[index].symbol)
+                        if (StockStore.selected !== rows[index].symbol || StockStore.view !== "stock") StockStore.select(rows[index].symbol)
                     }
                     function moveSelection(step) {
                         const index = rows.findIndex(entry => entry.symbol === StockStore.selected)
@@ -316,14 +318,45 @@ FloatingWindow {
                 Label { visible: !!StockStore.searchQuery; text: StockStore.searching ? "Searching markets…" : StockStore.searchError || list.count + " RESULTS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
             }
         }
+        Flow {
+            id: viewNavigation
+            objectName: "viewNavigation"
+            anchors.left: sidebar.right
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: Style.space(12)
+            spacing: Style.space(4)
+            Repeater {
+                model: [{id:"stock",label:"Stock"},{id:"overview",label:"Overview"},{id:"fundamentals",label:"Fundamentals"},{id:"calendar",label:"Calendar"}]
+                ActionButton {
+                    required property var modelData
+                    objectName: "view_" + modelData.id
+                    text: modelData.label
+                    font.pixelSize: Style.font.bodySmall
+                    selected: StockStore.view === modelData.id
+                    onClicked: StockStore.view = modelData.id
+                }
+            }
+        }
+        WatchlistWorkspace {
+            id: workspace
+            visible: StockStore.view !== "stock"
+            anchors.left: sidebar.right
+            anchors.right: parent.right
+            anchors.top: viewNavigation.bottom
+            anchors.topMargin: Style.space(8)
+            anchors.bottom: parent.bottom
+        }
         Controls.ScrollView {
             FastWheel { flickable: detailScroll.contentItem }
             id: detailScroll
             objectName: "detailScroll"
             anchors.left: sidebar.right
             anchors.right: parent.right
-            anchors.top: parent.top
+            anchors.top: viewNavigation.bottom
+            anchors.topMargin: Style.space(8)
             anchors.bottom: parent.bottom
+            visible: StockStore.view === "stock"
             clip: true
             contentWidth: availableWidth
             ColumnLayout {
@@ -467,6 +500,8 @@ FloatingWindow {
                     FinancialsPanel { Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                     AnalystsPanel { Layout.fillWidth: true }
+                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                    CompanyActivity { id: companyActivity; Layout.fillWidth: true }
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                     RowLayout {
                         id: feedTabs

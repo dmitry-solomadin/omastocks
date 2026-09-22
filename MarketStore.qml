@@ -6,7 +6,7 @@ import "ChartMath.js" as ChartMath
 
 QtObject {
     id: root
-    readonly property bool active: StockStore.running && StockStore.windowOpen && !!StockStore.selected
+    readonly property bool active: StockStore.running && StockStore.windowOpen && StockStore.view === "stock" && !!StockStore.selected
     readonly property bool showVolume: StockStore.barSettings.showVolume !== false
     readonly property bool showEvents: StockStore.barSettings.showEvents !== false
     readonly property bool averagesAvailable: ChartMath.dailyAveragesSupported(StockStore.period)

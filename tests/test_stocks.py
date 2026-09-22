@@ -2,11 +2,13 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
 
+sys.path.insert(0, str(Path(__file__).parents[1] / "bin"))
 spec = importlib.util.spec_from_file_location("stocks", Path(__file__).parents[1] / "bin/stocks.py")
 stocks = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(stocks)

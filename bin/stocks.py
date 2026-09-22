@@ -17,6 +17,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+import watchlists
 
 
 RANGES = {
@@ -171,6 +172,7 @@ class Repository:
             for ticker, name in SEED]})
         if not isinstance(self.state, dict) or not isinstance(self.state.get("entries"), list):
             raise ValueError("Invalid watchlist.json. File left untouched.")
+        watchlists.normalize(self.state)
         self.cache = read_json(self.cache_path, {})
         if not isinstance(self.cache, dict):
             raise ValueError("Invalid cache.json. File left untouched.")
@@ -199,33 +201,46 @@ class Repository:
 
     def snapshot(self, refresh=False, force=False):
         entries = self.state["entries"]
+        favorites = [row for row in watchlists.all_entries(self.state) if row.get("favorite")]
         if refresh:
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-                list(pool.map(lambda entry: self.chart(entry["symbol"], "1D", force), entries))
-        rows = []
-        for entry in entries:
+                tickers = dict.fromkeys(row["symbol"] for row in entries + favorites)
+                list(pool.map(lambda ticker: self.chart(ticker, "1D", force), tickers))
+        def quote(entry):
             cached = self.cache.get(entry["symbol"] + ":1D", {})
             row = {**entry, **cached, "favorite": entry.get("favorite", False)}
             row["stale"] = cached.get("stale", False) or time.time() - cached.get("fetched", 0) > 600
-            rows.append(row)
-        return {"entries": rows}
+            return row
+        return {"entries": [quote(row) for row in entries], "favoriteEntries": [quote(row) for row in favorites],
+                "activeWatchlist": self.state["activeWatchlist"],
+                "watchlists": [{"id": row["id"], "name": row["name"], "count": len(row["entries"])} for row in self.state["watchlists"]]}
 
-    def mutate(self, action, ticker, name="", favorite=False):
-        entries = self.state["entries"]
+    def watchlist(self, action, identity="", name=""):
+        watchlists.change(self.state, action, identity, name)
+        write_json(self.state_path, self.state)
+        return self.snapshot()
+
+    def mutate(self, action, ticker, name="", favorite=False, list_id=""):
+        entries = watchlists.selected(self.state, list_id)["entries"]
         existing = next((entry for entry in entries if entry["symbol"] == ticker), None)
         if action == "add" and existing is None:
             if len(entries) >= 60:
                 raise ValueError("The watchlist supports up to 60 stocks.")
-            entries.append({"symbol": ticker, "name": name or ticker, "favorite": favorite})
+            starred = any(row["symbol"] == ticker and row.get("favorite") for row in watchlists.all_entries(self.state))
+            entries.append({"symbol": ticker, "name": name or ticker, "favorite": favorite or starred})
         elif action == "remove":
-            self.state["entries"] = [entry for entry in entries if entry["symbol"] != ticker]
+            entries[:] = [entry for entry in entries if entry["symbol"] != ticker]
         elif action == "favorite" and existing:
-            existing["favorite"] = not existing.get("favorite", False)
+            value = not existing.get("favorite", False)
+            for watchlist in self.state["watchlists"]:
+                for entry in watchlist["entries"]:
+                    if entry["symbol"] == ticker:
+                        entry["favorite"] = value
         write_json(self.state_path, self.state)
         return self.snapshot()
 
-    def move(self, ticker, before=""):
-        entries = self.state["entries"]
+    def move(self, ticker, before="", list_id=""):
+        entries = watchlists.selected(self.state, list_id)["entries"]
         moving = next((entry for entry in entries if entry["symbol"] == ticker), None)
         if moving is None or (before and not any(entry["symbol"] == before for entry in entries)):
             raise ValueError("The watchlist changed. Try dragging the stock again.")
@@ -234,7 +249,7 @@ class Repository:
         ordered = [entry for entry in entries if entry["symbol"] != ticker]
         index = next((i for i, entry in enumerate(ordered) if entry["symbol"] == before), len(ordered))
         ordered.insert(index, moving)
-        self.state["entries"] = ordered
+        entries[:] = ordered
         write_json(self.state_path, self.state)
         return self.snapshot()
 
@@ -261,6 +276,11 @@ def state_directory():
 
 
 def main(arguments):
+    arguments = list(arguments)
+    list_id = ""
+    if len(arguments) >= 2 and arguments[-2] == "--list":
+        list_id = arguments[-1]
+        arguments = arguments[:-2]
     directory = state_directory()
     directory.mkdir(parents=True, exist_ok=True)
     with (directory / ".lock").open("w") as lock:
@@ -276,12 +296,14 @@ def main(arguments):
         elif action == "search":
             result = search(arguments[1])
         elif action == "move":
-            result = repository.move(symbol(arguments[1]), symbol(arguments[2]) if len(arguments) > 2 and arguments[2] else "")
+            result = repository.move(symbol(arguments[1]), symbol(arguments[2]) if len(arguments) > 2 and arguments[2] else "", list_id)
+        elif action == "watchlist":
+            result = repository.watchlist(arguments[1], arguments[2] if len(arguments) > 2 else "", arguments[3] if len(arguments) > 3 else "")
         elif action in ("add", "remove", "favorite"):
             result = repository.mutate(action, symbol(arguments[1]), arguments[2] if len(arguments) > 2 else "",
-                                       len(arguments) > 3 and arguments[3] == "true")
+                                       len(arguments) > 3 and arguments[3] == "true", list_id)
         else:
-            raise ValueError("Use snapshot, refresh, chart SYMBOL RANGE, search QUERY, add, remove, favorite or move SYMBOL [BEFORE].")
+            raise ValueError("Use snapshot, refresh, chart, search, add, remove, favorite, move or watchlist.")
         write_json(repository.cache_path, repository.cache)
         return result
 
