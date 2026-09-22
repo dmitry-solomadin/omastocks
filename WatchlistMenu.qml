@@ -217,7 +217,7 @@ Controls.Popup {
             }
             ActionButton {
                 objectName: "createWatchlist"
-                text: "Add"
+                text: "+"
                 enabled: menu.canCreate
                 hint: StockStore.watchlists.length >= 12 ? "Maximum of 12 watchlists" : "Create watchlist"
                 onClicked: menu.save("create")
