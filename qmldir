@@ -1,0 +1,16 @@
+singleton StockStore 1.0 StockStore.qml
+singleton MarketStore 1.0 MarketStore.qml
+DataRequest 1.0 DataRequest.qml
+ChartTools 1.0 ChartTools.qml
+CompanyNews 1.0 CompanyNews.qml
+EarningsPanel 1.0 EarningsPanel.qml
+FastWheel 1.0 FastWheel.qml
+FinancialsPanel 1.0 FinancialsPanel.qml
+MetricChart 1.0 MetricChart.qml
+Service 1.0 Service.qml
+SettingsMenu 1.0 SettingsMenu.qml
+StocksWindow 1.0 StocksWindow.qml
+PriceChart 1.0 PriceChart.qml
+ActionButton 1.0 ActionButton.qml
+Label 1.0 Label.qml
+BarWidget 1.0 BarWidget.qml

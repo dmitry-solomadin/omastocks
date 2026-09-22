@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.dmitry-solomadin.omastocks",
+  "name": "Omastocks",
+  "version": "0.1.0",
+  "author": "dmitry-solomadin",
+  "license": "MIT",
+  "description": "A tileable stock watchlist with comparison charts, financial statements, earnings, news and an optional favorites ticker.",
+  "kinds": ["service", "bar-widget"],
+  "entryPoints": {"service": "Service.qml", "barWidget": "BarWidget.qml"},
+  "barWidget": {
+    "displayName": "Omastocks",
+    "description": "Favorite stocks. Click to open Omastocks.",
+    "category": "Info",
+    "aliases": ["omastocks", "stocks", "finance", "watchlist"],
+    "allowMultiple": false,
+    "defaultSection": "left",
+    "defaults": {"maxWidth": 360, "showStrip": true, "showPrice": false, "showPercent": true, "showChange": false, "showVolume": true, "showEvents": true},
+    "schema": [
+      {"key": "maxWidth", "type": "integer", "label": "Strip width", "min": 40, "max": 800, "defaultValue": 360},
+      {"key": "showStrip", "type": "boolean", "label": "Show favorites strip", "defaultValue": true},
+      {"key": "showPrice", "type": "boolean", "label": "Price", "defaultValue": false},
+      {"key": "showPercent", "type": "boolean", "label": "Percentage change", "defaultValue": true},
+      {"key": "showChange", "type": "boolean", "label": "Price change ($)", "defaultValue": false},
+      {"key": "showVolume", "type": "boolean", "label": "Chart volume bars", "defaultValue": true},
+      {"key": "showEvents", "type": "boolean", "label": "Chart event markers", "defaultValue": true}
+    ]
+  }
+}

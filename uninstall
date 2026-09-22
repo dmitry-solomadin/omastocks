@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+id="io.github.dmitry-solomadin.omastocks"
+# A marketplace installation may remove this script along with its repository.
+# Keep the entire removal in one parsed function before asking Omarchy to remove it.
+remove_plugin() {
+  omarchy plugin remove "$id" "$@"
+  rm -f -- "${XDG_DATA_HOME:-$HOME/.local/share}/applications/$id.desktop"
+  echo "Omastocks uninstalled. Your watchlist is preserved in the user state directory."
+}
+remove_plugin "$@"

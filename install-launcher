@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd -- "$(dirname -- "$0")" && pwd)"
+applications="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+mkdir -p "$applications"
+install -m 644 "$root/omastocks.desktop" "$applications/io.github.dmitry-solomadin.omastocks.desktop"
+echo "Omastocks launcher installed."

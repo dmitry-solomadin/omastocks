@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd -- "$(dirname -- "$0")" && pwd)"
+id="io.github.dmitry-solomadin.omastocks"
+target="$HOME/.config/omarchy/plugins/$id"
+omarchy plugin validate "$root"
+if [[ -e "$target" || -L "$target" ]]; then
+  [[ "$(readlink -f "$target")" == "$root" ]] || { echo "Already installed at $target; move it aside first." >&2; exit 1; }
+else
+  mkdir -p "$(dirname "$target")"
+  ln -s "$root" "$target"
+fi
+"$root/install-launcher"
+omarchy-shell shell rescanPlugins >/dev/null
+omarchy plugin enable "$id" --section left
+echo "Installed. Open Omastocks from your launcher or the favorites strip."

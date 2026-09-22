@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Omastocks
+Comment=Stock watchlists, charts, financials and news
+Exec=omarchy-shell io.github.dmitry-solomadin.omastocks open
+Icon=office-chart-line
+Terminal=false
+Categories=Office;Finance;
+Keywords=stocks;finance;watchlist;markets;
+StartupNotify=false
