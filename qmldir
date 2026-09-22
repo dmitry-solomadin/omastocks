@@ -7,6 +7,7 @@ EarningsPanel 1.0 EarningsPanel.qml
 FastWheel 1.0 FastWheel.qml
 FinancialsPanel 1.0 FinancialsPanel.qml
 MetricChart 1.0 MetricChart.qml
+RangeGauge 1.0 RangeGauge.qml
 Service 1.0 Service.qml
 SettingsMenu 1.0 SettingsMenu.qml
 StocksWindow 1.0 StocksWindow.qml

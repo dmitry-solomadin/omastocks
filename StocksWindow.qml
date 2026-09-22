@@ -414,18 +414,17 @@ FloatingWindow {
                         }
                     }
                     GridLayout {
+                        objectName: "marketDetailsGrid"
                         Layout.fillWidth: true
                         columns: window.width < Style.space(900) ? 2 : 3
+                        uniformCellWidths: true
                         rowSpacing: Style.space(22)
                         columnSpacing: Style.space(24)
                         Repeater {
                             model: [
                                 {name: "Open", value: StockStore.price(window.quote.open)},
-                                {name: "Day high", value: StockStore.price(window.quote.high)},
-                                {name: "Day low", value: StockStore.price(window.quote.low)},
                                 {name: "Previous close", value: StockStore.price(window.quote.previous)},
-                                {name: "52-week high", value: StockStore.price(window.quote.yearHigh)},
-                                {name: "52-week low", value: StockStore.price(window.quote.yearLow)},
+                                {name: "52-week range", range: true},
                                 {name: "Volume", value: StockStore.compact(window.quote.volume)},
                                 {name: "Exchange", value: window.quote.exchange || "—"},
                                 {name: "Currency", value: window.quote.currency || "—"}
@@ -435,15 +434,25 @@ FloatingWindow {
                                 {name: "Industry", value: MarketStore.valuation.industry}] : [])
                             ColumnLayout {
                                 required property var modelData
+                                objectName: "marketDetail_" + modelData.name
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                Layout.preferredWidth: 0
+                                Layout.alignment: Qt.AlignTop
                                 spacing: Style.space(6)
                                 Label { text: modelData.name; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
-                                Label { text: modelData.value; font.bold: true; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                                Label { visible: !modelData.range; text: modelData.value || ""; font.bold: true; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                                RangeGauge {
+                                    objectName: modelData.range ? "yearRangeGauge" : ""
+                                    visible: modelData.range === true
+                                    Layout.fillWidth: true
+                                    low: window.quote.yearLow; high: window.quote.yearHigh; price: window.quote.price
+                                }
                             }
                         }
                     }
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                    FinancialsPanel { Layout.fillWidth: true }
+                    FinancialsPanel { Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                     CompanyNews { Layout.fillWidth: true }
                 }

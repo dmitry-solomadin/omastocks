@@ -78,6 +78,8 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 - Star a stock to show it in the bar. Removing it from the watchlist also removes
   its star. **Undo** restores an accidentally removed entry.
 - Choose 1D, 1W, 1M, 3M, 1Y or 5Y; hover the chart to inspect a price.
+- Market Details uses equal-width columns. Its 52-week range gauge shows the low
+  and high at either end, with a dot for the current price; hover for exact values.
 - Click and drag across the chart to compare two points. The highlighted interval
   shows the price and percentage change from its earlier point to its later one,
   in either drag direction. Endpoints snap to available quotes. Click again or
@@ -140,6 +142,7 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 Expand **Financials** below Market Details. Choose **Income**, **Balance Sheet**,
 or **Cash Flow**, then **Quarterly** or **Annual**. Click any metric row to chart
 its history. Scroll the table horizontally in narrow windows.
+Vertical wheel scrolling over the table continues scrolling the company pane.
 
 - Income: revenue, cost of revenue, gross profit, R&D, selling/administration,
   operating income, EBITDA, net income and diluted EPS.

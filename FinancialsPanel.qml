@@ -7,6 +7,7 @@ import "."
 ColumnLayout {
     id: root
     objectName: "financialsPanel"
+    property var verticalFlickable: null
     property string section: "income"
     property string selectedMetric: "TotalRevenue"
     readonly property var statement: (MarketStore.financials.statements || []).find(row => row.id === section) || {dates: [], rows: []}
@@ -94,6 +95,8 @@ ColumnLayout {
             Column {
                 id: table
                 width: tableScroll.contentWidth
+                // Handle vertical wheel input before the nested horizontal ScrollView consumes it.
+                FastWheel { flickable: root.verticalFlickable }
                 Row {
                     Label { width: root.nameWidth; height: Style.space(32); text: "Period ended"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
                     Repeater {
