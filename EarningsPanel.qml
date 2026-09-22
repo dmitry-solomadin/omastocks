@@ -18,6 +18,12 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Label { text: "EARNINGS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+        ActionButton {
+            text: "Earnings calls ↗"
+            hint: "Open earnings call transcripts on Yahoo Finance"
+            enabled: !!StockStore.selected
+            onClicked: Qt.openUrlExternally("https://finance.yahoo.com/quote/" + encodeURIComponent(StockStore.selected) + "/earnings-calls/")
+        }
         ActionButton { text: "↻"; hint: MarketStore.earnings.error || MarketStore.earnings.notice || "Refresh earnings"; enabled: !MarketStore.eventsRequest.busy; onClicked: MarketStore.eventsRequest.reload(true) }
     }
     Label {
