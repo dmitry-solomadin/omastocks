@@ -35,8 +35,17 @@ ColumnLayout {
         Item { Layout.fillWidth: true }
         Label {
             visible: MarketStore.analystsOpen && (root.distribution || root.report.stale === true)
+            Layout.minimumWidth: 0
             text: (root.distribution ? root.total + " analysts" : "") + (root.report.stale ? (root.distribution ? " · " : "") + "Saved data" : "")
             font.pixelSize: Style.font.bodySmall; color: Color.muted
+        }
+        ActionButton {
+            objectName: "analystsSourceLink"
+            visible: MarketStore.analystsOpen
+            text: "Nasdaq ↗"
+            hint: "Open analyst ratings and price targets on Nasdaq"
+            onClicked: Qt.openUrlExternally("https://www.nasdaq.com/market-activity/stocks/"
+                + encodeURIComponent(StockStore.selected.toLowerCase()) + "/analyst-research")
         }
         ActionButton {
             objectName: "analystsRefresh"

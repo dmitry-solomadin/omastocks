@@ -26,6 +26,14 @@ ColumnLayout {
         }
         Item { Layout.fillWidth: true }
         ActionButton {
+            objectName: "financialsSourceLink"
+            visible: MarketStore.financialsOpen
+            text: "Yahoo ↗"
+            hint: "Open this statement on Yahoo Finance"
+            onClicked: Qt.openUrlExternally("https://finance.yahoo.com/quote/" + encodeURIComponent(StockStore.selected)
+                + "/" + ({income: "financials", balance: "balance-sheet", cash: "cash-flow"}[root.section] || "financials") + "/")
+        }
+        ActionButton {
             visible: MarketStore.financialsOpen
             text: "Filings ↗"
             hint: "Company filings on SEC EDGAR"

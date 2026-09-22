@@ -170,6 +170,8 @@ Vertical wheel scrolling over the table continues scrolling the company pane.
 - Market Details adds TradingView market cap, trailing P/E, price/sales,
   price/book, EV/EBITDA, sector and industry for supported US listings.
 - **Filings ↗** opens the symbol's SEC EDGAR company page in your browser.
+- **Yahoo ↗** opens the selected Income, Balance Sheet, or Cash Flow statement on
+  Yahoo Finance for more detail.
 
 Yahoo's fundamentals-timeseries endpoint supplies the statements. It currently
 usually returns **four annual and five quarterly periods**, with coverage varying
@@ -190,7 +192,8 @@ source and error details; saved results remain available after a failed refresh.
 
 ## Analyst recommendations
 
-Expand **Analysts** below Financials to see:
+Expand **Analysts** below Financials. Use **Nasdaq ↗** in its header to open the
+stock's full analyst-research page. The section shows:
 
 - A green/neutral/red **Buy / Hold / Sell** distribution with counts and the total
   number of analysts. Hover a segment for its percentage.
