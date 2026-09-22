@@ -3,7 +3,7 @@
 A window-first stock watchlist for Omarchy, with an optional favorites strip.
 
 Named watchlists, performance overviews, earnings calendars, price and fundamental
-comparisons, company filings, insider activity, charts, financials and news. No API keys.
+comparisons, insider activity, charts, financials and news. No API keys.
 
 Built with Quickshell and Omarchy's live theme tokens. The main view is a regular
 Wayland window: tile it, move it to a workspace, or put it in the scratchpad.
@@ -154,15 +154,22 @@ horizontally in narrow windows; vertical wheel scrolling still moves the page.
   denominator; zero estimates leave the percentage unavailable. Timing is shown
   only if explicitly supplied. Nasdaq/Zacks dates are estimates; unsupported
   instruments and missing dates are listed separately. Six-hour cache.
-- **Company activity:** expand beneath Analysts in the Stock view. **Filings**
-  shows up to 40 recent records with form, filing date, description and reporting
-  owner, linking to Nasdaq's QuoteMedia document or SEC when supplied. **Insiders**
-  shows up to 30 reported transactions with trade date, person, role, transaction
+- **Insider activity:** expand beneath Analysts in the Stock view. A **Past 3
+  months** summary shows net buying/selling by shares, shares bought versus sold,
+  their proportions, and transaction counts. These are Nasdaq's complete
+  three-month aggregate fields, not a sum of the 30 recent records shown below.
+  The window is trailing three months, not since the last earnings report or a
+  fiscal quarter boundary. Buy counts are labeled open-market buys; sales include
+  automatic sales. This measures share volume, not dollars or the number of
+  individual insiders. Missing totals stay unknown; zero activity is distinguished
+  from balanced buying/selling. Hover for exact share counts and refresh for the
+  retrieval time; provider as-of text is shown when supplied.
+  Below the summary are up to 30 reported transactions with trade date, person, role, transaction
   type, shares, price, direct/indirect ownership and shares held. Types such as
   automatic sales, option exercises and non-open-market dispositions retain the
   provider's wording; they are not recategorized as discretionary buys/sells.
   Insider links open the Nasdaq insider page, not an inferred matching Form 4.
-  Both tabs load only when viewed and cache independently for one hour.
+  Data loads only when expanded and caches for one hour.
 
 Research batches run at most four symbol requests concurrently, separately from
 the watchlist lock. Changing a list/view discards obsolete replies. Manual refresh
@@ -351,9 +358,8 @@ These are public, unofficial endpoints and may change or be rate-limited.
 The MIT license covers the code; external market data and publisher images
 remain subject to their respective providers' terms.
 
-Company activity uses the existing Nasdaq host; document/insider/SEC links open
-only on click in the browser (including `app.quotemedia.com` for provider-hosted
-filings). No direct SEC background feed, new credentials or paid API is required.
+Insider activity uses the existing Nasdaq host; insider links open only on click
+in the browser. No direct SEC background feed, credentials or paid API is required.
 
 ## Development
 
@@ -367,7 +373,7 @@ The watchlist additions are separate modules to make iteration/removal contained
 | Overview | `WatchlistOverview.qml` | `bin/overview.py` |
 | Fundamental comparison | `FundamentalComparison.qml` | `bin/fundamental_compare.py` |
 | Earnings calendar | `EarningsCalendar.qml` | `bin/earnings_calendar.py` |
-| Filings / insiders | `CompanyActivity.qml` | `bin/company_activity.py` |
+| Insider activity | `CompanyActivity.qml` | `bin/company_activity.py` |
 
 `WatchlistWorkspace.qml` mounts Overview and Calendar; `FundamentalComparison.qml`
 is mounted beneath the chart only in Compare mode. `WatchlistBatch.qml`

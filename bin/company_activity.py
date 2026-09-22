@@ -1,7 +1,7 @@
-"""Nasdaq filings and insider records. No inferred trade classifications."""
+"""Nasdaq insider transactions and provider-wide three-month aggregates."""
 
 import re
-from urllib.parse import urlsplit, urljoin, parse_qs
+from urllib.parse import urlsplit, urljoin
 from stocks import number
 
 
@@ -12,31 +12,35 @@ def safe_link(value, hosts):
     return value if parsed.scheme == "https" and parsed.hostname in hosts else ""
 
 
-def parse_filings(document, ticker, parse_date):
-    if str(document.get("symbol", "")).upper() != ticker:
-        raise ValueError("Filing data did not match this symbol.")
-    if not isinstance(document.get("rows"), list):
-        raise ValueError("Filing records are unavailable for this symbol.")
-    rows, seen = [], set()
-    for row in document["rows"]:
-        url = safe_link((row.get("view") or {}).get("htmlLink"), {"app.quotemedia.com", "www.sec.gov", "sec.gov"})
-        day = parse_date(row.get("filed"))
-        form = str(row.get("formType") or "").strip()
-        if not url or not day or not form or url in seen:
-            continue
-        seen.add(url)
-        description = parse_qs(urlsplit(url).query).get("formDescription", [""])[0]
-        rows.append({"date": day, "form": form, "description": description,
-                     "period": parse_date(row.get("period")), "owner": row.get("reportingOwner") or "", "url": url})
-    return {"symbol": ticker, "rows": sorted(rows, key=lambda r: r["date"], reverse=True)[:40], "source": "Nasdaq / QuoteMedia"}
+def parse_summary(document):
+    def metric(section, label, integer=False):
+        matches = [row for row in (document.get(section) or {}).get("rows") or []
+                   if isinstance(row, dict) and " ".join(str(row.get("insiderTrade") or "").split()).casefold() == label.casefold()]
+        if len(matches) != 1:
+            return None
+        raw = matches[0].get("months3")
+        value = number(raw.replace(",", "").strip() if isinstance(raw, str) else raw)
+        return value if value is not None and value >= 0 and (not integer or value.is_integer()) else None
+
+    bought = metric("numberOfSharesTraded", "Number of Shares Bought")
+    sold = metric("numberOfSharesTraded", "Number of Shares Sold")
+    total = bought + sold if bought is not None and sold is not None else None
+    return {"period": "Past 3 months", "boughtShares": bought, "soldShares": sold,
+            "buyTrades": metric("numberOfTrades", "Number of Open Market Buys", True),
+            "sellTrades": metric("numberOfTrades", "Number of Sells", True),
+            "netShares": bought - sold if total is not None else None,
+            "buyFraction": bought / total if total is not None and total > 0 else None,
+            "asOf": (document.get("numberOfSharesTraded") or {}).get("asOf") or ""}
 
 
 def parse_insiders(document, ticker, parse_date):
+    summary = parse_summary(document)
     table = (document.get("transactionTable") or {}).get("table") or {}
-    if not isinstance(table.get("rows"), list):
+    table_available = isinstance(table.get("rows"), list)
+    if not table_available and all(summary[key] is None for key in ("boughtShares", "soldShares", "buyTrades", "sellTrades")):
         raise ValueError("Insider transactions are unavailable for this symbol.")
     rows = []
-    for row in table["rows"]:
+    for row in table.get("rows") or []:
         day, name = parse_date(row.get("lastDate")), str(row.get("insider") or "").strip()
         if not day or not name:
             continue
@@ -49,12 +53,13 @@ def parse_insiders(document, ticker, parse_date):
                      "type": row.get("transactionType") or "Unspecified", "ownership": row.get("ownType") or "",
                      "shares": numeric("sharesTraded"), "price": numeric("lastPrice"), "held": numeric("sharesHeld"),
                      "currency": "USD" if str(row.get("lastPrice") or "").startswith("$") else "", "url": url})
-    return {"symbol": ticker, "rows": sorted(rows, key=lambda r: r["date"], reverse=True)[:30], "source": "Nasdaq"}
+    return {"symbol": ticker, "rows": sorted(rows, key=lambda r: r["date"], reverse=True)[:30],
+            "summary": summary, "source": "Nasdaq", "insiderSchema": 2,
+            "notice": "" if table_available else "Recent transaction details are unavailable."}
 
 
-def activity(action, ticker, request, parse_date):
+def activity(ticker, request, parse_date):
     if not re.fullmatch(r"[A-Z][A-Z0-9.-]*", ticker):
-        return {"symbol": ticker, "rows": [], "notice": "Coverage is available for supported US-listed companies."}
-    endpoint = "sec-filings?limit=40" if action == "filings" else "insider-trades?limit=30"
-    document = request("/api/company/" + ticker + "/" + endpoint)
-    return (parse_filings if action == "filings" else parse_insiders)(document, ticker, parse_date)
+        return {"symbol": ticker, "rows": [], "insiderSchema": 2, "notice": "Coverage is available for supported US-listed companies."}
+    document = request("/api/company/" + ticker + "/insider-trades?limit=30")
+    return parse_insiders(document, ticker, parse_date)

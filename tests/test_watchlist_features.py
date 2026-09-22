@@ -104,14 +104,54 @@ class ResearchFeatures(unittest.TestCase):
         self.assertEqual(revenue["date"],"2026-06-30")
         self.assertEqual(next(c for c in result["cells"] if c["key"]=="operatingMargin")["value"],0)
 
-    def test_filings_validate_dates_links_identity_and_deduplicate(self):
-        good = {"filed":"09/21/2026","period":"06/30/2026","formType":"10-Q", "view":{"htmlLink":"https://app.quotemedia.com/data/downloadFiling?ref=1&formDescription=Quarterly+report"}}
-        doc = {"symbol":"TEST","rows":[good,good,{**good,"filed":"bad"},{**good,"view":{"htmlLink":"javascript:alert(1)"}}]}
-        result = company_activity.parse_filings(doc,"TEST",research.date_string)
-        self.assertEqual(len(result["rows"]),1)
-        self.assertEqual(result["rows"][0]["description"],"Quarterly report")
-        with self.assertRaises(ValueError): company_activity.parse_filings(doc,"OTHER",research.date_string)
-        with self.assertRaises(ValueError): company_activity.parse_filings({"symbol":"TEST"},"TEST",research.date_string)
+    def summary_document(self, bought="97,699", sold="201,847", buys="10", sells="11"):
+        return {"numberOfSharesTraded":{"rows":[
+            {"insiderTrade":"Number of Shares Bought","months3":bought,"months12":"999,999"},
+            {"insiderTrade":"Number of Shares Sold","months3":sold,"months12":"0"}]},
+            "numberOfTrades":{"rows":[{"insiderTrade":"Number of Open Market Buys","months3":buys},
+                                       {"insiderTrade":"Number of Sells","months3":sells}]}}
+
+    def test_insider_summary_uses_provider_totals_not_visible_transactions(self):
+        document = self.summary_document()
+        # The recent-page sample is a purchase but the complete summary is net selling.
+        document["transactionTable"] = {"table":{"rows":[{"lastDate":"9/21/2026","insider":"PERSON","transactionType":"Buy","sharesTraded":"5"}]}}
+        report = company_activity.parse_insiders(document,"TEST",research.date_string)
+        summary = report["summary"]
+        self.assertEqual(summary["netShares"],-104148)
+        self.assertAlmostEqual(summary["buyFraction"],97699 / 299546)
+        self.assertEqual((summary["buyTrades"],summary["sellTrades"]),(10,11))
+        self.assertEqual(len(report["rows"]),1)
+
+    def test_insider_summary_distinguishes_missing_zero_and_balanced(self):
+        for bought,sold,net,fraction in [("0","0",0,None),("100","0",100,1),("0","100",-100,0),
+                                         ("100","100",0,.5),("N/A","100",None,None),(None,"100",None,None),
+                                         ("-2","100",None,None),(True,"100",None,None),("inf","100",None,None)]:
+            with self.subTest(bought=bought,sold=sold):
+                summary = company_activity.parse_summary(self.summary_document(bought,sold))
+                self.assertEqual(summary["netShares"],net)
+                self.assertEqual(summary["buyFraction"],fraction)
+        summary = company_activity.parse_summary(self.summary_document(buys="1.5",sells="—"))
+        self.assertIsNone(summary["buyTrades"])
+        self.assertIsNone(summary["sellTrades"])
+
+    def test_insider_summary_survives_missing_details_without_fabricating_transactions(self):
+        report = company_activity.parse_insiders(self.summary_document(),"TEST",research.date_string)
+        self.assertEqual(report["rows"],[])
+        self.assertEqual(report["summary"]["netShares"],-104148)
+        self.assertIn("unavailable",report["notice"])
+        report = company_activity.parse_insiders({"transactionTable":{"table":{"rows":[]}}},"TEST",research.date_string)
+        self.assertIsNone(report["summary"]["netShares"])
+
+    def test_old_insider_cache_is_refreshed_and_removed_filings_action_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(research,"state_directory",return_value=Path(directory)):
+            with patch.object(research,"load",return_value={"symbol":"TEST","rows":[]}) as load:
+                research.main(["insiders","TEST"])
+                load.return_value = {"symbol":"TEST","rows":[],"insiderSchema":2,"summary":{"netShares":123}}
+                result = research.main(["insiders","TEST"])
+                self.assertEqual(result["summary"]["netShares"],123)
+                research.main(["insiders","TEST"])
+                self.assertEqual(load.call_count,2)
+            with self.assertRaises(ValueError): research.main(["filings","TEST"])
 
     def test_insiders_preserve_transaction_types_missing_prices_and_zero(self):
         source = {"lastDate":"9/21/2026","insider":"PERSON","transactionType":"Option Execute", "sharesTraded":"1,234", "lastPrice":"", "sharesHeld":"0"}
@@ -135,9 +175,9 @@ class ResearchFeatures(unittest.TestCase):
 
     def test_new_research_caches_keep_saved_results_and_manual_refresh_bypasses_backoff(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(research,"state_directory",return_value=Path(directory)):
-            for action in ["overview","calendar","fundamentals","filings","insiders"]:
+            for action in ["overview","calendar","fundamentals","insiders"]:
                 args = [action,"TEST"] + (["annual"] if action=="fundamentals" else [])
-                with patch.object(research,"load",return_value={"symbol":"TEST","sentinel":action}) as load:
+                with patch.object(research,"load",return_value={"symbol":"TEST","sentinel":action,"insiderSchema":2}) as load:
                     saved = research.main(args)
                     self.assertEqual(research.main(args),saved)
                     load.side_effect = ValueError("offline")
