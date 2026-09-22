@@ -9,7 +9,7 @@ import "."
 FloatingWindow {
     id: window
     property var shell: null
-    title: "Omastocks"
+    title: "Stocks"
     visible: false
     implicitWidth: Style.space(1100)
     implicitHeight: Style.space(740)
@@ -60,10 +60,10 @@ FloatingWindow {
                 RowLayout {
                     Layout.fillWidth: true
                     Label {
-                        text: "Omastocks"; font.pixelSize: Style.space(24); font.bold: true; Layout.fillWidth: true
+                        text: "Stocks"; font.pixelSize: Style.space(24); font.bold: true; Layout.fillWidth: true
                         fontSizeMode: Text.HorizontalFit; minimumPixelSize: Style.space(14)
                     }
-                    ActionButton { text: "↻"; hint: "Refresh prices · Ctrl+R"; enabled: !StockStore.busy; onClicked: StockStore.refresh(true); font.pixelSize: Style.space(18) }
+                    ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.busy; onClicked: StockStore.refresh(true); font.pixelSize: Style.space(18) }
                     ActionButton { text: "\uf013"; hint: "Settings"; font.pixelSize: Style.space(18); onClicked: settingsMenu.open() }
                 }
                 Controls.TextField {
@@ -313,7 +313,7 @@ FloatingWindow {
             anchors.left: sidebar.right
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.bottom: footer.top
+            anchors.bottom: parent.bottom
             clip: true
             contentWidth: availableWidth
             ColumnLayout {
@@ -324,6 +324,7 @@ FloatingWindow {
                     Layout.margins: Style.space(24)
                     Label { text: StockStore.selected || "Your markets, at a glance"; font.pixelSize: Style.space(22); font.bold: true; Layout.fillWidth: true }
                     ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Color.accent : Color.foreground; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
+                    ActionButton { objectName: "undoRemoval"; text: "Undo"; hint: StockStore.removed ? "Restore " + StockStore.removed.symbol : ""; visible: StockStore.removed !== null; onClicked: StockStore.undo() }
                     ActionButton { text: StockStore.tracked ? "Remove" : "+ Watchlist"; hint: StockStore.tracked ? "Remove from watchlist" : "Add to watchlist"; visible: !!StockStore.selected; enabled: !StockStore.busy; onClicked: StockStore.tracked ? StockStore.remove() : StockStore.add() }
                 }
                 Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .09) }
@@ -479,27 +480,6 @@ FloatingWindow {
                     wrapMode: Text.WordWrap
                     color: Color.muted
                 }
-            }
-        }
-        Rectangle {
-            id: footer
-            anchors.left: sidebar.right; anchors.right: parent.right; anchors.bottom: parent.bottom
-            height: Style.space(48)
-            color: window.warning ? Util.alpha(Color.urgent, .06) : "transparent"
-            Rectangle { width: parent.width; height: 1; color: Util.alpha(Color.foreground, .09) }
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: Style.space(24); anchors.rightMargin: Style.space(12)
-                Label {
-                    Layout.fillWidth: true
-                    text: StockStore.removed ? "Removed " + StockStore.removed.symbol : window.warning || (StockStore.busy ? "Updating market data…" : "Yahoo Finance  ·  Prices may be delayed")
-                    color: window.warning ? Color.urgent : Color.muted
-                    font.pixelSize: Style.font.bodySmall
-                    Ui.PanelToolTip { visible: footerMouse.containsMouse && !!window.warning; text: window.warning }
-                    MouseArea { id: footerMouse; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
-                }
-                ActionButton { text: "Undo"; visible: StockStore.removed !== null; onClicked: StockStore.undo() }
-                ActionButton { text: "Retry"; visible: !!window.warning && !StockStore.busy; onClicked: StockStore.refresh(true) }
             }
         }
     }

@@ -12,7 +12,7 @@ Item {
     function open() {
         if (window.visible) {
             for (const toplevel of ToplevelManager.toplevels.values)
-                if (toplevel.title === "Omastocks") toplevel.activate()
+                if (toplevel.title === window.title) toplevel.activate()
         }
         window.visible = true
         window.minimized = false

@@ -7,6 +7,7 @@ plus quarterly/annual financial statements and valuation ratios. No API keys.
 
 Built with Quickshell and Omarchy's live theme tokens. The main view is a regular
 Wayland window: tile it, move it to a workspace, or put it in the scratchpad.
+The window and its heading are named **Stocks**; the plugin and launcher are **Omastocks**.
 
 ![Omastocks watchlist and stock chart](preview.png)
 
@@ -76,7 +77,7 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 - Click **+** beside a search result to add it directly to your watchlist, or
   click the result to preview it first.
 - Star a stock to show it in the bar. Removing it from the watchlist also removes
-  its star. **Undo** restores an accidentally removed entry.
+  its star. **Undo** beside the watchlist controls restores an accidentally removed entry.
 - Choose 1D, 1W, 1M, 3M, 1Y or 5Y; hover the chart to inspect a price.
 - Market Details uses equal-width columns. Its 52-week range gauge shows the low
   and high at either end, with a dot for the current price; hover for exact values.
