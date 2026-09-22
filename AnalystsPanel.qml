@@ -87,16 +87,20 @@ ColumnLayout {
                 }
             }
         }
-        RowLayout {
+        Row {
+            objectName: "analystDistributionLabels"
             visible: root.available
             Layout.fillWidth: true
             Repeater {
                 model: root.groups
                 Label {
+                    id: distributionLabel
                     required property var modelData
-                    Layout.fillWidth: true; Layout.preferredWidth: 0
+                    width: root.distribution ? parent.width * root.summary[modelData.key] / root.total : parent.width / root.groups.length
                     text: modelData.label + " " + root.count(root.summary[modelData.key])
                     color: modelData.color; font.pixelSize: Style.font.bodySmall
+                    HoverHandler { id: labelHover }
+                    Ui.PanelToolTip { visible: labelHover.hovered; text: distributionLabel.text }
                 }
             }
         }
