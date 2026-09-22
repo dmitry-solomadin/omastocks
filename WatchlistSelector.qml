@@ -20,6 +20,7 @@ RowLayout {
             id: dropdown
             objectName: "watchlistSelector"
             anchors.fill: parent
+            rowHeight: editButton.implicitHeight
             opacity: selector.revealed ? 1 : 0
             options: StockStore.watchlists.map(row=>({value:row.id,label:row.name}))
             value: StockStore.activeWatchlist
@@ -29,15 +30,27 @@ RowLayout {
                 dropdown.value = Qt.binding(() => StockStore.activeWatchlist)
             }
         }
-        Label {
-            anchors.fill: parent
-            anchors.leftMargin: Style.spacing.controlPaddingX
+        // Match Dropdown's Text item: border inset, baseline and renderer.
+        Text {
+            objectName: "watchlistRestingName"
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: Border.left(Border.controlSpec("hover-cursor", dropdown.foreground, dropdown.accent)) + Style.spacing.controlPaddingX
+            anchors.rightMargin: Border.right(Border.controlSpec("hover-cursor", dropdown.foreground, dropdown.accent)) * 2
+                + Style.spacing.controlGap + Style.spacing.md + chevronMetrics.width
             visible: !selector.revealed
             text: StockStore.watchlistName
-            verticalAlignment: Text.AlignVCenter
+            color: dropdown.foreground
+            font.family: dropdown.fontFamily
+            font.pixelSize: Style.font.body
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
         }
+        TextMetrics { id: chevronMetrics; text: "󰅀"; font.family: dropdown.fontFamily; font.pixelSize: Style.font.body }
     }
     ActionButton {
+        id: editButton
         objectName: "editWatchlists"
         text: "\uf040"
         hint: "Manage watchlists"

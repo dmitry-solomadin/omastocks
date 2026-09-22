@@ -115,68 +115,67 @@ Controls.Popup {
                 spacing: Style.space(6)
                 Repeater {
                     model: StockStore.watchlists
-                    RowLayout {
+                    Item {
                         id: row
                         required property var modelData
                         readonly property bool editing: menu.editingId === modelData.id
                         objectName: "watchlistRow_" + modelData.id
                         Layout.fillWidth: true
                         Layout.preferredHeight: Style.space(36)
-                        spacing: Style.space(4)
                         HoverHandler { id: rowHover }
-                        Item {
-                            id: nameGroup
-                            visible: !row.editing
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            implicitWidth: nameLabel.implicitWidth + editButton.implicitWidth + Style.space(4)
-                            implicitHeight: Style.space(36)
-                            Label {
-                                id: nameLabel
-                                text: row.modelData.name
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: Math.min(implicitWidth, Math.max(0, nameGroup.width - editButton.width - Style.space(4)))
-                            }
-                            ActionButton {
-                                id: editButton
-                                anchors.left: nameLabel.right
-                                anchors.leftMargin: Style.space(4)
-                                anchors.verticalCenter: parent.verticalCenter
+                        Rectangle {
+                            objectName: "watchlistRowHighlight_" + row.modelData.id
+                            anchors.fill: parent
+                            radius: Style.cornerRadius
+                            color: rowHover.hovered || rowEdit.activeFocus ? Util.alpha(Color.foreground, .07) : "transparent"
+                        }
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: Style.space(4)
+                            Controls.AbstractButton {
+                                id: rowEdit
                                 objectName: "editWatchlist_" + row.modelData.id
-                                text: "\uf040"
-                                hint: "Rename " + row.modelData.name
-                                opacity: rowHover.hovered || activeFocus ? 1 : 0
+                                visible: !row.editing
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                implicitHeight: Style.space(36)
                                 activeFocusOnTab: true
                                 enabled: !StockStore.busy
+                                Accessible.name: "Rename " + row.modelData.name
+                                HoverHandler { cursorShape: Qt.IBeamCursor }
+                                contentItem: Label {
+                                    text: row.modelData.name
+                                    leftPadding: Style.space(8)
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                                 onClicked: { menu.editList(row.modelData.id); nameInput.forceActiveFocus(); nameInput.selectAll() }
                             }
-                        }
-                        NameField {
-                            id: nameInput
-                            objectName: "watchlistRenameInput_" + row.modelData.id
-                            visible: row.editing
-                            text: row.editing ? menu.editingName : ""
-                            Accessible.name: "Rename " + row.modelData.name
-                            enabled: !menu.pendingAction
-                            onTextEdited: menu.editingName = text
-                            onAccepted: menu.save("rename")
-                            Keys.onEscapePressed: { menu.editingId = ""; closeButton.forceActiveFocus() }
-                        }
-                        ActionButton {
-                            objectName: "confirmWatchlist_" + row.modelData.id
-                            visible: row.editing
-                            text: "\uf00c"
-                            hint: "Save watchlist name"
-                            enabled: menu.canRename
-                            onClicked: menu.save("rename")
-                        }
-                        ActionButton {
-                            objectName: "removeWatchlist_" + row.modelData.id
-                            text: "\uf1f8"
-                            enabled: StockStore.watchlists.length > 1 && !StockStore.busy
-                            hint: StockStore.watchlists.length <= 1 ? "Keep at least one watchlist" : "Remove " + row.modelData.name
-                            onClicked: menu.save("remove", row.modelData.id)
+                            NameField {
+                                id: nameInput
+                                objectName: "watchlistRenameInput_" + row.modelData.id
+                                visible: row.editing
+                                text: row.editing ? menu.editingName : ""
+                                Accessible.name: "Rename " + row.modelData.name
+                                enabled: !menu.pendingAction
+                                onTextEdited: menu.editingName = text
+                                onAccepted: menu.save("rename")
+                                Keys.onEscapePressed: { menu.editingId = ""; closeButton.forceActiveFocus() }
+                            }
+                            ActionButton {
+                                objectName: "confirmWatchlist_" + row.modelData.id
+                                visible: row.editing
+                                text: "\uf00c"
+                                hint: "Save watchlist name"
+                                enabled: menu.canRename
+                                onClicked: menu.save("rename")
+                            }
+                            ActionButton {
+                                objectName: "removeWatchlist_" + row.modelData.id
+                                text: "\uf1f8"
+                                enabled: StockStore.watchlists.length > 1 && !StockStore.busy
+                                hint: StockStore.watchlists.length <= 1 ? "Keep at least one watchlist" : "Remove " + row.modelData.name
+                                onClicked: menu.save("remove", row.modelData.id)
+                            }
                         }
                     }
                 }
