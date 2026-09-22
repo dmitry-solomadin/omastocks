@@ -257,10 +257,10 @@ Item {
             }
             ctx.restore()
             if (root.volumeHeight) {
-                const barWidth = Math.max(1, Math.min(Style.space(8), (root.points.length > 1 ? root.pointX(1) - root.pointX(0) : root.plotWidth) * .7))
                 root.points.forEach((point, index) => {
                     const volume = root.volumes[index]
                     if (volume === null || volume === undefined) return
+                    const barWidth = ChartMath.volumeBarWidth(root.points, index, root.period, root.timeDomain, root.plotWidth, Style.space(8))
                     const height = volume / root.maxVolume * root.volumeHeight
                     ctx.fillStyle = Util.alpha(index && point[1] < root.points[index - 1][1] ? StockStore.loss : StockStore.gain, .5)
                     ctx.fillRect(root.pointX(index) - barWidth / 2, root.volumeTop + root.volumeHeight - height, barWidth, height)

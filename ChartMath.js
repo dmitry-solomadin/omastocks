@@ -14,6 +14,16 @@ function pointFraction(points, index, period, domain) {
     return index / Math.max(1, points.length - 1)
 }
 
+function volumeBarWidth(points, index, period, domain, plotWidth, maximum) {
+    if (!points.length || index < 0 || index >= points.length) return 0
+    const center = pointFraction(points, index, period, domain)
+    let spacing = 1
+    // Sparse extended-session samples must not set the width of regular bars.
+    if (index > 0) spacing = Math.min(spacing, center - pointFraction(points, index - 1, period, domain))
+    if (index + 1 < points.length) spacing = Math.min(spacing, pointFraction(points, index + 1, period, domain) - center)
+    return Math.max(0, Math.min(maximum, spacing * plotWidth * .7))
+}
+
 function nearestIndex(points, fraction, period, domain) {
     if (!points.length) return -1
     fraction = Math.max(0, Math.min(1, fraction))

@@ -15,6 +15,22 @@ assert.equal(chart.nearestIndex(points, 1, "1D", open), 2)
 assert.equal(chart.nearestIndex(points, -1, "1D", open), 0)
 console.log("PASS: open-session time axis and irregular timestamps, with no future samples")
 
+// ELF-like sparse premarket samples followed by five-minute regular bars.
+const sparse = [0, 6600, 6900, 8100, 8400, 8700, 8850].map(t => [t, 100])
+for (const width of [160, 500, 1400]) {
+    const domain = [0, 57600]
+    const widths = sparse.map((_, i) => chart.volumeBarWidth(sparse, i, "1D", domain, width, 8))
+    for (let i = 1; i < sparse.length; i++) {
+        const gap = (chart.pointFraction(sparse, i, "1D", domain) - chart.pointFraction(sparse, i - 1, "1D", domain)) * width
+        assert.ok((widths[i - 1] + widths[i]) / 2 < gap, "Volume bars must not overlap")
+    }
+    assert.ok(Math.abs(widths[4] - Math.min(8, 300 / 57600 * width * .7)) < 1e-10)
+}
+assert.equal(chart.volumeBarWidth([[0, 100]], 0, "1D", [0, 1], 500, 8), 8)
+assert.equal(chart.volumeBarWidth([], 0, "1D", [0, 1], 500, 8), 0)
+assert.equal(chart.volumeBarWidth(sparse, 2, "1M", [0, 8850], 500, 8), 8)
+console.log("PASS: volume widths follow neighboring intervals across sparse extended hours and dense samples")
+
 for (const [period, start, end, now] of [
     ["1D", 1000, 4600, 999],
     ["1D", 1000, 4600, 4600],
