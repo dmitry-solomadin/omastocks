@@ -415,6 +415,8 @@ Assumes a running Omarchy shell with `qs.Commons` and `qs.Ui`, Quickshell's
 `FloatingWindow`, and Yahoo's current public chart/search response shapes.
 The UI uses Omarchy's font, spacing, rounding, foreground, background and accent;
 gains and losses consistently use green/red, independent of the theme palette.
+Use `Ui.PanelToolTip` for every tooltip so it follows Omarchy's tooltip theme;
+do not use Qt's default attached `Controls.ToolTip`.
 
 Inspired by the favorites-strip interaction in CostaFot's Markets plugin.
 This is a separate implementation focused on stocks and a workspace window.

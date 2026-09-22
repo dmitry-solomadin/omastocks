@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Ui as Ui
 import "."
 
 // Shared presentation only; each feature owns its data and transforms.
@@ -47,12 +48,12 @@ Flickable {
                     height: parent.height
                     Label { anchors.fill: parent; verticalAlignment: Text.AlignVCenter; text: tableRow.modelData.label; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: tableRow.modelData.symbol ? Color.accent : Color.foreground }
                     MouseArea {
+                        id: rowMouse
                         anchors.fill: parent; hoverEnabled: true
                         cursorShape: tableRow.modelData.symbol ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onClicked: if (tableRow.modelData.symbol) StockStore.select(tableRow.modelData.symbol)
-                        Controls.ToolTip.visible: containsMouse && !!tableRow.modelData.hint
-                        Controls.ToolTip.text: tableRow.modelData.hint || ""
                     }
+                    Ui.PanelToolTip { visible: rowMouse.containsMouse && !!tableRow.modelData.hint; text: tableRow.modelData.hint || "" }
                 }
                 Row {
                     x: root.firstWidth
@@ -71,11 +72,11 @@ Flickable {
                                 Label { width: parent.width; visible: !!cell.modelData.subtext; text: cell.modelData.subtext || ""; color: Color.muted; font.pixelSize: Style.font.bodySmall }
                             }
                             MouseArea {
+                                id: cellMouse
                                 anchors.fill: parent; hoverEnabled: true
                                 acceptedButtons: Qt.NoButton
-                                Controls.ToolTip.visible: containsMouse
-                                Controls.ToolTip.text: cell.modelData.hint || cell.modelData.text || "Unavailable"
                             }
+                            Ui.PanelToolTip { visible: cellMouse.containsMouse; text: cell.modelData.hint || cell.modelData.text || "Unavailable" }
                         }
                     }
                 }
