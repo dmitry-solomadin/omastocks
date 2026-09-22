@@ -130,7 +130,7 @@ horizontally in narrow windows; vertical wheel scrolling still moves the page.
   with Tab) to reveal the dropdown and switch lists. Click the **pen** to open
   the Watchlists popup, which lists every watchlist with a trash button. Hover a
   row to highlight it, click to edit the name inline, then click the checkmark (or press
-  Enter) to save. Escape cancels an inline edit. Add lists with the field at the
+  Enter) to save. Escape or clicking outside the row cancels an inline edit. Add lists with the field at the
   bottom. Up to 12 lists, 60 stocks each.
   Lists keep separate membership and order; quotes and favorites are shared.
   Search/add/remove/reorder apply to the active list. The original watchlist is

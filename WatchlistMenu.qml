@@ -21,6 +21,11 @@ Controls.Popup {
         editingName = editingList ? editingList.name : ""
         saveError = ""
     }
+    function cancelEdit() {
+        editingId = ""
+        editingName = ""
+        saveError = ""
+    }
     function save(action, id) {
         const targetId = action === "rename" ? editingId : id || ""
         if (StockStore.busy || (action === "rename" && !canRename)
@@ -54,6 +59,22 @@ Controls.Popup {
     focus: true
     closePolicy: Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
     onOpened: { editingId = ""; saveError = ""; newName.clear(); closeButton.forceActiveFocus() }
+    onClosed: cancelEdit()
+    MouseArea {
+        parent: menu.contentItem.parent
+        anchors.fill: parent
+        z: 100
+        enabled: !!menu.editingId && !menu.pendingAction
+        onPressed: mouse => {
+            // Inspect the press, then pass it through to the original control.
+            mouse.accepted = false
+            for (let i = 0; i < watchlistRepeater.count; ++i) {
+                const row = watchlistRepeater.itemAt(i)
+                if (row && row.editing && row.contains(row.mapFromItem(parent, mouse.x, mouse.y))) return
+            }
+            menu.cancelEdit()
+        }
+    }
     Controls.Overlay.modal: Rectangle { color: Util.alpha(Color.background, .55) }
     background: Rectangle {
         color: Color.background
@@ -114,6 +135,7 @@ Controls.Popup {
                 width: listScroll.availableWidth
                 spacing: Style.space(6)
                 Repeater {
+                    id: watchlistRepeater
                     model: StockStore.watchlists
                     Item {
                         id: row
@@ -159,7 +181,7 @@ Controls.Popup {
                                 enabled: !menu.pendingAction
                                 onTextEdited: menu.editingName = text
                                 onAccepted: menu.save("rename")
-                                Keys.onEscapePressed: { menu.editingId = ""; closeButton.forceActiveFocus() }
+                                Keys.onEscapePressed: { menu.cancelEdit(); closeButton.forceActiveFocus() }
                             }
                             ActionButton {
                                 objectName: "confirmWatchlist_" + row.modelData.id
