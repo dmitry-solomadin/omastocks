@@ -21,7 +21,7 @@ ColumnLayout {
     DataRequest { id: insiderRequest; arguments: root.expanded && root.visible && StockStore.windowOpen && StockStore.selected ? ["insiders",StockStore.selected] : [] }
     RowLayout {
         Layout.fillWidth: true
-        ActionButton { objectName: "activityToggle"; text: (root.expanded ? "▾ " : "▸ ") + "INSIDER ACTIVITY"; ink: Color.muted; font.pixelSize: Style.font.bodySmall; onClicked: root.expanded = !root.expanded }
+        ActionButton { objectName: "activityToggle"; text: (root.expanded ? "▾ " : "▸ ") + "INSIDER ACTIVITY"; font.pixelSize: Style.font.bodySmall; onClicked: root.expanded = !root.expanded }
         Item { Layout.fillWidth: true }
         ActionButton { visible: root.expanded; text: "↻"; enabled: !root.request.busy; hint: root.report.error || "Refresh insider activity · Nasdaq" + (root.report.fetched ? " · Retrieved " + Qt.formatDateTime(new Date(root.report.fetched * 1000), "d MMM yyyy hh:mm") : ""); onClicked: root.refresh() }
     }
