@@ -91,7 +91,7 @@ Item {
         const point = row ? row.points.find(point => point[0] === hoveredIndex) : null
         return {symbol: entry.symbol, color: entry.color, currency: row ? row.currency : "", price: point ? point[2] : null, percent: point ? point[1] : null}
     })
-    function pointX(index) { return leftInset + ChartMath.pointFraction(points, index, miniature ? "" : period, timeDomain) * plotWidth }
+    function pointX(index) { return leftInset + ChartMath.pointFraction(points, index, period, timeDomain) * plotWidth }
     function axisValue(value) { return comparing && normalized ? (value / normalized.base - 1) * 100 : value }
     function axisY(value) { return topInset + (extent[1] - value) / (extent[1] - extent[0]) * plotHeight }
     function pointY(value) { return axisY(axisValue(value)) }
@@ -169,7 +169,7 @@ Item {
         function onGainChanged() { canvas.requestPaint() }
         function onLossChanged() { canvas.requestPaint() }
     }
-    Timer { interval: 30000; running: !root.miniature && root.period === "1D"; repeat: true; onTriggered: root.now = Date.now() / 1000 }
+    Timer { interval: 30000; running: root.period === "1D" && (!root.miniature || StockStore.windowOpen); repeat: true; onTriggered: root.now = Date.now() / 1000 }
     Canvas {
         id: canvas
         anchors.fill: parent

@@ -237,7 +237,16 @@ FloatingWindow {
                                 width: parent.width
                                 spacing: Style.space(8)
                                 Label { text: stockRow.modelData.name; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
-                                PriceChart { Layout.preferredWidth: Style.space(45); Layout.preferredHeight: Style.space(20); miniature: true; points: stockRow.modelData.points || []; lineColor: StockStore.direction(stockRow.modelData.percent); visible: stockRow.hasQuote }
+                                PriceChart {
+                                    Layout.preferredWidth: Style.space(45)
+                                    Layout.preferredHeight: Style.space(20)
+                                    miniature: true
+                                    points: stockRow.modelData.points || []
+                                    sessionStart: stockRow.modelData.sessionStart ?? null
+                                    sessionEnd: stockRow.modelData.sessionEnd ?? null
+                                    lineColor: StockStore.direction(stockRow.modelData.percent)
+                                    visible: stockRow.hasQuote
+                                }
                             }
                         }
                         ActionButton {
