@@ -459,9 +459,43 @@ FloatingWindow {
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                     AnalystsPanel { Layout.fillWidth: true }
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                    CompanyNews { Layout.fillWidth: true }
-                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                    SocialPanel { Layout.fillWidth: true }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        ActionButton {
+                            objectName: "newsTab"
+                            text: "Latest News"
+                            font.pixelSize: Style.font.bodySmall
+                            implicitWidth: contentItem.implicitWidth + Style.space(16)
+                            selected: !MarketStore.socialOpen
+                            onClicked: MarketStore.socialOpen = false
+                        }
+                        ActionButton {
+                            objectName: "socialTab"
+                            text: "Social Chatter"
+                            font.pixelSize: Style.font.bodySmall
+                            implicitWidth: contentItem.implicitWidth + Style.space(16)
+                            selected: MarketStore.socialOpen
+                            onClicked: MarketStore.socialOpen = true
+                        }
+                        Item { Layout.fillWidth: true }
+                        ActionButton {
+                            visible: !MarketStore.socialOpen
+                            text: "Yahoo ↗"
+                            hint: "Open company news on Yahoo Finance"
+                            onClicked: Qt.openUrlExternally("https://finance.yahoo.com/quote/" + encodeURIComponent(StockStore.selected) + "/news/")
+                        }
+                        ActionButton {
+                            text: "↻"
+                            hint: MarketStore.socialOpen ? "Refresh Stocktwits posts and Reddit buzz" : "Refresh company news"
+                            enabled: MarketStore.socialOpen ? !MarketStore.socialRequest.busy && !MarketStore.buzzRequest.busy : !MarketStore.newsRequest.busy
+                            onClicked: {
+                                if (MarketStore.socialOpen) { MarketStore.socialRequest.reload(true); MarketStore.buzzRequest.reload(true) }
+                                else MarketStore.newsRequest.reload(true)
+                            }
+                        }
+                    }
+                    CompanyNews { Layout.fillWidth: true; visible: !MarketStore.socialOpen }
+                    SocialPanel { Layout.fillWidth: true; visible: MarketStore.socialOpen }
                 }
                 Label {
                     visible: !StockStore.selected

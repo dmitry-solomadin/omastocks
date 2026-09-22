@@ -87,7 +87,7 @@ QtObject {
         analystsRequest.reload(force)
         comparisonRequests.forEach(request => request.reload(force))
     }
-    property DataRequest newsRequest: DataRequest { arguments: root.active ? ["news", StockStore.selected] : [] }
+    property DataRequest newsRequest: DataRequest { arguments: root.active && !root.socialOpen ? ["news", StockStore.selected] : [] }
     property DataRequest socialRequest: DataRequest { arguments: root.active && root.socialOpen ? ["social", StockStore.selected] : [] }
     property DataRequest buzzRequest: DataRequest { arguments: root.active && root.socialOpen ? ["buzz", "ALL"] : [] }
     property Timer socialPoll: Timer { interval: 300000; running: root.active && root.socialOpen; repeat: true; onTriggered: root.socialRequest.reload(false) }
@@ -111,7 +111,7 @@ QtObject {
         target: StockStore
         function onSelectedChanged() { root.removeComparison(StockStore.selected) }
     }
-    property Timer newsPoll: Timer { interval: 600000; running: root.active; repeat: true; onTriggered: root.newsRequest.reload(false) }
+    property Timer newsPoll: Timer { interval: 600000; running: root.active && !root.socialOpen; repeat: true; onTriggered: root.newsRequest.reload(false) }
     property Timer chartPoll: Timer {
         interval: 300000; running: root.active; repeat: true
         onTriggered: { root.comparisonRequests.forEach(request => request.reload(false)); root.averagesRequest.reload(false); root.eventsRequest.reload(false) }

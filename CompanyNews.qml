@@ -10,23 +10,12 @@ ColumnLayout {
     spacing: Style.space(8)
     property double now: Date.now() / 1000
     readonly property var articles: MarketStore.news.articles || []
-    Timer { interval: 60000; running: StockStore.windowOpen; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() / 1000 }
+    Timer { interval: 60000; running: StockStore.windowOpen && !MarketStore.socialOpen; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() / 1000 }
     function age(timestamp) {
         if (!timestamp) return ""
         const minutes = Math.max(0, Math.floor((now - timestamp) / 60))
         return minutes < 1 ? "Just now" : minutes < 60 ? minutes + "m ago" : minutes < 1440 ? Math.floor(minutes / 60) + "h ago"
             : Qt.formatDate(new Date(timestamp * 1000), "d MMM yyyy")
-    }
-    RowLayout {
-        Layout.fillWidth: true
-        Label { text: "LATEST NEWS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
-        ActionButton {
-            text: "Yahoo ↗"
-            hint: "Open company news on Yahoo Finance"
-            enabled: !!StockStore.selected
-            onClicked: Qt.openUrlExternally("https://finance.yahoo.com/quote/" + encodeURIComponent(StockStore.selected) + "/news/")
-        }
-        ActionButton { text: "↻"; hint: "Refresh company news"; enabled: !MarketStore.newsRequest.busy; onClicked: MarketStore.newsRequest.reload(true) }
     }
     Label {
         Layout.fillWidth: true

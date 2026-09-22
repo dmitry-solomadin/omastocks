@@ -21,25 +21,6 @@ ColumnLayout {
             : Qt.formatDate(new Date(timestamp * 1000), "d MMM yyyy")
     }
     Timer { interval: 60000; running: StockStore.windowOpen && MarketStore.socialOpen; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() / 1000 }
-    RowLayout {
-        Layout.fillWidth: true
-        ActionButton {
-            objectName: "socialToggle"
-            text: (MarketStore.socialOpen ? "▾ " : "▸ ") + "SOCIAL CHATTER"
-            font.pixelSize: Style.font.bodySmall
-            ink: Color.muted
-            hint: "Stocktwits discussions and Reddit mention activity"
-            onClicked: MarketStore.socialOpen = !MarketStore.socialOpen
-        }
-        Item { Layout.fillWidth: true }
-        ActionButton {
-            visible: MarketStore.socialOpen
-            text: "↻"
-            hint: "Refresh Stocktwits posts and Reddit buzz"
-            enabled: !MarketStore.socialRequest.busy && !MarketStore.buzzRequest.busy
-            onClicked: { MarketStore.socialRequest.reload(true); MarketStore.buzzRequest.reload(true) }
-        }
-    }
     ColumnLayout {
         objectName: "socialContent"
         visible: MarketStore.socialOpen
