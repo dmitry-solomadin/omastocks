@@ -240,13 +240,19 @@ class Repository:
 
 
 def search(query):
-    data = fetch("/v1/finance/search", q=query[:100], quotesCount=15, newsCount=0, enableFuzzyQuery="true")
-    return {"query": query, "results": [
+    from search_catalog import merge_results
+    try:
+        data = fetch("/v1/finance/search", q=query[:100], quotesCount=15, newsCount=0, enableFuzzyQuery="true")
+        error = ""
+    except ValueError as exception:
+        data, error = {}, str(exception)
+    remote = [
         {"symbol": row["symbol"], "name": row.get("longname") or row.get("shortname") or row["symbol"],
          "exchange": row.get("exchDisp", ""), "type": row.get("quoteType", "")}
         for row in data.get("quotes", []) if row.get("symbol") and
         row.get("quoteType") in ("EQUITY", "ETF", "INDEX", "MUTUALFUND")
-    ]}
+    ]
+    return {"query": query, "results": merge_results(query, remote), "error": error}
 
 
 def state_directory():

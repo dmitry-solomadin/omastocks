@@ -74,6 +74,13 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
   saved and also determines the order of starred stocks in the bar. Clear search
   before rearranging; Escape or dropping outside the list cancels a drag.
 - Type in the sidebar to filter your watchlist and automatically search Yahoo Finance.
+  A bundled catalog adds 21 major indices, 28 index ETFs and 7 index mutual funds
+  with common names and aliases: try **nasdaq**, **sp500**, **dow**, or
+  **vanguard sp500**. Index tickers work with or without `^`; the S&P 500 uses
+  **^SPX**. Exact tickers rank first, then relevant catalog matches and Yahoo
+  results, deduplicated by symbol. Catalog matches survive Yahoo search failures.
+  The editable table is `bin/search_catalog.json`; `SPLG` resolves to `SPYM`, and
+  Yahoo's alternate `^GSPC` listing is consolidated into `^SPX` in search results.
 - Click **+** beside a search result to add it directly to your watchlist, or
   click the result to preview it first.
 - Star a stock to show it in the bar. Removing it from the watchlist also removes

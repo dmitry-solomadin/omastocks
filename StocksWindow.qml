@@ -119,9 +119,10 @@ FloatingWindow {
                         const query = StockStore.searchQuery.toLowerCase()
                         if (!query) return StockStore.entries
                         const local = StockStore.entries.filter(entry => (entry.symbol + " " + entry.name).toLowerCase().indexOf(query) >= 0)
-                        const symbols = local.map(entry => entry.symbol)
-                        return local.concat(StockStore.results.filter(entry => symbols.indexOf(entry.symbol) < 0).map(result =>
-                            StockStore.entries.find(entry => entry.symbol === result.symbol) || result))
+                        const results = StockStore.results.map(result =>
+                            StockStore.entries.find(entry => entry.symbol === result.symbol) || result)
+                        const symbols = results.map(entry => entry.symbol)
+                        return results.concat(local.filter(entry => symbols.indexOf(entry.symbol) < 0))
                     }
                     model: rows
                     keyNavigationEnabled: false
