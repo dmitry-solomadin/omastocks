@@ -77,7 +77,7 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 - Click **+** beside a search result to add it directly to your watchlist, or
   click the result to preview it first.
 - Star a stock to show it in the bar. Removing it from the watchlist also removes
-  its star. **Undo** beside the watchlist controls restores an accidentally removed entry.
+  its star. Use **+ Watchlist** to add the stock back; star it again if desired.
 - Choose 1D, 1W, 1M, 3M, 1Y or 5Y; hover the chart to inspect a price.
 - Market Details uses equal-width columns. Its 52-week range gauge shows the low
   and high at either end, with a dot for the current price; hover for exact values.

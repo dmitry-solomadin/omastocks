@@ -324,7 +324,6 @@ FloatingWindow {
                     Layout.margins: Style.space(24)
                     Label { text: StockStore.selected || "Your markets, at a glance"; font.pixelSize: Style.space(22); font.bold: true; Layout.fillWidth: true }
                     ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Color.accent : Color.foreground; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
-                    ActionButton { objectName: "undoRemoval"; text: "Undo"; hint: StockStore.removed ? "Restore " + StockStore.removed.symbol : ""; visible: StockStore.removed !== null; onClicked: StockStore.undo() }
                     ActionButton { text: StockStore.tracked ? "Remove" : "+ Watchlist"; hint: StockStore.tracked ? "Remove from watchlist" : "Add to watchlist"; visible: !!StockStore.selected; enabled: !StockStore.busy; onClicked: StockStore.tracked ? StockStore.remove() : StockStore.add() }
                 }
                 Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .09) }

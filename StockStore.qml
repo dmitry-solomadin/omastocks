@@ -19,8 +19,6 @@ QtObject {
     property string error: ""
     property var queue: []
     property var active: null
-    property var removed: null
-    property var pendingRemoval: null
     property bool windowOpen: false
     property var barSettings: ({})
     property bool running: false
@@ -51,9 +49,7 @@ QtObject {
         running = false
         windowOpen = false
         queue = []
-        undoTimer.stop()
         search("")
-        removed = null
     }
 
     function direction(value) { return value === null || value === undefined ? Color.muted : value < 0 ? loss : gain }
@@ -115,7 +111,6 @@ QtObject {
         request(["refresh"])
     }
     function remove() {
-        pendingRemoval = entries.find(entry => entry.symbol === selected)
         const quotes = Object.assign({}, previewQuotes)
         quotes[selected] = quote
         previewQuotes = quotes
@@ -134,12 +129,6 @@ QtObject {
         if (ordered.every((entry, index) => entry.symbol === entries[index].symbol)) return
         entries = ordered
         request(["move", ticker, before])
-    }
-    function undo() {
-        if (!removed) return
-        request(["add", removed.symbol, removed.name, removed.favorite ? "true" : "false"])
-        selected = removed.symbol
-        removed = null
     }
     function request(args) {
         // Supersede reads, but preserve every watchlist mutation in order.
@@ -178,7 +167,6 @@ QtObject {
                 }
             } else if (data.error) {
                 error = data.error
-                pendingRemoval = null
                 if (active[0] === "move") request(["snapshot"])
             }
             else {
@@ -188,7 +176,6 @@ QtObject {
                     entries = queue.filter(args => args[0] === "move").reduce(
                         (rows, args) => movedEntries(rows, args[1], args[2]), data.entries)
                     if (!selected && entries.length) select(entries[0].symbol)
-                    if (active[0] === "remove") { removed = pendingRemoval; pendingRemoval = null; undoTimer.restart() }
                 }
                 if (data.chart && data.chart.symbol === selected && data.chart.range === period) chart = data.chart
                 if (data.quote) {
@@ -217,7 +204,6 @@ QtObject {
     }
     property Timer watchdog: Timer { interval: 60000; onTriggered: root.helper.running = false }
     property Timer poll: Timer { interval: 300000; running: root.running; repeat: true; onTriggered: root.refresh(false) }
-    property Timer undoTimer: Timer { interval: 12000; onTriggered: root.removed = null }
     property Timer searchTimer: Timer { interval: 300; onTriggered: root.request(["search", root.searchQuery]) }
     property FileView palette: FileView {
         path: Color.currentThemePath + "/colors.toml"
