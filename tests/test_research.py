@@ -71,11 +71,11 @@ class ResearchTests(unittest.TestCase):
             self.assertEqual(research.main(["analysts", "AAPL", "--force"]), failed)
             self.assertEqual(load.call_count, 2)
 
-    def test_news_is_relevant_deduplicated_and_safe_to_open(self):
+    def test_news_is_deduplicated_and_safe_to_open(self):
         row = {"uuid": "one", "title": "Apple earnings", "publisher": "Publisher",
                "link": "https://example.org/story", "providerPublishTime": 100, "relatedTickers": ["AAPL"],
                "thumbnail": {"resolutions": [{"url": "https://example.org/image", "width": 320}]}}
-        result = research.parse_news({"news": [row, row, dict(row, uuid="other", relatedTickers=["MSFT"]),
+        result = research.parse_news({"news": [row, row, dict(row, uuid="other", type="VIDEO"),
                                                 dict(row, uuid="unsafe", link="file:///etc/passwd")]}, "AAPL")
         self.assertEqual(len(result["articles"]), 1)
         self.assertEqual(result["articles"][0]["image"], "https://example.org/image")
@@ -92,34 +92,39 @@ class ResearchTests(unittest.TestCase):
         ]}, "AAPL")
         self.assertEqual([article["id"] for article in result["articles"]], ["focused", "broad"])
 
-    def test_alphabet_share_classes_share_news_and_google_headlines_rank_first(self):
-        base = {"link": "https://example.org/story", "relatedTickers": ["GOOG"]}
-        rows = [dict(base, uuid="broad", title="Market roundup", providerPublishTime=200),
-                dict(base, uuid="google", title="Google announces new product", providerPublishTime=100),
-                dict(base, uuid="class-a", title="GOOGL earnings", relatedTickers=["GOOGL"], providerPublishTime=90),
-                dict(base, uuid="unrelated", title="Google competitor grows", relatedTickers=["MSFT"]),
-                dict(base, uuid="unsafe", title="Alphabet earnings", link="file:///etc/passwd")]
-        for ticker in ("GOOG", "GOOGL"):
+    def test_provider_news_is_retained_with_missing_or_different_listing_tags(self):
+        base = {"link": "https://example.org/story", "title": "Company news"}
+        rows = [dict(base, uuid="other-listing", relatedTickers=["ACME.B"]),
+                dict(base, uuid="missing-tags"), dict(base, uuid="empty-tags", relatedTickers=[])]
+        for ticker in ("ACME.A", "ACME.B", "WIDGET"):
             with self.subTest(ticker=ticker):
                 result = research.parse_news({"news": rows + [rows[1]]}, ticker)
                 self.assertEqual(result["symbol"], ticker)
-                self.assertEqual([row["id"] for row in result["articles"]], ["google", "class-a", "broad"])
-                self.assertEqual(result["articles"][0]["symbols"], ["GOOG"])
-        self.assertEqual(research.parse_news({"news": rows[:3]}, "AAPL")["articles"], [])
+                self.assertEqual([row["id"] for row in result["articles"]], ["other-listing", "missing-tags", "empty-tags"])
+                self.assertEqual(result["articles"][0]["symbols"], ["ACME.B"])
+
+    def test_company_title_ranking_does_not_require_an_exact_ticker_tag(self):
+        base = {"link": "https://example.org/story", "relatedTickers": ["ACME.B"]}
+        result = research.parse_news({"quotes": [{"symbol": "ACME.A", "shortname": "Acme Corporation"}], "news": [
+            dict(base, uuid="broad", title="Industry roundup", providerPublishTime=300),
+            dict(base, uuid="company", title="Acme announces earnings", providerPublishTime=200),
+            dict(base, uuid="ticker", title="ACME.A shares rise", providerPublishTime=100),
+        ]}, "ACME.A")
+        self.assertEqual([row["id"] for row in result["articles"]], ["company", "ticker", "broad"])
 
     def test_old_empty_news_cache_is_refetched_after_filter_upgrade(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         directory = Path(temporary.name) / "research"
         directory.mkdir()
-        path = directory / (research.hashlib.sha256(b"news:GOOGL:").hexdigest() + ".json")
-        research.write_json(path, {"symbol": "GOOGL", "articles": [], "fetched": 100000})
-        updated = research.parse_news({"news": [{"title": "Google news", "link": "https://example.org", "relatedTickers": ["GOOG"]}]}, "GOOGL")
+        path = directory / (research.hashlib.sha256(b"news:ACME.A:").hexdigest() + ".json")
+        research.write_json(path, {"symbol": "ACME.A", "newsSchema": 2, "articles": [], "fetched": 100000})
+        updated = research.parse_news({"news": [{"title": "Company news", "link": "https://example.org", "relatedTickers": ["ACME.B"]}]}, "ACME.A")
         with patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}), patch.object(research, "load", return_value=updated) as load, \
                 patch.object(research.time, "time", return_value=100001):
-            result = research.main(["news", "GOOGL"])
+            result = research.main(["news", "ACME.A"])
             self.assertEqual(len(result["articles"]), 1)
-            self.assertEqual(research.main(["news", "GOOGL"]), result)
+            self.assertEqual(research.main(["news", "ACME.A"]), result)
             load.assert_called_once()
 
     def test_earnings_estimates_and_reported_dates_are_distinct(self):
@@ -177,7 +182,7 @@ class ResearchTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         with patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}), patch.object(research, "load") as load:
-            load.return_value = {"symbol": "AAPL", "newsSchema": 2, "articles": [{"title": "Saved headline"}]}
+            load.return_value = {"symbol": "AAPL", "newsSchema": 3, "articles": [{"title": "Saved headline"}]}
             first = research.main(["news", "AAPL"])
             self.assertEqual(research.main(["news", "AAPL"]), first)
             load.assert_called_once()

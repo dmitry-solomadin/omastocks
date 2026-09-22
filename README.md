@@ -151,6 +151,8 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
   estimated; unsupported symbols and provider failures show an unavailable state.
 - **Latest News** shows relevant company headlines, publishers, dates and optional
   thumbnails from Yahoo. Clicking a story opens the publisher in your browser.
+  Yahoo's symbol-scoped search selects the stories; ticker/company-name matches
+  rank headlines first. Missing or different listing tags do not exclude stories.
   No API key is required. This is a headline feed, not a full-article reader.
 
 ## Financial statements and valuations
