@@ -438,11 +438,11 @@ FloatingWindow {
                             model: [
                                 {name: "Open", value: StockStore.price(window.quote.open)},
                                 {name: "Previous close", value: StockStore.price(window.quote.previous)},
-                                {name: "52-week range", range: true},
-                                {name: "Volume", value: StockStore.compact(window.quote.volume)},
-                                {name: "Exchange", value: window.quote.exchange || "—"}
+                                {name: "52-week range", range: true}
                             ].concat((MarketStore.valuation.metrics || []).map(metric => ({name: metric.label,
                                 value: StockStore.financial(metric.value, metric.kind, metric.currency)})))
+                            .concat([{name: "Volume", value: StockStore.compact(window.quote.volume)},
+                                {name: "Exchange", value: window.quote.exchange || "—"}])
                             .concat(MarketStore.valuation.sector ? [{name: "Sector", value: MarketStore.valuation.sector},
                                 {name: "Industry", value: MarketStore.valuation.industry}] : [])
                             ColumnLayout {
