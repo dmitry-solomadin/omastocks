@@ -22,11 +22,11 @@ FloatingWindow {
         if (!visible) { settingsMenu.close(); list.cancelDrag() }
     }
     readonly property var quote: StockStore.quote
-    readonly property var series: StockStore.visibleChart
+    readonly property var series: MarketStore.extendedChart ? MarketStore.extended : StockStore.visibleChart
     readonly property var points: series.points || []
     readonly property var rangeChange: points.length > 1 && points[0][1] !== 0
         ? (points[points.length - 1][1] - points[0][1]) / points[0][1] * 100 : null
-    readonly property color chartColor: StockStore.direction(StockStore.period === "1D" ? quote.percent : rangeChange)
+    readonly property color chartColor: StockStore.direction(StockStore.period === "1D" && !MarketStore.extendedChart ? quote.percent : rangeChange)
     readonly property string warning: StockStore.error || series.error || quote.error ||
         (quote.stale && quote.price !== undefined ? "Showing saved prices. Refresh to check for updates." : "")
 
@@ -346,6 +346,7 @@ FloatingWindow {
                         color: StockStore.direction(window.quote.percent)
                         Layout.fillWidth: true
                     }
+                    ExtendedQuote { Layout.fillWidth: true }
                     RowLayout {
                         Layout.topMargin: Style.space(20)
                         Layout.fillWidth: true
@@ -358,6 +359,18 @@ FloatingWindow {
                             model: ["1D", "1W", "1M", "3M", "1Y", "5Y"]
                             ActionButton { required property string modelData; text: modelData; selected: StockStore.period === modelData; onClicked: StockStore.range(modelData); Layout.fillWidth: true }
                         }
+                        ActionButton {
+                            objectName: "extendedToggle"
+                            visible: StockStore.period === "1D" && !MarketStore.compareMode
+                            text: "Extended"
+                            font.pixelSize: Style.font.bodySmall
+                            selected: MarketStore.extendedChart
+                            enabled: MarketStore.extended.supported === true && (MarketStore.extended.points || []).length > 0
+                            hint: MarketStore.extendedRequest.busy ? "Loading extended hours…" : MarketStore.extended.error
+                                || (enabled ? "Include pre-market and after-hours in 1D · Shaded regions show extended sessions"
+                                    : "Extended hours unavailable for this symbol")
+                            onClicked: MarketStore.showExtended = !MarketStore.showExtended
+                        }
                     }
                     Item {
                         Layout.fillWidth: true
@@ -369,6 +382,7 @@ FloatingWindow {
                             points: window.points
                             symbol: StockStore.selected
                             dates: window.series.dates || []
+                            sessions: MarketStore.extendedChart ? MarketStore.extended.sessions || [] : []
                             volumes: window.series.volumes || []
                             showVolume: MarketStore.showVolume
                             compareMode: MarketStore.compareMode
@@ -381,7 +395,7 @@ FloatingWindow {
                             sessionStart: window.series.sessionStart === undefined ? null : window.series.sessionStart
                             sessionEnd: window.series.sessionEnd === undefined ? null : window.series.sessionEnd
                             currency: window.quote.currency || ""
-                            referencePrice: StockStore.period === "1D" ? window.quote.previous : null
+                            referencePrice: StockStore.period === "1D" ? window.series.previous : null
                             period: StockStore.period
                             lineColor: window.chartColor
                         }
@@ -395,7 +409,7 @@ FloatingWindow {
                     Label {
                         Layout.fillWidth: true
                         visible: StockStore.period === "1D" && !detailChart.comparing
-                        text: "Dashed line: previous close"
+                        text: "Dashed line: previous close" + (MarketStore.extendedChart ? " · Shaded: extended hours" : "")
                         color: Color.muted
                         font.pixelSize: Style.font.bodySmall
                     }
@@ -426,8 +440,7 @@ FloatingWindow {
                                 {name: "Previous close", value: StockStore.price(window.quote.previous)},
                                 {name: "52-week range", range: true},
                                 {name: "Volume", value: StockStore.compact(window.quote.volume)},
-                                {name: "Exchange", value: window.quote.exchange || "—"},
-                                {name: "Currency", value: window.quote.currency || "—"}
+                                {name: "Exchange", value: window.quote.exchange || "—"}
                             ].concat((MarketStore.valuation.metrics || []).map(metric => ({name: metric.label,
                                 value: StockStore.financial(metric.value, metric.kind, metric.currency)})))
                             .concat(MarketStore.valuation.sector ? [{name: "Sector", value: MarketStore.valuation.sector},

@@ -89,6 +89,20 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 - During an open market session, 1D spans through the scheduled market close,
   leaving the remaining time empty. Hours come from the exchange session supplied
   by Yahoo, including early closes; no prices are projected into that space.
+- A timestamped **Pre-market / After-hours** quote appears beneath the selected
+  stock's daily change when Yahoo supplies an extended-session observation.
+  Its change is measured against the preceding regular-session close; the main
+  quote, watchlist and favorites ticker use regular-session prices.
+- On **1D**, toggle **Extended** to include pre-market and after-hours prices.
+  Shaded regions identify extended sessions and hover labels identify the session.
+  Session boundaries come from Yahoo's exchange timestamps, including early
+  closes and daylight saving changes. Unsupported symbols disable the toggle.
+  The choice is remembered for the shell session and returns after leaving
+  Compare or switching back from a longer range.
+- Extended prices are sampled from Yahoo's five-minute chart feed and may be
+  delayed. Their date/time is always shown in your local timezone, including for
+  a completed session. The selected stock's extended feed refreshes once a minute
+  while the window is open, independently of regular quotes.
 - Ctrl+K focuses search; Escape clears it; Ctrl+R refreshes prices.
 - Down from the search field selects the first result; Up/Down immediately select adjacent stocks.
 - Ctrl+W closes the window.
@@ -174,7 +188,7 @@ are not currency-converted. Financials are fetched only when expanded and cached
 for one day; valuations cache for one hour. The refresh/info controls expose
 source and error details; saved results remain available after a failed refresh.
 
-News, earnings, financials, valuations, moving averages and comparisons use independent helper processes
+News, earnings, financials, valuations, extended hours, moving averages and comparisons use independent helper processes
 and per-request caches under the state's `research/` directory. They do not take
 the watchlist lock or wait behind the price/chart queue. News caches for ten minutes,
 earnings for six hours, daily-average history for one hour, and comparison charts

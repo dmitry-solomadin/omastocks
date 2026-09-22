@@ -23,6 +23,10 @@ QtObject {
     property string financialFrequency: "quarterly"
     readonly property var financials: financialsRequest.data
     readonly property var valuation: valuationRequest.data
+    property bool showExtended: false
+    readonly property var extended: extendedRequest.data
+    readonly property bool extendedChart: showExtended && StockStore.period === "1D" && !compareMode
+        && extended.supported === true && (extended.points || []).length > 0
     readonly property var comparisonRequests: [compareOne, compareTwo, compareThree, compareFour]
     readonly property var comparisons: comparisonRequests.map((request, index) => ({
         symbol: compareSlots[index], color: compareColors[index + 1], data: request.data, busy: request.busy
@@ -69,6 +73,7 @@ QtObject {
         averagesRequest.reload(force)
         financialsRequest.reload(force)
         valuationRequest.reload(force)
+        extendedRequest.reload(force)
         comparisonRequests.forEach(request => request.reload(force))
     }
     property DataRequest newsRequest: DataRequest { arguments: root.active ? ["news", StockStore.selected] : [] }
@@ -76,6 +81,8 @@ QtObject {
         arguments: root.active && root.financialsOpen ? ["financials", StockStore.selected, root.financialFrequency] : []
     }
     property DataRequest valuationRequest: DataRequest { arguments: root.active ? ["valuation", StockStore.selected] : [] }
+    property DataRequest extendedRequest: DataRequest { arguments: root.active ? ["extended", StockStore.selected] : [] }
+    property Timer extendedPoll: Timer { interval: 60000; running: root.active; repeat: true; onTriggered: root.extendedRequest.reload(false) }
     property DataRequest eventsRequest: DataRequest { arguments: root.active ? ["events", StockStore.selected] : [] }
     property DataRequest averagesRequest: DataRequest { arguments: root.active && !root.compareMode && root.averagesAvailable && root.averageWindows.length ? ["averages", StockStore.selected] : [] }
     property DataRequest compareOne: DataRequest { arguments: root.comparisonArguments(0) }

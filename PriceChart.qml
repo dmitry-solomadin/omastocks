@@ -19,6 +19,7 @@ Item {
     property bool showVolume: false
     property var averages: []
     property var events: []
+    property var sessions: []
     property bool compareMode: false
     property var comparisons: []
     property color primaryColor: "#4e9eff"
@@ -112,7 +113,9 @@ Item {
         return Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" ? "hh:mm" : period === "1W" ? "d MMM, hh:mm" : "d MMM yyyy")
     }
     function hoverTime(timestamp) {
-        return Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" || period === "1W" ? "d MMM yyyy, hh:mm" : "d MMM yyyy")
+        const session = sessions.find(session => timestamp >= session.start && timestamp < session.end)
+        return (session ? session.label + " · " : "")
+            + Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" || period === "1W" ? "d MMM yyyy, hh:mm" : "d MMM yyyy")
     }
     function timeLabel(timestamp) {
         return Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" ? "hh:mm" : period === "5Y" ? "MMM yyyy" : "d MMM")
@@ -148,6 +151,7 @@ Item {
     onAverageLinesChanged: canvas.requestPaint()
     onNormalizedChanged: { clearSelection(); canvas.requestPaint() }
     onVolumesChanged: canvas.requestPaint()
+    onSessionsChanged: canvas.requestPaint()
     onPlotHeightChanged: canvas.requestPaint()
     onComparingChanged: { clearSelection(); canvas.requestPaint() }
     onWidthChanged: canvas.requestPaint()
@@ -167,6 +171,16 @@ Item {
             ctx.reset()
             if (!root.points.length) return
             if (!root.miniature) {
+                if (!root.comparing && root.timeDomain[1] > root.timeDomain[0]) {
+                    ctx.fillStyle = Util.alpha(Color.foreground, .045)
+                    for (const session of root.sessions) {
+                        if (session.kind === "regular") continue
+                        const span = root.timeDomain[1] - root.timeDomain[0]
+                        const start = Math.max(0, Math.min(1, (session.start - root.timeDomain[0]) / span))
+                        const end = Math.max(0, Math.min(1, (session.end - root.timeDomain[0]) / span))
+                        ctx.fillRect(root.leftInset + start * root.plotWidth, root.topInset, (end - start) * root.plotWidth, root.plotHeight)
+                    }
+                }
                 ctx.strokeStyle = Util.alpha(Color.foreground, .09)
                 ctx.lineWidth = 1
                 for (let i = 0; i < 4; i++) {
