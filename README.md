@@ -167,7 +167,7 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 
 ## Social chatter
 
-Select the **Social Chatter** tab beside **Latest News** for two free, keyless sources:
+Select the **Social** tab beside **Latest News** for two free, keyless sources:
 
 - **Stocktwits** shows up to 20 recent posts for the selected symbol, with the
   author, timestamp, likes when supplied, and a link to the original post. Long
@@ -179,7 +179,7 @@ Select the **Social Chatter** tab beside **Latest News** for two free, keyless s
   absent from the rankings is reported as unlisted, not as having zero mentions.
   ApeWisdom tracks selected stock-focused subreddits rather than all of Reddit.
 
-Both sources load only while the Social Chatter tab is selected and the window is open.
+Both sources load only while the Social tab is selected and the window is open.
 Stocktwits is cached for five minutes; ApeWisdom for 30 minutes, shared across
 symbols. ApeWisdom pagination includes up to 20 pages (2,000 ranked entries).
 Manual refresh bypasses the cache and failure cooldown. Provider failures retain

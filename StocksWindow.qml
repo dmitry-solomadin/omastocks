@@ -460,20 +460,21 @@ FloatingWindow {
                     AnalystsPanel { Layout.fillWidth: true }
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                     RowLayout {
+                        id: feedTabs
                         Layout.fillWidth: true
                         ActionButton {
                             objectName: "newsTab"
                             text: "Latest News"
                             font.pixelSize: Style.font.bodySmall
-                            implicitWidth: contentItem.implicitWidth + Style.space(16)
+                            Layout.minimumWidth: implicitWidth
                             selected: !MarketStore.socialOpen
                             onClicked: MarketStore.socialOpen = false
                         }
                         ActionButton {
                             objectName: "socialTab"
-                            text: "Social Chatter"
+                            text: "Social"
                             font.pixelSize: Style.font.bodySmall
-                            implicitWidth: contentItem.implicitWidth + Style.space(16)
+                            Layout.minimumWidth: implicitWidth
                             selected: MarketStore.socialOpen
                             onClicked: MarketStore.socialOpen = true
                         }
@@ -494,8 +495,17 @@ FloatingWindow {
                             }
                         }
                     }
-                    CompanyNews { Layout.fillWidth: true; visible: !MarketStore.socialOpen }
-                    SocialPanel { Layout.fillWidth: true; visible: MarketStore.socialOpen }
+                    Item {
+                        objectName: "feedBody"
+                        Layout.fillWidth: true
+                        // Keep a viewport below the tabs even during loading/empty states.
+                        // Otherwise Flickable clamps contentY as the old feed disappears.
+                        Layout.preferredHeight: Math.max(
+                            MarketStore.socialOpen ? socialFeed.implicitHeight : newsFeed.implicitHeight,
+                            detailScroll.availableHeight - feedTabs.height - Style.space(10))
+                        CompanyNews { id: newsFeed; objectName: "newsFeed"; width: parent.width; height: implicitHeight; visible: !MarketStore.socialOpen }
+                        SocialPanel { id: socialFeed; width: parent.width; height: implicitHeight; visible: MarketStore.socialOpen }
+                    }
                 }
                 Label {
                     visible: !StockStore.selected
