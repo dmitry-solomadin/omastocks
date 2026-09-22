@@ -7,6 +7,7 @@ import "ChartMath.js" as ChartMath
 QtObject {
     id: root
     readonly property bool active: StockStore.running && StockStore.windowOpen && StockStore.view === "stock" && !!StockStore.selected
+    readonly property bool stockResearchActive: active && !compareMode
     readonly property bool showVolume: StockStore.barSettings.showVolume !== false
     readonly property bool showEvents: StockStore.barSettings.showEvents !== false
     readonly property bool averagesAvailable: ChartMath.dailyAveragesSupported(StockStore.period)
@@ -87,22 +88,22 @@ QtObject {
         analystsRequest.reload(force)
         comparisonRequests.forEach(request => request.reload(force))
     }
-    property DataRequest newsRequest: DataRequest { arguments: root.active && !root.socialOpen ? ["news", StockStore.selected] : [] }
-    property DataRequest socialRequest: DataRequest { arguments: root.active && root.socialOpen ? ["social", StockStore.selected] : [] }
-    property DataRequest buzzRequest: DataRequest { arguments: root.active && root.socialOpen ? ["buzz", "ALL"] : [] }
-    property Timer socialPoll: Timer { interval: 300000; running: root.active && root.socialOpen; repeat: true; onTriggered: root.socialRequest.reload(false) }
-    property Timer buzzPoll: Timer { interval: 1800000; running: root.active && root.socialOpen; repeat: true; onTriggered: root.buzzRequest.reload(false) }
+    property DataRequest newsRequest: DataRequest { arguments: root.stockResearchActive && !root.socialOpen ? ["news", StockStore.selected] : [] }
+    property DataRequest socialRequest: DataRequest { arguments: root.stockResearchActive && root.socialOpen ? ["social", StockStore.selected] : [] }
+    property DataRequest buzzRequest: DataRequest { arguments: root.stockResearchActive && root.socialOpen ? ["buzz", "ALL"] : [] }
+    property Timer socialPoll: Timer { interval: 300000; running: root.stockResearchActive && root.socialOpen; repeat: true; onTriggered: root.socialRequest.reload(false) }
+    property Timer buzzPoll: Timer { interval: 1800000; running: root.stockResearchActive && root.socialOpen; repeat: true; onTriggered: root.buzzRequest.reload(false) }
     property DataRequest financialsRequest: DataRequest {
-        arguments: root.active && root.financialsOpen ? ["financials", StockStore.selected, root.financialFrequency] : []
+        arguments: root.stockResearchActive && root.financialsOpen ? ["financials", StockStore.selected, root.financialFrequency] : []
     }
-    property DataRequest valuationRequest: DataRequest { arguments: root.active ? ["valuation", StockStore.selected] : [] }
-    property DataRequest analystsRequest: DataRequest { arguments: root.active && root.analystsOpen ? ["analysts", StockStore.selected] : [] }
-    property Timer analystsPoll: Timer { interval: 3600000; running: root.active && root.analystsOpen; repeat: true; onTriggered: root.analystsRequest.reload(false) }
-    property DataRequest extendedRequest: DataRequest { arguments: root.active ? ["extended", StockStore.selected] : [] }
-    property Timer extendedPoll: Timer { interval: 60000; running: root.active; repeat: true; onTriggered: root.extendedRequest.reload(false) }
-    property DataRequest eventsRequest: DataRequest { arguments: root.active ? ["events", StockStore.selected] : [] }
-    property DataRequest callsRequest: DataRequest { arguments: root.active && root.earningsCallsOpen ? ["calls", StockStore.selected] : [] }
-    property DataRequest averagesRequest: DataRequest { arguments: root.active && !root.compareMode && root.averagesAvailable && root.averageWindows.length ? ["averages", StockStore.selected] : [] }
+    property DataRequest valuationRequest: DataRequest { arguments: root.stockResearchActive ? ["valuation", StockStore.selected] : [] }
+    property DataRequest analystsRequest: DataRequest { arguments: root.stockResearchActive && root.analystsOpen ? ["analysts", StockStore.selected] : [] }
+    property Timer analystsPoll: Timer { interval: 3600000; running: root.stockResearchActive && root.analystsOpen; repeat: true; onTriggered: root.analystsRequest.reload(false) }
+    property DataRequest extendedRequest: DataRequest { arguments: root.stockResearchActive ? ["extended", StockStore.selected] : [] }
+    property Timer extendedPoll: Timer { interval: 60000; running: root.stockResearchActive; repeat: true; onTriggered: root.extendedRequest.reload(false) }
+    property DataRequest eventsRequest: DataRequest { arguments: root.stockResearchActive ? ["events", StockStore.selected] : [] }
+    property DataRequest callsRequest: DataRequest { arguments: root.stockResearchActive && root.earningsCallsOpen ? ["calls", StockStore.selected] : [] }
+    property DataRequest averagesRequest: DataRequest { arguments: root.stockResearchActive && root.averagesAvailable && root.averageWindows.length ? ["averages", StockStore.selected] : [] }
     property DataRequest compareOne: DataRequest { arguments: root.comparisonArguments(0) }
     property DataRequest compareTwo: DataRequest { arguments: root.comparisonArguments(1) }
     property DataRequest compareThree: DataRequest { arguments: root.comparisonArguments(2) }
@@ -111,7 +112,7 @@ QtObject {
         target: StockStore
         function onSelectedChanged() { root.removeComparison(StockStore.selected) }
     }
-    property Timer newsPoll: Timer { interval: 600000; running: root.active && !root.socialOpen; repeat: true; onTriggered: root.newsRequest.reload(false) }
+    property Timer newsPoll: Timer { interval: 600000; running: root.stockResearchActive && !root.socialOpen; repeat: true; onTriggered: root.newsRequest.reload(false) }
     property Timer chartPoll: Timer {
         interval: 300000; running: root.active; repeat: true
         onTriggered: { root.comparisonRequests.forEach(request => request.reload(false)); root.averagesRequest.reload(false); root.eventsRequest.reload(false) }

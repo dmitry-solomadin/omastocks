@@ -27,10 +27,9 @@ Controls.ScrollView {
             Layout.fillWidth: true
             Layout.leftMargin: Style.space(24); Layout.rightMargin: Style.space(24); Layout.bottomMargin: Style.space(24)
             active: root.visible
-            sourceComponent: StockStore.view === "overview" ? overview : StockStore.view === "fundamentals" ? fundamentals : calendar
+            sourceComponent: StockStore.view === "overview" ? overview : calendar
         }
     }
     Component { id: overview; WatchlistOverview { verticalFlickable: root.contentItem } }
-    Component { id: fundamentals; FundamentalComparison { verticalFlickable: root.contentItem } }
     Component { id: calendar; EarningsCalendar { verticalFlickable: root.contentItem } }
 }

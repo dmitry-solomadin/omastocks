@@ -29,13 +29,19 @@ FloatingWindow {
     readonly property color chartColor: StockStore.direction(StockStore.period === "1D" && !MarketStore.extendedChart ? quote.percent : rangeChange)
     readonly property string warning: StockStore.error || series.error || quote.error ||
         (quote.stale && quote.price !== undefined ? "Showing saved prices. Refresh to check for updates." : "")
+    function refresh() {
+        StockStore.refresh(true)
+        if (StockStore.view !== "stock") workspace.refresh()
+        else if (MarketStore.compareMode) fundamentalComparison.refresh()
+        else companyActivity.refresh()
+    }
 
     Item {
         id: content
         anchors.fill: parent
         focus: true
         Shortcut { sequence: "Ctrl+K"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened; onActivated: { search.forceActiveFocus(); search.selectAll() } }
-        Shortcut { sequence: "Ctrl+R"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: { StockStore.refresh(true); if (StockStore.view !== "stock") workspace.refresh(); else companyActivity.refresh() } }
+        Shortcut { sequence: "Ctrl+R"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.refresh() }
         Shortcut { sequence: "Ctrl+W"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.visible = false }
         Shortcut { sequence: "Escape"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened; onActivated: {
             if (list.dragSymbol) list.cancelDrag()
@@ -47,6 +53,12 @@ FloatingWindow {
         Keys.onUpPressed: list.moveSelection(-1)
         SettingsMenu { id: settingsMenu; parent: content; shell: window.shell }
         Connections { target: StockStore; function onActiveWatchlistChanged() { search.clear(); list.cancelDrag() } }
+        Connections {
+            target: MarketStore
+            function onCompareModeChanged() {
+                Qt.callLater(() => detailScroll.contentItem.contentY = detailScroll.contentItem.originY || 0)
+            }
+        }
         Rectangle {
             id: sidebar
             width: Style.space(window.width < Style.space(900) ? 245 : 300)
@@ -64,7 +76,7 @@ FloatingWindow {
                         text: "Stocks"; font.pixelSize: Style.space(24); font.bold: true; Layout.fillWidth: true
                         fontSizeMode: Text.HorizontalFit; minimumPixelSize: Style.space(14)
                     }
-                    ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.busy; onClicked: StockStore.refresh(true); font.pixelSize: Style.space(18) }
+                    ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.busy; onClicked: window.refresh(); font.pixelSize: Style.space(18) }
                     ActionButton { text: "\uf013"; hint: "Settings"; font.pixelSize: Style.space(18); onClicked: settingsMenu.open() }
                 }
                 WatchlistSelector { Layout.fillWidth: true }
@@ -327,7 +339,7 @@ FloatingWindow {
             anchors.margins: Style.space(12)
             spacing: Style.space(4)
             Repeater {
-                model: [{id:"stock",label:"Stock"},{id:"overview",label:"Overview"},{id:"fundamentals",label:"Fundamentals"},{id:"calendar",label:"Calendar"}]
+                model: [{id:"stock",label:"Stock"},{id:"overview",label:"Overview"},{id:"calendar",label:"Calendar"}]
                 ActionButton {
                     required property var modelData
                     objectName: "view_" + modelData.id
@@ -363,33 +375,41 @@ FloatingWindow {
                 width: detailScroll.availableWidth
                 spacing: 0
                 RowLayout {
+                    objectName: "stockHeader"
+                    visible: !MarketStore.compareMode
                     Layout.fillWidth: true
                     Layout.margins: Style.space(24)
                     Label { text: StockStore.selected || "Your markets, at a glance"; font.pixelSize: Style.space(22); font.bold: true; Layout.fillWidth: true }
                     ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Color.accent : Color.foreground; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
                     ActionButton { text: StockStore.tracked ? "Remove" : "+ Watchlist"; hint: StockStore.tracked ? "Remove from watchlist" : "Add to watchlist"; visible: !!StockStore.selected; enabled: !StockStore.busy; onClicked: StockStore.tracked ? StockStore.remove() : StockStore.add() }
                 }
-                Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .09) }
+                Rectangle { visible: !MarketStore.compareMode; Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .09) }
                 ColumnLayout {
                     visible: !!StockStore.selected
                     Layout.fillWidth: true
                     Layout.margins: Style.space(28)
                     spacing: Style.space(10)
-                    Label { text: window.quote.name || StockStore.selected; font.pixelSize: Style.space(18); color: Color.muted; Layout.fillWidth: true }
-                    RowLayout {
+                    ColumnLayout {
+                        objectName: "stockQuoteSummary"
+                        visible: !MarketStore.compareMode
                         Layout.fillWidth: true
-                        Layout.topMargin: Style.space(8)
-                        spacing: Style.space(12)
-                        Label { text: StockStore.price(window.quote.price); font.pixelSize: Style.space(48); font.bold: true }
-                        Label { text: window.quote.currency || ""; color: Color.muted; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: Style.space(8) }
-                        Item { Layout.fillWidth: true }
+                        spacing: Style.space(10)
+                        Label { text: window.quote.name || StockStore.selected; font.pixelSize: Style.space(18); color: Color.muted; Layout.fillWidth: true }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.topMargin: Style.space(8)
+                            spacing: Style.space(12)
+                            Label { text: StockStore.price(window.quote.price); font.pixelSize: Style.space(48); font.bold: true }
+                            Label { text: window.quote.currency || ""; color: Color.muted; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: Style.space(8) }
+                            Item { Layout.fillWidth: true }
+                        }
+                        Label {
+                            text: window.quote.change === null || window.quote.change === undefined ? "Daily change unavailable" : (window.quote.change >= 0 ? "+" : "") + StockStore.price(window.quote.change) + " (" + StockStore.percent(window.quote.percent) + ") today"
+                            color: StockStore.direction(window.quote.percent)
+                            Layout.fillWidth: true
+                        }
+                        ExtendedQuote { Layout.fillWidth: true }
                     }
-                    Label {
-                        text: window.quote.change === null || window.quote.change === undefined ? "Daily change unavailable" : (window.quote.change >= 0 ? "+" : "") + StockStore.price(window.quote.change) + " (" + StockStore.percent(window.quote.percent) + ") today"
-                        color: StockStore.direction(window.quote.percent)
-                        Layout.fillWidth: true
-                    }
-                    ExtendedQuote { Layout.fillWidth: true }
                     ChartTools { Layout.fillWidth: true; chart: detailChart }
                     RowLayout {
                         Layout.fillWidth: true
@@ -445,110 +465,123 @@ FloatingWindow {
                             color: Color.muted
                         }
                     }
-                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                    EarningsPanel { Layout.fillWidth: true }
-                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                    RowLayout {
+                    FundamentalComparison {
+                        id: fundamentalComparison
                         Layout.fillWidth: true
-                        Layout.bottomMargin: Style.space(8)
-                        Label { text: "MARKET DETAILS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
-                        ActionButton {
-                            text: MarketStore.valuationRequest.busy ? "…" : "ⓘ"
-                            hint: MarketStore.valuation.error || "Quotes: Yahoo Finance · Valuations: TradingView (US listings, cached one hour)"
-                                + (MarketStore.valuation.stale ? " · Saved data" : "")
-                            onClicked: MarketStore.valuationRequest.reload(true)
-                        }
+                        visible: MarketStore.compareMode
+                        verticalFlickable: detailScroll.contentItem
+                        chosen: MarketStore.compareMode && StockStore.selected ? [StockStore.selected].concat(MarketStore.compareSymbols) : []
                     }
-                    GridLayout {
-                        objectName: "marketDetailsGrid"
+                    ColumnLayout {
+                        objectName: "individualStockDetails"
+                        visible: !MarketStore.compareMode
                         Layout.fillWidth: true
-                        columns: window.width < Style.space(900) ? 2 : 3
-                        uniformCellWidths: true
-                        rowSpacing: Style.space(22)
-                        columnSpacing: Style.space(24)
-                        Repeater {
-                            model: [
-                                {name: "Open", value: StockStore.price(window.quote.open)},
-                                {name: "Previous close", value: StockStore.price(window.quote.previous)},
-                                {name: "52-week range", range: true}
-                            ].concat((MarketStore.valuation.metrics || []).map(metric => ({name: metric.label,
-                                value: StockStore.financial(metric.value, metric.kind, metric.currency)})))
-                            .concat([{name: "Volume", value: StockStore.compact(window.quote.volume)},
-                                {name: "Exchange", value: window.quote.exchange || "—"}])
-                            .concat(MarketStore.valuation.sector ? [{name: "Sector", value: MarketStore.valuation.sector},
-                                {name: "Industry", value: MarketStore.valuation.industry}] : [])
-                            ColumnLayout {
-                                required property var modelData
-                                objectName: "marketDetail_" + modelData.name
-                                Layout.fillWidth: true
-                                Layout.minimumWidth: 0
-                                Layout.preferredWidth: 0
-                                Layout.alignment: Qt.AlignTop
-                                spacing: Style.space(6)
-                                Label { text: modelData.name; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
-                                Label { visible: !modelData.range; text: modelData.value || ""; font.bold: true; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                                RangeGauge {
-                                    objectName: modelData.range ? "yearRangeGauge" : ""
-                                    visible: modelData.range === true
+                        spacing: Style.space(10)
+                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        EarningsPanel { Layout.fillWidth: true }
+                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.bottomMargin: Style.space(8)
+                            Label { text: "MARKET DETAILS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                            ActionButton {
+                                text: MarketStore.valuationRequest.busy ? "…" : "ⓘ"
+                                hint: MarketStore.valuation.error || "Quotes: Yahoo Finance · Valuations: TradingView (US listings, cached one hour)"
+                                    + (MarketStore.valuation.stale ? " · Saved data" : "")
+                                onClicked: MarketStore.valuationRequest.reload(true)
+                            }
+                        }
+                        GridLayout {
+                            objectName: "marketDetailsGrid"
+                            Layout.fillWidth: true
+                            columns: window.width < Style.space(900) ? 2 : 3
+                            uniformCellWidths: true
+                            rowSpacing: Style.space(22)
+                            columnSpacing: Style.space(24)
+                            Repeater {
+                                model: [
+                                    {name: "Open", value: StockStore.price(window.quote.open)},
+                                    {name: "Previous close", value: StockStore.price(window.quote.previous)},
+                                    {name: "52-week range", range: true}
+                                ].concat((MarketStore.valuation.metrics || []).map(metric => ({name: metric.label,
+                                    value: StockStore.financial(metric.value, metric.kind, metric.currency)})))
+                                .concat([{name: "Volume", value: StockStore.compact(window.quote.volume)},
+                                    {name: "Exchange", value: window.quote.exchange || "—"}])
+                                .concat(MarketStore.valuation.sector ? [{name: "Sector", value: MarketStore.valuation.sector},
+                                    {name: "Industry", value: MarketStore.valuation.industry}] : [])
+                                ColumnLayout {
+                                    required property var modelData
+                                    objectName: "marketDetail_" + modelData.name
                                     Layout.fillWidth: true
-                                    low: window.quote.yearLow; high: window.quote.yearHigh; price: window.quote.price
+                                    Layout.minimumWidth: 0
+                                    Layout.preferredWidth: 0
+                                    Layout.alignment: Qt.AlignTop
+                                    spacing: Style.space(6)
+                                    Label { text: modelData.name; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                                    Label { visible: !modelData.range; text: modelData.value || ""; font.bold: true; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                                    RangeGauge {
+                                        objectName: modelData.range ? "yearRangeGauge" : ""
+                                        visible: modelData.range === true
+                                        Layout.fillWidth: true
+                                        low: window.quote.yearLow; high: window.quote.yearHigh; price: window.quote.price
+                                    }
                                 }
                             }
                         }
-                    }
-                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                    FinancialsPanel { Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
-                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                    AnalystsPanel { Layout.fillWidth: true }
-                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                    CompanyActivity { id: companyActivity; Layout.fillWidth: true }
-                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                    RowLayout {
-                        id: feedTabs
-                        Layout.fillWidth: true
-                        ActionButton {
-                            objectName: "newsTab"
-                            text: "Latest News"
-                            font.pixelSize: Style.font.bodySmall
-                            Layout.minimumWidth: implicitWidth
-                            selected: !MarketStore.socialOpen
-                            onClicked: MarketStore.socialOpen = false
-                        }
-                        ActionButton {
-                            objectName: "socialTab"
-                            text: "Social"
-                            font.pixelSize: Style.font.bodySmall
-                            Layout.minimumWidth: implicitWidth
-                            selected: MarketStore.socialOpen
-                            onClicked: MarketStore.socialOpen = true
-                        }
-                        Item { Layout.fillWidth: true }
-                        ActionButton {
-                            visible: !MarketStore.socialOpen
-                            text: "Yahoo ↗"
-                            hint: "Open company news on Yahoo Finance"
-                            onClicked: Qt.openUrlExternally("https://finance.yahoo.com/quote/" + encodeURIComponent(StockStore.selected) + "/news/")
-                        }
-                        ActionButton {
-                            text: "↻"
-                            hint: MarketStore.socialOpen ? "Refresh Stocktwits posts and Reddit buzz" : "Refresh company news"
-                            enabled: MarketStore.socialOpen ? !MarketStore.socialRequest.busy && !MarketStore.buzzRequest.busy : !MarketStore.newsRequest.busy
-                            onClicked: {
-                                if (MarketStore.socialOpen) { MarketStore.socialRequest.reload(true); MarketStore.buzzRequest.reload(true) }
-                                else MarketStore.newsRequest.reload(true)
+                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        FinancialsPanel { Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
+                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        AnalystsPanel { Layout.fillWidth: true }
+                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        CompanyActivity { id: companyActivity; Layout.fillWidth: true }
+                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        RowLayout {
+                            id: feedTabs
+                            Layout.fillWidth: true
+                            ActionButton {
+                                objectName: "newsTab"
+                                text: "Latest News"
+                                font.pixelSize: Style.font.bodySmall
+                                Layout.minimumWidth: implicitWidth
+                                selected: !MarketStore.socialOpen
+                                onClicked: MarketStore.socialOpen = false
+                            }
+                            ActionButton {
+                                objectName: "socialTab"
+                                text: "Social"
+                                font.pixelSize: Style.font.bodySmall
+                                Layout.minimumWidth: implicitWidth
+                                selected: MarketStore.socialOpen
+                                onClicked: MarketStore.socialOpen = true
+                            }
+                            Item { Layout.fillWidth: true }
+                            ActionButton {
+                                visible: !MarketStore.socialOpen
+                                text: "Yahoo ↗"
+                                hint: "Open company news on Yahoo Finance"
+                                onClicked: Qt.openUrlExternally("https://finance.yahoo.com/quote/" + encodeURIComponent(StockStore.selected) + "/news/")
+                            }
+                            ActionButton {
+                                text: "↻"
+                                hint: MarketStore.socialOpen ? "Refresh Stocktwits posts and Reddit buzz" : "Refresh company news"
+                                enabled: MarketStore.socialOpen ? !MarketStore.socialRequest.busy && !MarketStore.buzzRequest.busy : !MarketStore.newsRequest.busy
+                                onClicked: {
+                                    if (MarketStore.socialOpen) { MarketStore.socialRequest.reload(true); MarketStore.buzzRequest.reload(true) }
+                                    else MarketStore.newsRequest.reload(true)
+                                }
                             }
                         }
-                    }
-                    Item {
-                        objectName: "feedBody"
-                        Layout.fillWidth: true
-                        // Keep a viewport below the tabs even during loading/empty states.
-                        // Otherwise Flickable clamps contentY as the old feed disappears.
-                        Layout.preferredHeight: Math.max(
-                            MarketStore.socialOpen ? socialFeed.implicitHeight : newsFeed.implicitHeight,
-                            detailScroll.availableHeight - feedTabs.height - Style.space(10))
-                        CompanyNews { id: newsFeed; objectName: "newsFeed"; width: parent.width; height: implicitHeight; visible: !MarketStore.socialOpen }
-                        SocialPanel { id: socialFeed; width: parent.width; height: implicitHeight; visible: MarketStore.socialOpen }
+                        Item {
+                            objectName: "feedBody"
+                            Layout.fillWidth: true
+                            // Keep a viewport below the tabs even during loading/empty states.
+                            // Otherwise Flickable clamps contentY as the old feed disappears.
+                            Layout.preferredHeight: Math.max(
+                                MarketStore.socialOpen ? socialFeed.implicitHeight : newsFeed.implicitHeight,
+                                detailScroll.availableHeight - feedTabs.height - Style.space(10))
+                            CompanyNews { id: newsFeed; objectName: "newsFeed"; width: parent.width; height: implicitHeight; visible: !MarketStore.socialOpen }
+                            SocialPanel { id: socialFeed; width: parent.width; height: implicitHeight; visible: MarketStore.socialOpen }
+                        }
                     }
                 }
                 Label {

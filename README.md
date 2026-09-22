@@ -122,7 +122,7 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 ## Watchlist workspace
 
 The navigation above the detail pane switches between **Stock**, **Overview**,
-**Fundamentals**, and **Calendar**. Clicking a symbol returns to its stock detail.
+and **Calendar**. Clicking a symbol returns to the Stock view.
 Ctrl+R refreshes the current workspace view as well as prices. Tables scroll
 horizontally in narrow windows; vertical wheel scrolling still moves the page.
 
@@ -139,7 +139,9 @@ horizontally in narrow windows; vertical wheel scrolling still moves the page.
   calendar-date boundary (YTD uses the prior year-end). Hover for baseline and
   quote timestamps. IPOs or insufficient history show **—**. New requests and
   five-minute polling use a five-minute history cache.
-- **Fundamentals:** select up to five stocks from the active watchlist. Compare
+- **Fundamentals:** appears beneath the chart when you enter **Compare** in the
+  Stock view, using exactly the same tickers as the chart (including stocks not
+  in your watchlist). Add/remove tickers through the comparison controls. Compare
   growth, margins, revenue, free cash flow, net debt, leverage and valuation ratios.
   Annual/quarterly select the latest reported 12M/3M statement records, not TTM.
   Each cell retains its fiscal date and reporting currency; companies may have
@@ -181,7 +183,10 @@ show the available provider's metrics and an explicit notice.
   axis includes enabled averages so they remain visible; a distant long-term
   average can make short-term price movement appear flatter. Newly listed stocks
   may not have enough history for every average.
-- Click **Compare** next to the MA buttons to replace them with a ticker field.
+- Click **Compare** next to the MA buttons to enter a focused chart-and-fundamentals
+  view. The individual company header, quote summary, earnings, market details,
+  financial statements, analysts, activity, news and social sections are hidden,
+  and their research requests pause. The ticker field replaces the MA controls.
   Enter a symbol such as **MSFT**, **SPY**, or **^GSPC** and press Enter or **Add**.
   Compare up to **five stocks total**: the selected stock plus four additional
   symbols. Each has an independent request and a distinct, solid-colored line.
@@ -364,9 +369,12 @@ The watchlist additions are separate modules to make iteration/removal contained
 | Earnings calendar | `EarningsCalendar.qml` | `bin/earnings_calendar.py` |
 | Filings / insiders | `CompanyActivity.qml` | `bin/company_activity.py` |
 
-`WatchlistWorkspace.qml` mounts the three workspace views; `WatchlistBatch.qml`
+`WatchlistWorkspace.qml` mounts Overview and Calendar; `FundamentalComparison.qml`
+is mounted beneath the chart only in Compare mode. `WatchlistBatch.qml`
 owns bounded requests and `FeatureTable.qml` owns their common table presentation.
-`StocksWindow.qml` only adds navigation, the list selector and the activity panel.
+`StocksWindow.qml` adds navigation, the list selector, the activity panel, and the
+comparison table mount; the table receives its tickers from the existing chart
+comparison selection rather than maintaining a separate selection.
 Research actions are registered in `bin/research.py` and use its cache/backoff.
 Each view can be disconnected at its mount/registration without editing the other
 feature implementations. Named-list state remains in `watchlist.json`; `entries`

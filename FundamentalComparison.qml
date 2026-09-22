@@ -5,15 +5,10 @@ import "."
 
 ColumnLayout {
     id: root
+    objectName: "fundamentalComparison"
     property var verticalFlickable
     property var chosen: []
     property string frequency: "annual"
-    readonly property string listKey: JSON.stringify([StockStore.activeWatchlist, StockStore.entries.map(row=>row.symbol)])
-    onListKeyChanged: {
-        const symbols = StockStore.entries.map(row=>row.symbol)
-        chosen = chosen.filter(ticker=>symbols.indexOf(ticker)>=0)
-        if (!chosen.length) chosen = symbols.slice(0, Math.min(3, symbols.length))
-    }
     readonly property var metrics: [
         ["revenueGrowth","Revenue growth YoY"],["grossMargin","Gross margin"],["operatingMargin","Operating margin"],
         ["netMargin","Net margin"],["fcfMargin","Free cash flow margin"],["TotalRevenue","Revenue"],
@@ -23,20 +18,6 @@ ColumnLayout {
     spacing: Style.space(12)
     function refresh() { batch.reload(true) }
     WatchlistBatch { id: batch; active: StockStore.windowOpen && root.visible; action: "fundamentals"; parameter: root.frequency; symbols: root.chosen }
-    Flow {
-        Layout.fillWidth: true; spacing: Style.space(4)
-        Repeater {
-            model: StockStore.entries
-            ActionButton {
-                required property var modelData
-                text: modelData.symbol
-                selected: root.chosen.indexOf(modelData.symbol) >= 0
-                enabled: selected || root.chosen.length < 5
-                hint: "Compare up to five companies from this watchlist"
-                onClicked: root.chosen = selected ? root.chosen.filter(ticker=>ticker !== modelData.symbol) : root.chosen.concat([modelData.symbol])
-            }
-        }
-    }
     RowLayout {
         Layout.fillWidth: true
         ActionButton { text: "Annual"; selected: root.frequency === "annual"; onClicked: root.frequency = "annual" }
@@ -48,7 +29,6 @@ ColumnLayout {
         Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted; font.pixelSize: Style.font.bodySmall
         text: batch.busy ? "Loading company fundamentals…" : "Latest reported " + (root.frequency === "annual" ? "12-month" : "3-month") + " periods · fiscal dates and currencies shown per cell · valuation ratios use provider definitions"
     }
-    Label { visible: !root.chosen.length; text: "Choose up to five stocks to compare."; color: Color.muted; Layout.fillWidth: true }
     FeatureTable {
         verticalFlickable: root.verticalFlickable
         headers: root.chosen
