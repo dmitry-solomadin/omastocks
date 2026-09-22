@@ -42,10 +42,10 @@ ColumnLayout {
         ActionButton {
             objectName: "analystsSourceLink"
             visible: MarketStore.analystsOpen
-            text: "Nasdaq ↗"
-            hint: "Open analyst ratings and price targets on Nasdaq"
-            onClicked: Qt.openUrlExternally("https://www.nasdaq.com/market-activity/stocks/"
-                + encodeURIComponent(StockStore.selected.toLowerCase()) + "/analyst-research")
+            text: "TipRanks ↗"
+            hint: "Open analyst ratings and price targets on TipRanks"
+            onClicked: Qt.openUrlExternally("https://www.tipranks.com/stocks/"
+                + encodeURIComponent(StockStore.selected.toLowerCase()) + "/forecast")
         }
         ActionButton {
             objectName: "analystsRefresh"

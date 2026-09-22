@@ -192,8 +192,8 @@ source and error details; saved results remain available after a failed refresh.
 
 ## Analyst recommendations
 
-Expand **Analysts** below Financials. Use **Nasdaq ↗** in its header to open the
-stock's full analyst-research page. The section shows:
+Expand **Analysts** below Financials. Use **TipRanks ↗** in its header to open the
+stock's full analyst forecasts and price targets. The section shows:
 
 - A green/neutral/red **Buy / Hold / Sell** distribution with counts and the total
   number of analysts. Hover a segment for its percentage.
