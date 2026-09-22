@@ -347,11 +347,7 @@ FloatingWindow {
                         Layout.fillWidth: true
                     }
                     ExtendedQuote { Layout.fillWidth: true }
-                    RowLayout {
-                        Layout.topMargin: Style.space(20)
-                        Layout.fillWidth: true
-                        ChartTools { Layout.fillWidth: true; chart: detailChart }
-                    }
+                    ChartTools { Layout.fillWidth: true; chart: detailChart }
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Style.space(3)
@@ -405,13 +401,6 @@ FloatingWindow {
                             visible: window.points.length === 0
                             color: Color.muted
                         }
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        visible: StockStore.period === "1D" && !detailChart.comparing
-                        text: "Dashed line: previous close" + (MarketStore.extendedChart ? " · Shaded: extended hours" : "")
-                        color: Color.muted
-                        font.pixelSize: Style.font.bodySmall
                     }
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                     EarningsPanel { Layout.fillWidth: true }
