@@ -18,6 +18,8 @@ QtObject {
     property string compareValidation: ""
     readonly property var news: newsRequest.data
     readonly property var earnings: eventsRequest.data
+    property bool earningsCallsOpen: false
+    readonly property var earningsCalls: callsRequest.data
     readonly property var averages: averagesRequest.data
     property bool financialsOpen: false
     property string financialFrequency: "quarterly"
@@ -72,6 +74,7 @@ QtObject {
     function refresh(force) {
         newsRequest.reload(force)
         eventsRequest.reload(force)
+        callsRequest.reload(force)
         averagesRequest.reload(force)
         financialsRequest.reload(force)
         valuationRequest.reload(force)
@@ -89,6 +92,7 @@ QtObject {
     property DataRequest extendedRequest: DataRequest { arguments: root.active ? ["extended", StockStore.selected] : [] }
     property Timer extendedPoll: Timer { interval: 60000; running: root.active; repeat: true; onTriggered: root.extendedRequest.reload(false) }
     property DataRequest eventsRequest: DataRequest { arguments: root.active ? ["events", StockStore.selected] : [] }
+    property DataRequest callsRequest: DataRequest { arguments: root.active && root.earningsCallsOpen ? ["calls", StockStore.selected] : [] }
     property DataRequest averagesRequest: DataRequest { arguments: root.active && !root.compareMode && root.averagesAvailable && root.averageWindows.length ? ["averages", StockStore.selected] : [] }
     property DataRequest compareOne: DataRequest { arguments: root.comparisonArguments(0) }
     property DataRequest compareTwo: DataRequest { arguments: root.comparisonArguments(1) }

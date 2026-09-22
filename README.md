@@ -149,6 +149,9 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
   Nasdaq/Zacks provides upcoming estimates and
   a limited recent earnings history for supported US stocks. Dates are labeled
   estimated; unsupported symbols and provider failures show an unavailable state.
+  Expand **Earnings calls** for up to 12 recent transcript links from Yahoo Finance,
+  in the provider's newest-first order. Links load on demand and are cached for a
+  day; clicking a call opens its individual transcript in your browser.
 - **Latest News** shows relevant company headlines, publishers, dates and optional
   thumbnails from Yahoo. Clicking a story opens the publisher in your browser.
   Yahoo's symbol-scoped search selects the stories; ticker/company-name matches
@@ -250,7 +253,7 @@ plugin settings API, preserving the other settings in `shell.json`.
 
 ### Network and storage
 
-The helpers contact `query1.finance.yahoo.com`, `api.nasdaq.com` and
+The helpers contact `query1.finance.yahoo.com`, `finance.yahoo.com`, `api.nasdaq.com` and
 `scanner.tradingview.com` over HTTPS. The current ticker/search query is sent to
 the corresponding provider; watchlist files stay local. News thumbnails load
 from image URLs supplied by Yahoo. News, earnings searches and filing links open

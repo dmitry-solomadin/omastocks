@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 from stocks import RANGES, fetch, number, parse_chart, read_json, state_directory, symbol, write_json
 from financials import statements, valuation
 from extended import extended
+from earnings_calls import earnings_calls
 
 
 def web_url(value):
@@ -218,6 +219,8 @@ def load(action, ticker, period):
         return parse_news(fetch("/v1/finance/search", q=ticker, quotesCount=1, newsCount=12), ticker)
     if action == "events":
         return earnings(ticker)
+    if action == "calls":
+        return earnings_calls(ticker)
     if action == "financials":
         return statements(ticker, period)
     if action == "valuation":
@@ -238,7 +241,7 @@ def load(action, ticker, period):
 
 def main(arguments):
     action, ticker = arguments[0], symbol(arguments[1])
-    if action not in ("news", "events", "averages", "compare", "financials", "valuation", "extended", "analysts"):
+    if action not in ("news", "events", "calls", "averages", "compare", "financials", "valuation", "extended", "analysts"):
         raise ValueError("Unknown research request.")
     period = arguments[2] if action in ("compare", "financials") else ""
     if action == "compare" and period not in RANGES:
@@ -247,7 +250,7 @@ def main(arguments):
     directory.mkdir(parents=True, exist_ok=True)
     key = hashlib.sha256(f"{action}:{ticker}:{period}".encode()).hexdigest()
     path = directory / (key + ".json")
-    ttl = {"news": 600, "events": 21600, "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
+    ttl = {"news": 600, "events": 21600, "calls": 86400, "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
            "compare": 60 if period in ("1D", "1W") else 3600}[action]
     with (directory / (key + ".lock")).open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)

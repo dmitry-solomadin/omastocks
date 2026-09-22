@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
 import qs.Ui as Ui
@@ -18,12 +19,6 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Label { text: "EARNINGS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
-        ActionButton {
-            text: "Earnings calls ↗"
-            hint: "Open earnings call transcripts on Yahoo Finance"
-            enabled: !!StockStore.selected
-            onClicked: Qt.openUrlExternally("https://finance.yahoo.com/quote/" + encodeURIComponent(StockStore.selected) + "/earnings-calls/")
-        }
         ActionButton { text: "↻"; hint: MarketStore.earnings.error || MarketStore.earnings.notice || "Refresh earnings"; enabled: !MarketStore.eventsRequest.busy; onClicked: MarketStore.eventsRequest.reload(true) }
     }
     Label {
@@ -57,6 +52,63 @@ ColumnLayout {
         Ui.PanelToolTip {
             visible: !!reportLabel.hoveredLink || reportLabel.activeFocus
             text: "Search Google for this earnings release"
+        }
+    }
+    RowLayout {
+        Layout.fillWidth: true
+        ActionButton {
+            objectName: "earningsCallsToggle"
+            text: (MarketStore.earningsCallsOpen ? "▾ " : "▸ ") + "Earnings calls"
+            hint: "Recent earnings call transcripts"
+            onClicked: MarketStore.earningsCallsOpen = !MarketStore.earningsCallsOpen
+        }
+        Item { Layout.fillWidth: true }
+        ActionButton {
+            visible: MarketStore.earningsCallsOpen
+            text: "↻"
+            hint: MarketStore.earningsCalls.error || "Refresh earnings calls · Yahoo Finance"
+            enabled: !MarketStore.callsRequest.busy
+            onClicked: MarketStore.callsRequest.reload(true)
+        }
+    }
+    ColumnLayout {
+        objectName: "earningsCallsList"
+        visible: MarketStore.earningsCallsOpen
+        Layout.fillWidth: true
+        spacing: Style.space(4)
+        Label {
+            Layout.fillWidth: true
+            visible: !!MarketStore.earningsCalls.error || !(MarketStore.earningsCalls.calls || []).length
+            text: MarketStore.earningsCalls.error
+                ? ((MarketStore.earningsCalls.calls || []).length ? "Showing saved calls. " : "") + MarketStore.earningsCalls.error
+                : MarketStore.callsRequest.busy ? "Loading earnings calls…" : "No earnings call transcripts available."
+            wrapMode: Text.WordWrap
+            color: Color.muted
+            font.pixelSize: Style.font.bodySmall
+        }
+        Repeater {
+            model: MarketStore.earningsCalls.calls || []
+            Controls.ItemDelegate {
+                id: callLink
+                required property var modelData
+                Layout.fillWidth: true
+                implicitHeight: contentItem.implicitHeight + padding * 2
+                padding: Style.space(8)
+                hoverEnabled: true
+                onClicked: Qt.openUrlExternally(modelData.url)
+                Accessible.role: Accessible.Link
+                Accessible.name: modelData.title
+                contentItem: Label {
+                    text: callLink.modelData.title + " ↗"
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: Style.font.bodySmall
+                }
+                background: Rectangle {
+                    radius: Style.cornerRadius
+                    color: callLink.hovered || callLink.activeFocus ? Util.alpha(Color.foreground, .06) : "transparent"
+                }
+                Ui.PanelToolTip { visible: callLink.hovered; text: "Open transcript on Yahoo Finance" }
+            }
         }
     }
 }
