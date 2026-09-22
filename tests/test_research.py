@@ -92,6 +92,36 @@ class ResearchTests(unittest.TestCase):
         ]}, "AAPL")
         self.assertEqual([article["id"] for article in result["articles"]], ["focused", "broad"])
 
+    def test_alphabet_share_classes_share_news_and_google_headlines_rank_first(self):
+        base = {"link": "https://example.org/story", "relatedTickers": ["GOOG"]}
+        rows = [dict(base, uuid="broad", title="Market roundup", providerPublishTime=200),
+                dict(base, uuid="google", title="Google announces new product", providerPublishTime=100),
+                dict(base, uuid="class-a", title="GOOGL earnings", relatedTickers=["GOOGL"], providerPublishTime=90),
+                dict(base, uuid="unrelated", title="Google competitor grows", relatedTickers=["MSFT"]),
+                dict(base, uuid="unsafe", title="Alphabet earnings", link="file:///etc/passwd")]
+        for ticker in ("GOOG", "GOOGL"):
+            with self.subTest(ticker=ticker):
+                result = research.parse_news({"news": rows + [rows[1]]}, ticker)
+                self.assertEqual(result["symbol"], ticker)
+                self.assertEqual([row["id"] for row in result["articles"]], ["google", "class-a", "broad"])
+                self.assertEqual(result["articles"][0]["symbols"], ["GOOG"])
+        self.assertEqual(research.parse_news({"news": rows[:3]}, "AAPL")["articles"], [])
+
+    def test_old_empty_news_cache_is_refetched_after_filter_upgrade(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        directory = Path(temporary.name) / "research"
+        directory.mkdir()
+        path = directory / (research.hashlib.sha256(b"news:GOOGL:").hexdigest() + ".json")
+        research.write_json(path, {"symbol": "GOOGL", "articles": [], "fetched": 100000})
+        updated = research.parse_news({"news": [{"title": "Google news", "link": "https://example.org", "relatedTickers": ["GOOG"]}]}, "GOOGL")
+        with patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}), patch.object(research, "load", return_value=updated) as load, \
+                patch.object(research.time, "time", return_value=100001):
+            result = research.main(["news", "GOOGL"])
+            self.assertEqual(len(result["articles"]), 1)
+            self.assertEqual(research.main(["news", "GOOGL"]), result)
+            load.assert_called_once()
+
     def test_earnings_estimates_and_reported_dates_are_distinct(self):
         upcoming = {"reportText": "Estimated to report earnings on 10/29/2026."}
         history = {"earningsSurpriseTable": {"rows": [{"dateReported": "7/30/2026", "eps": 1.91, "consensusForecast": "1.88"}]}}
@@ -147,7 +177,7 @@ class ResearchTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         with patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}), patch.object(research, "load") as load:
-            load.return_value = {"symbol": "AAPL", "articles": [{"title": "Saved headline"}]}
+            load.return_value = {"symbol": "AAPL", "newsSchema": 2, "articles": [{"title": "Saved headline"}]}
             first = research.main(["news", "AAPL"])
             self.assertEqual(research.main(["news", "AAPL"]), first)
             load.assert_called_once()

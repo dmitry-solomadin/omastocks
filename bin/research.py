@@ -28,14 +28,19 @@ def web_url(value):
 
 def parse_news(document, ticker):
     articles, seen = [], set()
+    # Yahoo tags Alphabet company news with GOOG even when searching for GOOGL.
+    news_symbols = {"GOOG", "GOOGL"} if ticker in ("GOOG", "GOOGL") else {ticker}
     quote = next((row for row in document.get("quotes") or [] if row.get("symbol") == ticker), {})
     name = re.sub(r"^the\s+", "", str(quote.get("shortname") or quote.get("longname") or ""), flags=re.I)
     stem = name.split()[0].rstrip(",.").casefold() if name.split() else ""
-    ticker_pattern = re.compile(r"(?<!\w)" + re.escape(ticker) + r"(?!\w)", re.I)
+    company_names = [stem] if len(stem) > 3 else []
+    if ticker in ("GOOG", "GOOGL"):
+        company_names.extend(["google", "alphabet"])
+    ticker_pattern = re.compile(r"(?<!\w)(?:" + "|".join(re.escape(value) for value in sorted(news_symbols)) + r")(?!\w)", re.I)
     for row in document.get("news") or []:
         related = row.get("relatedTickers") or []
         url, title = web_url(row.get("link")), str(row.get("title") or "").strip()
-        if not url or not title or ticker not in related or row.get("type") not in (None, "STORY"):
+        if not url or not title or not news_symbols.intersection(related) or row.get("type") not in (None, "STORY"):
             continue
         identity = row.get("uuid") or url
         if identity in seen:
@@ -46,9 +51,10 @@ def parse_news(document, ticker):
         image = min(images, key=lambda item: abs((number(item.get("width")) or 320) - 320)) if images else {}
         articles.append({"id": identity, "title": title, "url": url, "source": row.get("publisher") or "Publisher",
                          "published": number(row.get("providerPublishTime")), "image": image.get("url", ""),
-                         "symbols": related, "primary": bool(ticker_pattern.search(title) or (len(stem) > 3 and stem in title.casefold()))})
+                          "symbols": related, "primary": bool(ticker_pattern.search(title) or any(name in title.casefold() for name in company_names))})
     # Company-focused headlines first; broader articles mentioning the ticker follow.
-    return {"symbol": ticker, "articles": sorted(articles, key=lambda article: (article["primary"], article["published"] or 0), reverse=True)[:12]}
+    return {"symbol": ticker, "newsSchema": 2,
+            "articles": sorted(articles, key=lambda article: (article["primary"], article["published"] or 0), reverse=True)[:12]}
 
 
 def nasdaq(path):
@@ -250,7 +256,7 @@ def main(arguments):
         fcntl.flock(lock, fcntl.LOCK_EX)
         saved = read_json(path, {})
         now = time.time()
-        current_schema = action != "events" or saved.get("earningsSchema") == 2
+        current_schema = (action != "events" or saved.get("earningsSchema") == 2) and (action != "news" or saved.get("newsSchema") == 2)
         if saved.get("retryAfter", 0) > now or (current_schema and saved.get("fetched", 0) + ttl > now and "--force" not in arguments):
             return saved
         try:
