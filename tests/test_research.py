@@ -11,6 +11,66 @@ import research
 
 
 class ResearchTests(unittest.TestCase):
+    def test_analysts_keep_current_and_historical_cohorts_separate(self):
+        document = {"symbol": "aapl", "consensusOverview": {"buy": 16, "hold": 10, "sell": 4,
+                    "lowPriceTarget": 245, "highPriceTarget": 400, "priceTarget": 336.71},
+                    "historicalConsensus": [
+                        {"y": 300, "z": {"date": "08/01/2026", "buy": 16, "hold": 10, "sell": 3}},
+                        {"y": 336.71, "z": {"date": "09/01/2026", "buy": 16, "hold": 9, "sell": 4,
+                                           "latest": {"avg": 321.02}}}]}
+        data = research.parse_analysts(document, "AAPL")
+        self.assertEqual(data["summary"]["total"], 30)
+        self.assertEqual(data["history"][0]["total"], 29)
+        self.assertEqual(data["history"][0]["average"], 336.71)
+        self.assertEqual(data["history"][0]["date"], "2026-09-01")
+        self.assertEqual(data["currency"], "USD")
+        self.assertEqual(data["summary"]["high"], 400)
+
+    def test_analyst_missing_counts_are_not_zero_or_a_complete_distribution(self):
+        data = research.parse_analysts({"symbol": "ELF", "consensusOverview": {"buy": "12", "sell": 0,
+                                       "priceTarget": 0, "lowPriceTarget": -1, "highPriceTarget": "N/A"}}, "ELF")
+        self.assertEqual(data["summary"]["buy"], 12)
+        self.assertEqual(data["summary"]["sell"], 0)
+        self.assertIsNone(data["summary"]["hold"])
+        self.assertIsNone(data["summary"]["total"])
+        self.assertIsNone(data["summary"]["average"])
+        self.assertIsNone(data["summary"]["low"])
+        self.assertIsNone(data["summary"]["high"])
+
+    def test_analysts_reject_wrong_symbols_invalid_counts_and_bad_history_dates(self):
+        with self.assertRaises(ValueError):
+            research.parse_analysts({"symbol": "AMD"}, "AAPL")
+        result = research.parse_analysts({"symbol": "AAPL", "consensusOverview": {"buy": -1, "hold": 1.5, "sell": True},
+                    "historicalConsensus": [{"y": float("inf"), "z": {"date": "09/01/2026"}},
+                                            {"y": 123, "z": {"date": "garbage"}}]}, "AAPL")
+        self.assertTrue(all(result["summary"][key] is None for key in ("buy", "hold", "sell", "total")))
+        self.assertEqual(len(result["history"]), 1)
+        self.assertIsNone(result["history"][0]["average"])
+        json.dumps(result, allow_nan=False)
+
+    def test_unsupported_analyst_symbols_do_not_query_nasdaq(self):
+        with patch.object(research, "nasdaq") as nasdaq:
+            self.assertEqual(research.load("analysts", "^NDX", "")["history"], [])
+            nasdaq.assert_not_called()
+
+    def test_analysts_daily_cache_retains_saved_data_on_failure(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        with patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}), patch.object(research, "load") as load, \
+                patch.object(research.time, "time", return_value=100000) as now:
+            load.return_value = {"symbol": "AAPL", "summary": {"average": 300}, "history": []}
+            first = research.main(["analysts", "AAPL"])
+            now.return_value += 86399
+            self.assertEqual(research.main(["analysts", "AAPL"]), first)
+            load.assert_called_once()
+            now.return_value += 2
+            load.side_effect = ValueError("offline")
+            failed = research.main(["analysts", "AAPL"])
+            self.assertEqual(failed["summary"], first["summary"])
+            self.assertTrue(failed["stale"])
+            self.assertEqual(research.main(["analysts", "AAPL", "--force"]), failed)
+            self.assertEqual(load.call_count, 2)
+
     def test_news_is_relevant_deduplicated_and_safe_to_open(self):
         row = {"uuid": "one", "title": "Apple earnings", "publisher": "Publisher",
                "link": "https://example.org/story", "providerPublishTime": 100, "relatedTickers": ["AAPL"],

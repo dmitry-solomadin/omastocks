@@ -58,10 +58,10 @@ def nasdaq(path):
     with urllib.request.urlopen(request, timeout=10) as response:
         raw = response.read(2 * 1024 * 1024 + 1)
     if len(raw) > 2 * 1024 * 1024:
-        raise ValueError("The earnings response was too large.")
+        raise ValueError("The Nasdaq response was too large.")
     document = json.loads(raw)
     if not isinstance(document.get("data"), dict):
-        raise ValueError("Earnings dates are unavailable for this symbol.")
+        raise ValueError("Nasdaq data is unavailable for this symbol.")
     return document["data"]
 
 
@@ -72,6 +72,38 @@ def date_string(value):
         except ValueError:
             pass
     return ""
+
+
+def parse_analysts(document, ticker):
+    if str(document.get("symbol") or "").upper() != ticker:
+        raise ValueError("Analyst data did not match the requested symbol.")
+
+    def count(value):
+        value = number(value)
+        return int(value) if value is not None and value >= 0 and value.is_integer() else None
+
+    def target(value):
+        value = number(value)
+        return value if value is not None and value > 0 else None
+
+    def recommendations(row):
+        counts = {key: count(row.get(key)) for key in ("buy", "hold", "sell")}
+        counts["total"] = sum(counts.values()) if all(value is not None for value in counts.values()) else None
+        return counts
+
+    overview = document.get("consensusOverview") or {}
+    summary = {**recommendations(overview), "low": target(overview.get("lowPriceTarget")),
+               "average": target(overview.get("priceTarget")), "high": target(overview.get("highPriceTarget"))}
+    history = {}
+    for row in document.get("historicalConsensus") or []:
+        details = row.get("z") or {}
+        day = date_string(details.get("date"))
+        if not day:
+            continue
+        history[day] = {"date": day, "average": target(row.get("y")), **recommendations(details)}
+    # These are US-listing, USD targets. Do not infer currency from a Yahoo quote.
+    return {"symbol": ticker, "currency": "USD", "source": "Nasdaq / TipRanks",
+            "summary": summary, "history": sorted(history.values(), key=lambda row: row["date"], reverse=True)[:24]}
 
 
 def parse_earnings(upcoming, history, today=None):
@@ -189,6 +221,10 @@ def load(action, ticker, period):
         return valuation(ticker)
     if action == "extended":
         return extended(ticker)
+    if action == "analysts":
+        if not re.fullmatch(r"[A-Z][A-Z0-9.-]*", ticker):
+            return {"symbol": ticker, "summary": {}, "history": [], "currency": "USD", "source": "Nasdaq / TipRanks"}
+        return parse_analysts(nasdaq("/api/analyst/" + urllib.parse.quote(ticker, safe="") + "/targetprice"), ticker)
     if action == "averages":
         document = fetch("/v8/finance/chart/" + urllib.parse.quote(ticker, safe=""), range="10y", interval="1d")
         chart = parse_chart(document, ticker, "1Y")
@@ -199,7 +235,7 @@ def load(action, ticker, period):
 
 def main(arguments):
     action, ticker = arguments[0], symbol(arguments[1])
-    if action not in ("news", "events", "averages", "compare", "financials", "valuation", "extended"):
+    if action not in ("news", "events", "averages", "compare", "financials", "valuation", "extended", "analysts"):
         raise ValueError("Unknown research request.")
     period = arguments[2] if action in ("compare", "financials") else ""
     if action == "compare" and period not in RANGES:
@@ -208,7 +244,7 @@ def main(arguments):
     directory.mkdir(parents=True, exist_ok=True)
     key = hashlib.sha256(f"{action}:{ticker}:{period}".encode()).hexdigest()
     path = directory / (key + ".json")
-    ttl = {"news": 600, "events": 21600, "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60,
+    ttl = {"news": 600, "events": 21600, "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
            "compare": 60 if period in ("1D", "1W") else 3600}[action]
     with (directory / (key + ".lock")).open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)

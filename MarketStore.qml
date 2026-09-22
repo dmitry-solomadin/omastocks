@@ -23,6 +23,8 @@ QtObject {
     property string financialFrequency: "quarterly"
     readonly property var financials: financialsRequest.data
     readonly property var valuation: valuationRequest.data
+    property bool analystsOpen: false
+    readonly property var analysts: analystsRequest.data
     property bool showExtended: false
     readonly property var extended: extendedRequest.data
     readonly property bool extendedChart: showExtended && StockStore.period === "1D" && !compareMode
@@ -74,6 +76,7 @@ QtObject {
         financialsRequest.reload(force)
         valuationRequest.reload(force)
         extendedRequest.reload(force)
+        analystsRequest.reload(force)
         comparisonRequests.forEach(request => request.reload(force))
     }
     property DataRequest newsRequest: DataRequest { arguments: root.active ? ["news", StockStore.selected] : [] }
@@ -81,6 +84,8 @@ QtObject {
         arguments: root.active && root.financialsOpen ? ["financials", StockStore.selected, root.financialFrequency] : []
     }
     property DataRequest valuationRequest: DataRequest { arguments: root.active ? ["valuation", StockStore.selected] : [] }
+    property DataRequest analystsRequest: DataRequest { arguments: root.active && root.analystsOpen ? ["analysts", StockStore.selected] : [] }
+    property Timer analystsPoll: Timer { interval: 3600000; running: root.active && root.analystsOpen; repeat: true; onTriggered: root.analystsRequest.reload(false) }
     property DataRequest extendedRequest: DataRequest { arguments: root.active ? ["extended", StockStore.selected] : [] }
     property Timer extendedPoll: Timer { interval: 60000; running: root.active; repeat: true; onTriggered: root.extendedRequest.reload(false) }
     property DataRequest eventsRequest: DataRequest { arguments: root.active ? ["events", StockStore.selected] : [] }

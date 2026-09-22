@@ -9,6 +9,8 @@ FinancialsPanel 1.0 FinancialsPanel.qml
 MetricChart 1.0 MetricChart.qml
 RangeGauge 1.0 RangeGauge.qml
 ExtendedQuote 1.0 ExtendedQuote.qml
+AnalystsPanel 1.0 AnalystsPanel.qml
+AnalystTargetGauge 1.0 AnalystTargetGauge.qml
 Service 1.0 Service.qml
 SettingsMenu 1.0 SettingsMenu.qml
 StocksWindow 1.0 StocksWindow.qml

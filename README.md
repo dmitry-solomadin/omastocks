@@ -188,7 +188,33 @@ are not currency-converted. Financials are fetched only when expanded and cached
 for one day; valuations cache for one hour. The refresh/info controls expose
 source and error details; saved results remain available after a failed refresh.
 
-News, earnings, financials, valuations, extended hours, moving averages and comparisons use independent helper processes
+## Analyst recommendations
+
+Expand **Analysts** below Financials to see:
+
+- A green/neutral/red **Buy / Hold / Sell** distribution with counts and the total
+  number of analysts. Hover a segment for its percentage.
+- **Average price target** and its implied upside/downside versus the current
+  regular-session quote.
+- A **target-price gauge**: the highlighted range runs from low to high, the
+  accent tick marks the average target, and the dot marks the current price.
+  The scale expands when the current price falls outside the target range.
+- Expand **History** for monthly average targets and recommendation counts,
+  newest first. Coverage currently typically includes 13 monthly snapshots.
+
+Counts, targets, and history come together from Nasdaq's public `targetprice`
+endpoint (TipRanks). They are not mixed with Nasdaq's separate ratings feed,
+which can use a different analyst group. Historical snapshots retain their own
+counts, so the latest month's counts may differ from the current summary.
+Targets are USD amounts for supported US listings. Implied returns and the
+current-price marker appear only when the quote currency matches. Missing counts
+stay missing; a distribution requires all three counts and a positive total.
+
+Analyst data loads on demand and caches for one day. The refresh button's tooltip
+shows the source, retrieval time and any error; failed refreshes retain saved
+results. Retrieval time is not the publication date of an individual rating.
+
+News, earnings, financials, analysts, valuations, extended hours, moving averages and comparisons use independent helper processes
 and per-request caches under the state's `research/` directory. They do not take
 the watchlist lock or wait behind the price/chart queue. News caches for ten minutes,
 earnings for six hours, daily-average history for one hour, and comparison charts

@@ -467,6 +467,8 @@ FloatingWindow {
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                     FinancialsPanel { Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
                     Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                    AnalystsPanel { Layout.fillWidth: true }
+                    Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                     CompanyNews { Layout.fillWidth: true }
                 }
                 Label {
