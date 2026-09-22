@@ -19,7 +19,7 @@ FloatingWindow {
     onClosed: visible = false
     onVisibleChanged: {
         StockStore.windowOpen = visible
-        if (!visible) { settingsMenu.close(); list.cancelDrag() }
+        if (!visible) { settingsMenu.close(); watchlistMenu.close(); watchlistSelector.close(); list.cancelDrag() }
     }
     readonly property var quote: StockStore.quote
     readonly property var series: MarketStore.extendedChart ? MarketStore.extended : StockStore.visibleChart
@@ -40,10 +40,10 @@ FloatingWindow {
         id: content
         anchors.fill: parent
         focus: true
-        Shortcut { sequence: "Ctrl+K"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened; onActivated: { search.forceActiveFocus(); search.selectAll() } }
+        Shortcut { sequence: "Ctrl+K"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !watchlistMenu.opened; onActivated: { search.forceActiveFocus(); search.selectAll() } }
         Shortcut { sequence: "Ctrl+R"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.refresh() }
         Shortcut { sequence: "Ctrl+W"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.visible = false }
-        Shortcut { sequence: "Escape"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened; onActivated: {
+        Shortcut { sequence: "Escape"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !watchlistMenu.opened && !watchlistSelector.popupOpen; onActivated: {
             if (list.dragSymbol) list.cancelDrag()
             else if (detailChart.hasSelection) detailChart.clearSelection()
             else if (MarketStore.compareMode) MarketStore.closeComparison()
@@ -52,6 +52,7 @@ FloatingWindow {
         Keys.onDownPressed: list.moveSelection(1)
         Keys.onUpPressed: list.moveSelection(-1)
         SettingsMenu { id: settingsMenu; parent: content; shell: window.shell }
+        WatchlistMenu { id: watchlistMenu; parent: content }
         Connections { target: StockStore; function onActiveWatchlistChanged() { search.clear(); list.cancelDrag() } }
         Connections {
             target: MarketStore
@@ -79,7 +80,7 @@ FloatingWindow {
                     ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.busy; onClicked: window.refresh(); font.pixelSize: Style.space(18) }
                     ActionButton { text: "\uf013"; hint: "Settings"; font.pixelSize: Style.space(18); onClicked: settingsMenu.open() }
                 }
-                WatchlistSelector { Layout.fillWidth: true }
+                WatchlistSelector { id: watchlistSelector; Layout.fillWidth: true; onEditRequested: watchlistMenu.open() }
                 Controls.TextField {
                     id: search
                     objectName: "stockSearch"

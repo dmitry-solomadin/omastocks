@@ -1,50 +1,46 @@
 import QtQuick
-import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
 import qs.Ui as Ui
 import "."
 
-ColumnLayout {
+RowLayout {
     id: root
-    property bool editing: false
-    property bool creating: false
+    signal editRequested()
+    readonly property bool popupOpen: dropdown.popupOpen
+    function close() { dropdown.close() }
     spacing: Style.space(6)
-    RowLayout {
+    HoverHandler { id: rowHover }
+    FocusScope {
+        id: selector
         Layout.fillWidth: true
+        Layout.preferredHeight: dropdown.implicitHeight
+        readonly property bool revealed: rowHover.hovered || activeFocus || dropdown.popupOpen
         Ui.Dropdown {
+            id: dropdown
             objectName: "watchlistSelector"
-            Layout.fillWidth: true
+            anchors.fill: parent
+            opacity: selector.revealed ? 1 : 0
             options: StockStore.watchlists.map(row=>({value:row.id,label:row.name}))
             value: StockStore.activeWatchlist
             enabled: !StockStore.busy
-            onChanged: value => { root.editing = false; StockStore.request(["watchlist", "select", value]) }
+            onChanged: value => {
+                StockStore.request(["watchlist", "select", value])
+                dropdown.value = Qt.binding(() => StockStore.activeWatchlist)
+            }
         }
-        ActionButton { text: "+"; hint: "Create watchlist"; enabled: !StockStore.busy; onClicked: { root.creating = true; root.editing = true; nameInput.text = ""; nameInput.forceActiveFocus() } }
-        ActionButton { text: "⋯"; hint: "Rename or remove watchlist"; enabled: !StockStore.busy; onClicked: { root.creating = false; root.editing = !root.editing; nameInput.text = StockStore.watchlistName; nameInput.forceActiveFocus(); nameInput.selectAll() } }
+        Label {
+            anchors.fill: parent
+            anchors.leftMargin: Style.spacing.controlPaddingX
+            visible: !selector.revealed
+            text: StockStore.watchlistName
+            verticalAlignment: Text.AlignVCenter
+        }
     }
-    Controls.TextField {
-        id: nameInput
-        visible: root.editing
-        Layout.fillWidth: true
-        placeholderText: "Watchlist name"
-        maximumLength: 40
-        color: Color.foreground; placeholderTextColor: Color.muted
-        font.family: Style.font.family; font.pixelSize: Style.font.body
-        selectionColor: Color.accent
-        background: Rectangle { color: Util.alpha(Color.foreground,.05); radius: Style.cornerRadius; border.width: 1; border.color: Color.muted }
-        onAccepted: if (text.trim() && !StockStore.busy) root.save()
+    ActionButton {
+        objectName: "editWatchlists"
+        text: "\uf040"
+        hint: "Manage watchlists"
+        onClicked: { dropdown.close(); root.editRequested() }
     }
-    function save() {
-        StockStore.request(["watchlist", creating ? "create" : "rename", creating ? "" : StockStore.activeWatchlist, nameInput.text])
-        editing = false
-    }
-    Flow {
-        visible: root.editing
-        Layout.fillWidth: true; spacing: Style.space(4)
-        ActionButton { text: root.creating ? "Create" : "Rename"; enabled: !!nameInput.text.trim() && !StockStore.busy; onClicked: root.save() }
-        ActionButton { text: "Cancel"; onClicked: root.editing = false }
-        ActionButton { text: "Remove list"; visible: !root.creating; enabled: StockStore.watchlists.length > 1 && !StockStore.busy; hint: "Remove this list; other lists keep their stocks"; onClicked: { StockStore.request(["watchlist","remove",StockStore.activeWatchlist]); root.editing = false } }
-    }
-    Label { visible: !!StockStore.error; text: StockStore.error; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted; font.pixelSize: Style.font.bodySmall }
 }

@@ -126,8 +126,9 @@ and **Calendar**. Clicking a symbol returns to the Stock view.
 Ctrl+R refreshes the current workspace view as well as prices. Tables scroll
 horizontally in narrow windows; vertical wheel scrolling still moves the page.
 
-- **Multiple watchlists:** use the dropdown above search to switch lists, **+**
-  to create one, and **⋯** to rename or remove one. Up to 12 lists, 60 stocks each.
+- **Multiple watchlists:** hover over the list name above search (or focus it
+  with Tab) to reveal the dropdown and switch lists. Click the **pen** to open
+  the Watchlists popup and add, rename, or remove lists. Up to 12 lists, 60 stocks each.
   Lists keep separate membership and order; quotes and favorites are shared.
   Search/add/remove/reorder apply to the active list. The original watchlist is
   migrated in memory and persisted on the next edit, preserving order, favorites,
@@ -369,7 +370,7 @@ The watchlist additions are separate modules to make iteration/removal contained
 
 | Feature | UI | Backend |
 |---|---|---|
-| Named lists | `WatchlistSelector.qml`, small `StockStore.qml` adapter | `bin/watchlists.py`, `Repository` adapter in `bin/stocks.py` |
+| Named lists | `WatchlistSelector.qml`, `WatchlistMenu.qml`, small `StockStore.qml` adapter | `bin/watchlists.py`, `Repository` adapter in `bin/stocks.py` |
 | Overview | `WatchlistOverview.qml` | `bin/overview.py` |
 | Fundamental comparison | `FundamentalComparison.qml` | `bin/fundamental_compare.py` |
 | Earnings calendar | `EarningsCalendar.qml` | `bin/earnings_calendar.py` |

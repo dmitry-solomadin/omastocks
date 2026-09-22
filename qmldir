@@ -20,6 +20,7 @@ ActionButton 1.0 ActionButton.qml
 Label 1.0 Label.qml
 BarWidget 1.0 BarWidget.qml
 WatchlistSelector 1.0 WatchlistSelector.qml
+WatchlistMenu 1.0 WatchlistMenu.qml
 WatchlistWorkspace 1.0 WatchlistWorkspace.qml
 WatchlistBatch 1.0 WatchlistBatch.qml
 WatchlistOverview 1.0 WatchlistOverview.qml
