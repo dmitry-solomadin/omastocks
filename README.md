@@ -128,7 +128,10 @@ horizontally in narrow windows; vertical wheel scrolling still moves the page.
 
 - **Multiple watchlists:** hover over the list name above search (or focus it
   with Tab) to reveal the dropdown and switch lists. Click the **pen** to open
-  the Watchlists popup and add, rename, or remove lists. Up to 12 lists, 60 stocks each.
+  the Watchlists popup, which lists every watchlist with a trash button. Hover a
+  row to reveal its pen, edit the name inline, then click the checkmark (or press
+  Enter) to save. Escape cancels an inline edit. Add lists with the field at the
+  bottom. Up to 12 lists, 60 stocks each.
   Lists keep separate membership and order; quotes and favorites are shared.
   Search/add/remove/reorder apply to the active list. The original watchlist is
   migrated in memory and persisted on the next edit, preserving order, favorites,

@@ -2,33 +2,36 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
-import qs.Ui as Ui
 import "."
 
 Controls.Popup {
     id: menu
     objectName: "watchlistMenu"
     property string editingId: ""
+    property string editingName: ""
     property string pendingAction: ""
+    property string pendingId: ""
     property string saveError: ""
     readonly property var editingList: StockStore.watchlists.find(row => row.id === editingId)
-    readonly property bool canRename: !!editingList && !!nameInput.text.trim()
-        && nameInput.text.trim() !== editingList.name && !StockStore.busy
+    readonly property bool canRename: !!editingList && !!editingName.trim() && !StockStore.busy
     readonly property bool canCreate: !!newName.text.trim() && StockStore.watchlists.length < 12 && !StockStore.busy
 
-    function selectList(id) {
+    function editList(id) {
         editingId = id
-        nameInput.text = editingList ? editingList.name : ""
+        editingName = editingList ? editingList.name : ""
         saveError = ""
     }
-    function save(action) {
+    function save(action, id) {
+        const targetId = action === "rename" ? editingId : id || ""
         if (StockStore.busy || (action === "rename" && !canRename)
             || (action === "create" && !canCreate)
-            || (action === "remove" && (!editingList || StockStore.watchlists.length <= 1))) return
+            || (action === "remove" && (!StockStore.watchlists.some(row => row.id === targetId) || StockStore.watchlists.length <= 1))) return
         saveError = ""
+        if (action === "rename" && editingName.trim() === editingList.name) { editingId = ""; return }
         pendingAction = action
-        StockStore.request(["watchlist", action, action === "create" ? "" : editingId,
-            action === "create" ? newName.text.trim() : action === "rename" ? nameInput.text.trim() : ""])
+        pendingId = targetId
+        StockStore.request(["watchlist", action, targetId,
+            action === "create" ? newName.text.trim() : action === "rename" ? editingName.trim() : ""])
     }
     Connections {
         target: StockStore
@@ -39,7 +42,7 @@ Controls.Popup {
             menu.saveError = StockStore.error
             if (menu.saveError) return
             if (action === "create") newName.clear()
-            menu.selectList(action === "rename" ? menu.editingId : StockStore.activeWatchlist)
+            if (menu.pendingId === menu.editingId) menu.editingId = ""
         }
     }
 
@@ -50,7 +53,7 @@ Controls.Popup {
     modal: true
     focus: true
     closePolicy: Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
-    onOpened: { selectList(StockStore.activeWatchlist); newName.clear(); nameInput.forceActiveFocus(); nameInput.selectAll() }
+    onOpened: { editingId = ""; saveError = ""; newName.clear(); closeButton.forceActiveFocus() }
     Controls.Overlay.modal: Rectangle { color: Util.alpha(Color.background, .55) }
     background: Rectangle {
         color: Color.background
@@ -76,11 +79,14 @@ Controls.Popup {
         }
     }
     contentItem: ColumnLayout {
+        id: popupContent
         spacing: Style.space(12)
         RowLayout {
+            id: header
             Layout.fillWidth: true
             Label { text: "Watchlists"; font.pixelSize: Style.font.heading; font.bold: true; Layout.fillWidth: true }
             ActionButton {
+                id: closeButton
                 objectName: "closeWatchlists"
                 text: "×"
                 font.pixelSize: Style.font.body * 2
@@ -92,40 +98,93 @@ Controls.Popup {
             }
         }
         Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
-        Ui.Dropdown {
-            id: listDropdown
-            objectName: "manageWatchlistSelector"
+        Controls.ScrollView {
+            id: listScroll
+            objectName: "watchlistRows"
             Layout.fillWidth: true
-            options: StockStore.watchlists.map(row => ({value: row.id, label: row.name}))
-            value: menu.editingId
-            enabled: !StockStore.busy
-            onChanged: value => {
-                menu.selectList(value)
-                listDropdown.value = Qt.binding(() => menu.editingId)
-            }
-        }
-        NameField {
-            id: nameInput
-            objectName: "watchlistRenameInput"
-            placeholderText: "Watchlist name"
-            Accessible.name: "Watchlist name"
-            enabled: !!menu.editingList && !menu.pendingAction
-            onAccepted: menu.save("rename")
-        }
-        RowLayout {
-            Layout.fillWidth: true
-            ActionButton { objectName: "renameWatchlist"; text: "Rename"; enabled: menu.canRename; onClicked: menu.save("rename") }
-            Item { Layout.fillWidth: true }
-            ActionButton {
-                objectName: "removeWatchlist"
-                text: "Remove"
-                enabled: !!menu.editingList && StockStore.watchlists.length > 1 && !StockStore.busy
-                hint: StockStore.watchlists.length <= 1 ? "Keep at least one watchlist" : "Remove this list; other lists keep their stocks"
-                onClicked: menu.save("remove")
+            Layout.preferredHeight: Math.min(listRows.implicitHeight, Math.max(Style.space(36),
+                menu.parent.height - Style.space(32) - menu.topPadding - menu.bottomPadding
+                - header.implicitHeight - createRow.implicitHeight - popupContent.spacing * 5 - 2
+                - (errorLabel.visible ? errorLabel.implicitHeight : 0)))
+            contentWidth: availableWidth
+            clip: true
+            FastWheel { flickable: listScroll.contentItem }
+            ColumnLayout {
+                id: listRows
+                width: listScroll.availableWidth
+                spacing: Style.space(6)
+                Repeater {
+                    model: StockStore.watchlists
+                    RowLayout {
+                        id: row
+                        required property var modelData
+                        readonly property bool editing: menu.editingId === modelData.id
+                        objectName: "watchlistRow_" + modelData.id
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Style.space(36)
+                        spacing: Style.space(4)
+                        HoverHandler { id: rowHover }
+                        Item {
+                            id: nameGroup
+                            visible: !row.editing
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            implicitWidth: nameLabel.implicitWidth + editButton.implicitWidth + Style.space(4)
+                            implicitHeight: Style.space(36)
+                            Label {
+                                id: nameLabel
+                                text: row.modelData.name
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Math.min(implicitWidth, Math.max(0, nameGroup.width - editButton.width - Style.space(4)))
+                            }
+                            ActionButton {
+                                id: editButton
+                                anchors.left: nameLabel.right
+                                anchors.leftMargin: Style.space(4)
+                                anchors.verticalCenter: parent.verticalCenter
+                                objectName: "editWatchlist_" + row.modelData.id
+                                text: "\uf040"
+                                hint: "Rename " + row.modelData.name
+                                opacity: rowHover.hovered || activeFocus ? 1 : 0
+                                activeFocusOnTab: true
+                                enabled: !StockStore.busy
+                                onClicked: { menu.editList(row.modelData.id); nameInput.forceActiveFocus(); nameInput.selectAll() }
+                            }
+                        }
+                        NameField {
+                            id: nameInput
+                            objectName: "watchlistRenameInput_" + row.modelData.id
+                            visible: row.editing
+                            text: row.editing ? menu.editingName : ""
+                            Accessible.name: "Rename " + row.modelData.name
+                            enabled: !menu.pendingAction
+                            onTextEdited: menu.editingName = text
+                            onAccepted: menu.save("rename")
+                            Keys.onEscapePressed: { menu.editingId = ""; closeButton.forceActiveFocus() }
+                        }
+                        ActionButton {
+                            objectName: "confirmWatchlist_" + row.modelData.id
+                            visible: row.editing
+                            text: "\uf00c"
+                            hint: "Save watchlist name"
+                            enabled: menu.canRename
+                            onClicked: menu.save("rename")
+                        }
+                        ActionButton {
+                            objectName: "removeWatchlist_" + row.modelData.id
+                            text: "\uf1f8"
+                            enabled: StockStore.watchlists.length > 1 && !StockStore.busy
+                            hint: StockStore.watchlists.length <= 1 ? "Keep at least one watchlist" : "Remove " + row.modelData.name
+                            onClicked: menu.save("remove", row.modelData.id)
+                        }
+                    }
+                }
             }
         }
         Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
         RowLayout {
+            id: createRow
             Layout.fillWidth: true
             NameField {
                 id: newName
@@ -143,6 +202,6 @@ Controls.Popup {
                 onClicked: menu.save("create")
             }
         }
-        Label { visible: !!menu.saveError; text: menu.saveError; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.urgent }
+        Label { id: errorLabel; visible: !!menu.saveError; text: menu.saveError; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.urgent }
     }
 }
