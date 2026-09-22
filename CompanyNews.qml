@@ -20,6 +20,12 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Label { text: "LATEST NEWS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+        ActionButton {
+            text: "Yahoo ↗"
+            hint: "Open company news on Yahoo Finance"
+            enabled: !!StockStore.selected
+            onClicked: Qt.openUrlExternally("https://finance.yahoo.com/quote/" + encodeURIComponent(StockStore.selected) + "/news/")
+        }
         ActionButton { text: "↻"; hint: "Refresh company news"; enabled: !MarketStore.newsRequest.busy; onClicked: MarketStore.newsRequest.reload(true) }
     }
     Label {
