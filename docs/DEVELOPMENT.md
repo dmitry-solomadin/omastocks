@@ -6,6 +6,16 @@ The plugin manifest points to `qml/Service.qml` and `qml/BarWidget.qml`.
 `qml/StocksWindow.qml` composes the application; `qml/SettingsMenu.qml` manages
 display preferences.
 
+The service runs `install-launcher` on startup, so `omarchy plugin add … --enable`
+also installs the desktop entry and icon. The installer updates changed assets
+without rewriting identical files on each shell reload.
+When the service unloads (disable, removal or reload), it cleans up its generated
+launcher and icon. A lock and per-instance ownership token prevent an old instance
+from removing a newer one's files. Cleanup uses the helper cached in memory so it
+still works after `omarchy plugin remove` deletes the plugin folder. Watchlists and
+research caches are outside this cleanup; `uninstall` is a compatibility wrapper
+around the native removal command.
+
 | Directory | Responsibility |
 |---|---|
 | `qml/stores/` | Watchlists, selection, quotes, research and comparison state |

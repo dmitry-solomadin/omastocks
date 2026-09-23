@@ -7,8 +7,31 @@ import "."
 Item {
     id: root
     property var shell: null
+    readonly property string launcherPath: decodeURIComponent(Qt.resolvedUrl("../install-launcher").toString().replace(/^file:\/\//, ""))
+    readonly property string launcherToken: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2)
+    property string launcherSource: ""
     Component.onCompleted: StockStore.start()
-    Component.onDestruction: StockStore.stop()
+    Component.onDestruction: {
+        StockStore.stop()
+        launcherInstaller.running = false
+        if (launcherSource)
+            Quickshell.execDetached(["bash", "-c", launcherSource, launcherPath, "remove", launcherToken])
+    }
+    // Cache the helper before removal can delete the plugin folder. Detached
+    // cleanup outlives this service; instance ownership makes reload ordering safe.
+    FileView {
+        path: root.launcherPath
+        onLoaded: root.launcherSource = text()
+    }
+    Process {
+        id: launcherInstaller
+        objectName: "launcherInstaller"
+        command: ["bash", "-c", root.launcherSource, root.launcherPath, "install", root.launcherToken]
+        running: root.launcherSource !== ""
+        onExited: (code, status) => {
+            if (code !== 0) console.warn("Omastocks could not install its launcher entry (exit " + code + ").")
+        }
+    }
     function open() {
         if (window.visible) {
             for (const toplevel of ToplevelManager.toplevels.values)

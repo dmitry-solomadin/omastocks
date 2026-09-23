@@ -1,10 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
-root="$(cd -- "$(dirname -- "$0")" && pwd)"
+action="${1:-install}"
+token="${2:-}"
+case "$action" in
+  install | remove) ;;
+  *) echo "Usage: install-launcher [install|remove] [instance-token]" >&2; exit 2 ;;
+esac
+id="io.github.dmitry-solomadin.omastocks"
 applications="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
-mkdir -p "$applications"
 icons="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
-mkdir -p "$icons"
-install -m 644 "$root/assets/icon.svg" "$icons/io.github.dmitry-solomadin.omastocks.svg"
-install -m 644 "$root/assets/omastocks.desktop" "$applications/io.github.dmitry-solomadin.omastocks.desktop"
+state="${STOCKS_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/$id}"
+mkdir -p "$state"
+exec 9>"$state/launcher.lock"
+flock -x 9
+owner="$state/launcher.owner"
+
+# Cleanup is run from a cached copy of this script: plugin remove may already
+# have deleted the repository. An older service must not remove a newer one's files.
+if [[ $action == remove ]]; then
+  [[ -n $token && -f $owner && $(cat "$owner") == "$token" ]] || exit 0
+  rm -f -- "$applications/$id.desktop" "$icons/$id.svg"
+  : >"$owner"
+  exit 0
+fi
+
+root="$(cd -- "$(dirname -- "$0")" && pwd)"
+# Manual repair preserves the active service's ownership.
+if [[ -n $token ]]; then printf '%s' "$token" >"$owner"; fi
+mkdir -p "$applications" "$icons"
+cmp -s "$root/assets/icon.svg" "$icons/$id.svg" ||
+  install -m 644 "$root/assets/icon.svg" "$icons/$id.svg"
+cmp -s "$root/assets/omastocks.desktop" "$applications/$id.desktop" ||
+  install -m 644 "$root/assets/omastocks.desktop" "$applications/$id.desktop"
 echo "Omastocks launcher installed."

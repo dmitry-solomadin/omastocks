@@ -10,16 +10,14 @@ theme, fonts and scaling. No API keys or Python dependencies.
 
 Requires **Omarchy's Quickshell-based shell**, Python **3.10+**, and `tzdata`.
 
+Install and enable the plugin:
+
 ```sh
 omarchy plugin add https://github.com/dmitry-solomadin/omastocks --enable
-omarchy-shell io.github.dmitry-solomadin.omastocks open
 ```
 
-To add **Omastocks** to your application launcher:
-
-```sh
-~/.config/omarchy/plugins/io.github.dmitry-solomadin.omastocks/install-launcher
-```
+The launcher entry and icon are installed automatically. Open the Omarchy launcher
+with **Super+Space**, search for **Stocks**, and launch the app.
 
 Installation is user-local. The window is titled **Stocks**; closing it leaves
 the optional favorites ticker running.
@@ -101,11 +99,11 @@ provider; there is no telemetry or account setup. See
 
 ```sh
 omarchy plugin update io.github.dmitry-solomadin.omastocks
-~/.config/omarchy/plugins/io.github.dmitry-solomadin.omastocks/uninstall
+omarchy plugin remove io.github.dmitry-solomadin.omastocks
 ```
 
-Uninstall asks for confirmation and removes the plugin, launcher and icon while
-preserving your watchlists and caches.
+Removal asks for confirmation. The plugin cleans up its launcher entry and icon
+when unloaded; your watchlists and caches are preserved.
 
 ## Development
 
@@ -131,4 +129,4 @@ The experimental **Brief me** AI feature lives on [`feature/brief-me`](https://g
 ## License
 
 [MIT](LICENSE). Market data and publisher images belong to their respective
-providers. Inspired by the favorites-strip interaction in CostaFot's Markets plugin.
+providers.

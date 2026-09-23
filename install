@@ -10,7 +10,6 @@ else
   mkdir -p "$(dirname "$target")"
   ln -s "$root" "$target"
 fi
-"$root/install-launcher"
 omarchy-shell shell rescanPlugins >/dev/null
 omarchy plugin enable "$id" --section left
 echo "Installed. Open Omastocks from your launcher or the favorites strip."
