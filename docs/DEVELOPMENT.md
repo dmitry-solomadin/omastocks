@@ -92,4 +92,7 @@ omarchy-shell io.github.dmitry-solomadin.omastocks status
 Check Stock, Market and Watchlist; test chart comparison, list selection and settings
 at compact and wide window sizes. Close/reopen using both the compositor and
 `Ctrl+W`. For new screenshots, capture the current rendered app after its data
-loads; keep the cover and gallery consistent with the current branch.
+loads; keep the cover and gallery consistent with the current branch. Full-window
+captures are **1850 × 1400**; gallery thumbnails in `docs/screenshots/thumbs/` are
+600 pixels wide and link to the originals. The cover shows AMD in the initial
+1D view after loading, with default chart controls and collapsed research sections.

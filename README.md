@@ -4,7 +4,7 @@ A tileable stock research app for [Omarchy](https://omarchy.org), with an option
 favorites ticker in the top bar. Built with Quickshell; follows your desktop's
 theme, fonts and scaling. No API keys or Python dependencies.
 
-![Stocks: price chart, watchlist and market details](preview.png)
+![Omastocks opening on AMD: daily chart, watchlist and stock research](preview.png)
 
 ## Install
 
@@ -62,25 +62,22 @@ benchmark, instrument or tile to open its Stock view.
 
 ## Screenshots
 
-<details>
-<summary>Market overview, heatmap, watchlist, research and comparison</summary>
+Click a thumbnail to view the full-size screenshot.
 
-### Market overview
-![Benchmarks, cross-asset prices and market sentiment](docs/screenshots/market.png)
-
-### Market map
-![S&P 500 market-cap-weighted heatmap](docs/screenshots/heatmap.png)
-
-### Watchlist
-![Watchlist performance and earnings calendar](docs/screenshots/watchlist.png)
-
-### Company research
-![Quarterly financial statements and analyst research](docs/screenshots/research.png)
-
-### Compare
-![Stock comparison chart and fundamental metrics](docs/screenshots/compare.png)
-
-</details>
+<table>
+  <tr>
+    <td align="center"><a href="docs/screenshots/stock.png"><img src="docs/screenshots/thumbs/stock.png" width="420" alt="AMD monthly chart with moving average and volume"></a><br><b>Stock chart</b></td>
+    <td align="center"><a href="docs/screenshots/market.png"><img src="docs/screenshots/thumbs/market.png" width="420" alt="Market benchmarks, cross-asset prices and sentiment"></a><br><b>Market overview</b></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="docs/screenshots/heatmap.png"><img src="docs/screenshots/thumbs/heatmap.png" width="420" alt="S&amp;P 500 market-cap-weighted heatmap"></a><br><b>Market map</b></td>
+    <td align="center"><a href="docs/screenshots/watchlist.png"><img src="docs/screenshots/thumbs/watchlist.png" width="420" alt="Watchlist performance and earnings calendar"></a><br><b>Watchlist &amp; Calendar</b></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="docs/screenshots/research.png"><img src="docs/screenshots/thumbs/research.png" width="420" alt="Quarterly financial statements and analyst research"></a><br><b>Company research</b></td>
+    <td align="center"><a href="docs/screenshots/compare.png"><img src="docs/screenshots/thumbs/compare.png" width="420" alt="AMD, NVIDIA and Broadcom charts and fundamentals compared"></a><br><b>Compare</b></td>
+  </tr>
+</table>
 
 ## Data and storage
 
