@@ -32,28 +32,38 @@ def parse_news(document, ticker):
     articles, seen = [], set()
     quote = next((row for row in document.get("quotes") or [] if row.get("symbol") == ticker), {})
     name = re.sub(r"^the\s+", "", str(quote.get("shortname") or quote.get("longname") or ""), flags=re.I)
+    name = re.sub(r",?\s+(?:incorporated|inc|corporation|corp|limited|ltd|plc|class\s+\w)\b.*$", "", name, flags=re.I).strip(" ,.")
     stem = name.split()[0].rstrip(",.").casefold() if name.split() else ""
-    ticker_pattern = re.compile(r"(?<!\w)" + re.escape(ticker) + r"(?!\w)", re.I)
+    generic = {"advanced", "american", "international", "national", "global", "united", "first", "general", "bank"}
+    names = [name] if len(name) > 3 else []
+    if len(stem) > 3 and stem not in generic:
+        names.append(stem)
+    ticker_pattern = re.compile(r"(?<!\w)" + re.escape(ticker) + r"(?!\w)" if len(ticker) > 2 else r"(?:\$|\()" + re.escape(ticker) + r"(?!\w)")
     for row in document.get("news") or []:
         related = row.get("relatedTickers") or []
         url, title = web_url(row.get("link")), str(row.get("title") or "").strip()
-        # The search request is already scoped to this symbol. relatedTickers can
-        # be missing or name another listing/share class, so it is not a whitelist.
+        primary = bool(ticker_pattern.search(title) or any(re.search(r"(?<!\w)" + re.escape(alias) + r"(?!\w)", title, re.I) for alias in names))
+        # Yahoo tags can include unrelated tickers (even on single-company
+        # stories). Require a headline mention, not merely a provider tag.
+        if not primary:
+            continue
         if not url or not title or row.get("type") not in (None, "STORY"):
             continue
         identity = row.get("uuid") or url
-        if identity in seen:
+        headline = re.sub(r"\W+", " ", title.casefold()).strip()
+        if identity in seen or url in seen or headline in seen:
             continue
         seen.add(identity)
+        seen.add(url)
+        seen.add(headline)
         resolutions = (row.get("thumbnail") or {}).get("resolutions") or []
         images = [image for image in resolutions if web_url(image.get("url"))]
         image = min(images, key=lambda item: abs((number(item.get("width")) or 320) - 320)) if images else {}
         articles.append({"id": identity, "title": title, "url": url, "source": row.get("publisher") or "Publisher",
                          "published": number(row.get("providerPublishTime")), "image": image.get("url", ""),
-                          "symbols": related, "primary": bool(ticker_pattern.search(title) or (len(stem) > 3 and stem in title.casefold()))})
-    # Title matches improve ranking without excluding the provider's other results.
-    return {"symbol": ticker, "newsSchema": 3,
-            "articles": sorted(articles, key=lambda article: (article["primary"], article["published"] or 0), reverse=True)[:12]}
+                           "symbols": related, "primary": primary})
+    return {"symbol": ticker, "newsSchema": 6,
+            "articles": sorted(articles, key=lambda article: (article["primary"], article["published"] or 0), reverse=True)[:20]}
 
 
 def nasdaq(path):
@@ -216,6 +226,28 @@ def moving_averages(points, dates, windows=(20, 50, 200)):
 
 
 def load(action, ticker, period):
+    if action == "sectors":
+        from market_bulk import presets
+        from index_market import presets as indexes
+        return {"catalogSchema": 3, "sectors":
+                [{"value": group["id"], "label": group["name"], "kind": "index"} for group in indexes() if group["id"] != "russell2000"]
+                + [{"value": group["id"], "label": group["name"], "kind": "sector"} for group in presets()]}
+    if action == "market-index":
+        from index_market import index
+        return index(ticker.lower())
+    if action == "market-news":
+        from market_news import news
+        return news()
+    if action == "sector":
+        from market_bulk import sector
+        return sector(ticker.lower())
+    if action == "quotes":
+        from market_bulk import quotes
+        return quotes(ticker.split(","))
+    if action == "calendar-bulk":
+        from calendar_bulk import calendar
+        from calendar_revenue import enrich
+        return enrich(calendar(ticker.split(",")))
     if action == "calendar":
         from earnings_calendar import calendar
         return calendar(ticker, nasdaq, parse_earnings)
@@ -233,7 +265,18 @@ def load(action, ticker, period):
     if action == "buzz":
         return reddit_buzz()
     if action == "news":
-        return parse_news(fetch("/v1/finance/search", q=ticker, quotesCount=1, newsCount=12), ticker)
+        document = fetch("/v1/finance/search", q=ticker, quotesCount=1, newsCount=12)
+        result = parse_news(document, ticker)
+        if len(result["articles"]) < 12:
+            from company_news import supplement
+            quote = next((row for row in document.get("quotes") or [] if row.get("symbol") == ticker), {})
+            try:
+                extra = supplement(ticker, quote.get("shortname") or quote.get("longname") or "")
+                result = parse_news({**document, "news": (document.get("news") or []) + extra}, ticker)
+            except (OSError, ValueError) as error:
+                if not result["articles"]:
+                    raise ValueError("Company news is temporarily unavailable.") from error
+        return result
     if action == "events":
         return earnings(ticker)
     if action == "calls":
@@ -257,8 +300,13 @@ def load(action, ticker, period):
 
 
 def main(arguments):
-    action, ticker = arguments[0], symbol(arguments[1])
-    if action not in ("calendar", "overview", "fundamentals", "insiders", "news", "events", "calls", "social", "buzz", "averages", "compare", "financials", "valuation", "extended", "analysts"):
+    action = arguments[0]
+    if action in ("quotes", "calendar-bulk"):
+        from market_bulk import symbols
+        ticker = ",".join(symbols(arguments[1]))
+    else:
+        ticker = symbol(arguments[1])
+    if action not in ("sectors", "sector", "market-index", "market-news", "quotes", "calendar-bulk", "calendar", "overview", "fundamentals", "insiders", "news", "events", "calls", "social", "buzz", "averages", "compare", "financials", "valuation", "extended", "analysts"):
         raise ValueError("Unknown research request.")
     if action == "buzz":
         ticker = "ALL"
@@ -270,16 +318,26 @@ def main(arguments):
     key = hashlib.sha256(f"{action}:{ticker}:{period}".encode()).hexdigest()
     path = directory / (key + ".json")
     ttl = {"news": 600, "social": 300, "buzz": 1800, "events": 21600, "calls": 86400, "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
-           "calendar": 21600, "overview": 300, "fundamentals": 3600, "insiders": 3600,
+           "sectors": 86400, "sector": 900, "market-index": 900, "market-news": 600, "quotes": 300, "calendar-bulk": 21600,
+           "calendar": 21600, "overview": 86400, "fundamentals": 3600, "insiders": 3600,
            "compare": 60 if period in ("1D", "1W") else 3600}[action]
     with (directory / (key + ".lock")).open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         saved = read_json(path, {})
         now = time.time()
         current_schema = ((action != "events" or saved.get("earningsSchema") == 2)
-                          and (action != "news" or saved.get("newsSchema") == 3)
-                          and (action != "insiders" or saved.get("insiderSchema") == 2))
-        if "--force" not in arguments and (saved.get("retryAfter", 0) > now or (current_schema and saved.get("fetched", 0) + ttl > now)):
+                          and (action != "sectors" or saved.get("catalogSchema") == 3)
+                          and (action != "market-news" or saved.get("marketNewsSchema") == 3)
+                          and (action != "quotes" or saved.get("quotesSchema") == 3)
+                          and (action != "calendar-bulk" or saved.get("calendarSchema") == 2)
+                          and (action != "news" or saved.get("newsSchema") == 6)
+                          and (action != "insiders" or saved.get("insiderSchema") == 2)
+                          and (action != "overview" or (saved.get("overviewSchema") == 2
+                               and saved.get("baselineDay") == datetime.now(ZoneInfo(saved.get("timezone", "UTC"))).date().isoformat())))
+        # Overview refreshes live prices in bulk. Successful historical baselines
+        # have a separate daily lifecycle; failed baseline downloads still retry.
+        fixed_baselines = action == "overview" and "--keep-baselines" in arguments and current_schema and not saved.get("stale", True) and saved.get("fetched", 0) + ttl > now
+        if fixed_baselines or ("--force" not in arguments and (saved.get("retryAfter", 0) > now or (current_schema and saved.get("fetched", 0) + ttl > now))):
             return saved
         try:
             result = {**load(action, ticker, period), "fetched": now, "stale": False, "error": ""}

@@ -7,7 +7,7 @@ import "."
 ColumnLayout {
     id: root
     objectName: "analystsPanel"
-    property bool historyOpen: false
+    readonly property bool historyOpen: MarketStore.sectionOpen("analystHistory")
     readonly property var report: MarketStore.analysts
     readonly property var summary: report.summary || {}
     readonly property var history: report.history || []
@@ -30,7 +30,7 @@ ColumnLayout {
             text: (MarketStore.analystsOpen ? "▾ " : "▸ ") + "ANALYSTS"
             font.pixelSize: Style.font.bodySmall
             hint: "Analyst recommendations and price targets · Nasdaq / TipRanks"
-            onClicked: MarketStore.analystsOpen = !MarketStore.analystsOpen
+            onClicked: MarketStore.toggleSection("analysts")
         }
         Item { Layout.fillWidth: true }
         Label {
@@ -51,10 +51,7 @@ ColumnLayout {
             objectName: "analystsRefresh"
             visible: MarketStore.analystsOpen
             text: "↻"; enabled: !MarketStore.analystsRequest.busy
-            hint: "Nasdaq / TipRanks · USD price targets · Cached one day"
-                + (root.report.fetched ? "\nRetrieved " + Qt.formatDateTime(new Date(root.report.fetched * 1000), "d MMM yyyy, hh:mm") : "")
-                + "\nCounts and targets use the same feed. History contains monthly snapshots, not individual rating changes."
-                + (root.report.error ? "\n" + root.report.error : "")
+            hint: root.report.error || "Refresh analysts"
             onClicked: MarketStore.analystsRequest.reload(true)
         }
     }
@@ -62,11 +59,15 @@ ColumnLayout {
         visible: MarketStore.analystsOpen
         Layout.fillWidth: true
         spacing: Style.space(12)
+        MarketLoading {
+            Layout.fillWidth: true
+            active: MarketStore.analystsRequest.busy
+            text: root.available ? "Updating analyst outlook…" : "Loading analyst outlook…"
+        }
         Label {
-            visible: !root.available
+            visible: !root.available && !MarketStore.analystsRequest.busy
             Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted
-            text: MarketStore.analystsRequest.busy ? "Loading analyst recommendations…"
-                : root.report.error || "No analyst recommendations available for this symbol."
+            text: root.report.error || "No analyst recommendations available for this symbol."
         }
         Row {
             objectName: "analystDistribution"
@@ -100,7 +101,7 @@ ColumnLayout {
                     text: modelData.label + " " + root.count(root.summary[modelData.key])
                     color: modelData.color; font.pixelSize: Style.font.bodySmall
                     HoverHandler { id: labelHover }
-                    Ui.PanelToolTip { visible: labelHover.hovered; text: distributionLabel.text }
+                    Ui.PanelToolTip { visible: labelHover.hovered && distributionLabel.truncated; text: distributionLabel.text }
                 }
             }
         }
@@ -133,7 +134,7 @@ ColumnLayout {
             visible: root.history.length > 0
             text: (root.historyOpen ? "▾ " : "▸ ") + "History"
             hint: "Monthly recommendation counts and average price targets"
-            onClicked: root.historyOpen = !root.historyOpen
+            onClicked: MarketStore.toggleSection("analystHistory")
         }
         ColumnLayout {
             objectName: "analystsHistory"

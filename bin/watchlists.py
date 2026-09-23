@@ -2,6 +2,8 @@
 
 import uuid
 
+SORT_MODES = ("custom", "change", "percent", "marketCap", "symbol", "name")
+
 
 def normalize(state):
     if "watchlists" not in state:
@@ -18,6 +20,8 @@ def normalize(state):
     if active is None:
         raise ValueError("Invalid active watchlist. File left untouched.")
     for row in lists:
+        if row.get("sort", "custom") not in SORT_MODES:
+            raise ValueError("Invalid watchlist sort order. File left untouched.")
         entries = row["entries"]
         if (len(entries) > 60 or any(not isinstance(entry, dict) or not isinstance(entry.get("symbol"), str)
                                     or not entry["symbol"] for entry in entries)
@@ -51,6 +55,10 @@ def change(state, action, identity="", name=""):
         selected(state, identity)["name"] = name
     elif action == "select":
         state["activeWatchlist"] = selected(state, identity)["id"]
+    elif action == "sort":
+        if name not in SORT_MODES:
+            raise ValueError("Unknown watchlist sort order.")
+        selected(state, identity)["sort"] = name
     elif action == "remove":
         selected(state, identity)
         if len(state["watchlists"]) == 1:

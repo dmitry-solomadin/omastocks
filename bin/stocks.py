@@ -71,13 +71,11 @@ def write_json(path, data):
 
 
 def fetch(path, **parameters):
+    from yahoo_http import read
     url = BASE + path + "?" + urllib.parse.urlencode(parameters)
     request = urllib.request.Request(url, headers={"User-Agent": "Omastocks/0.1", "Accept": "application/json"})
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:
-            raw = response.read(4 * 1024 * 1024 + 1)
-        if len(raw) > 4 * 1024 * 1024:
-            raise ValueError("Yahoo Finance returned an oversized response.")
+        raw = read(request)
         return json.loads(raw)
     except urllib.error.HTTPError as error:
         if error.code == 429:
@@ -147,6 +145,7 @@ def parse_chart(document, ticker, period):
         session_start = session_end = None
     return {
         "symbol": ticker, "name": meta.get("longName") or meta.get("shortName") or ticker,
+        "instrumentType": str(meta.get("instrumentType") or "").upper(),
         "currency": currency, "exchange": meta.get("fullExchangeName") or meta.get("exchangeName", ""),
         "price": current, "previous": previous if period == "1D" else None,
         "change": change, "percent": change / previous * 100 if change is not None and previous else None,
@@ -213,7 +212,7 @@ class Repository:
             return row
         return {"entries": [quote(row) for row in entries], "favoriteEntries": [quote(row) for row in favorites],
                 "activeWatchlist": self.state["activeWatchlist"],
-                "watchlists": [{"id": row["id"], "name": row["name"], "count": len(row["entries"])} for row in self.state["watchlists"]]}
+                "watchlists": [{"id": row["id"], "name": row["name"], "count": len(row["entries"]), "sort": row.get("sort", "custom")} for row in self.state["watchlists"]]}
 
     def watchlist(self, action, identity="", name=""):
         watchlists.change(self.state, action, identity, name)

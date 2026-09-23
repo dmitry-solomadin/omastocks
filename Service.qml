@@ -25,7 +25,7 @@ Item {
         target: "io.github.dmitry-solomadin.omastocks"
         function open(): void { root.open() }
         function close(): void { window.visible = false }
-        function refresh(): void { StockStore.refresh(true) }
+        function refresh(): void { if (window.visible) window.refresh(); else StockStore.refresh(true) }
         function status(): string {
             return JSON.stringify({open: window.visible, selected: StockStore.selected, range: StockStore.period,
                 entries: StockStore.entries.length, favorites: StockStore.favorites.map(entry => entry.symbol),

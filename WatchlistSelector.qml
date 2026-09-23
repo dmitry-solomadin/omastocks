@@ -7,8 +7,8 @@ import "."
 RowLayout {
     id: root
     signal editRequested()
-    readonly property bool popupOpen: dropdown.popupOpen
-    function close() { dropdown.close() }
+    readonly property bool popupOpen: dropdown.popupOpen || sortMenu.opened
+    function close() { dropdown.close(); sortMenu.close() }
     spacing: Style.space(6)
     HoverHandler { id: rowHover }
     FocusScope {
@@ -54,6 +54,14 @@ RowLayout {
         objectName: "editWatchlists"
         text: "\uf040"
         hint: "Manage watchlists"
-        onClicked: { dropdown.close(); root.editRequested() }
+        onClicked: { root.close(); root.editRequested() }
+    }
+    ActionButton {
+        id: sortButton
+        objectName: "sortWatchlist"
+        text: "⇅"
+        hint: "Sort Watchlist"
+        onClicked: { dropdown.close(); sortMenu.opened ? sortMenu.close() : sortMenu.open() }
+        WatchlistSortMenu { id: sortMenu; x: sortButton.width - width; y: sortButton.height + Style.space(4) }
     }
 }

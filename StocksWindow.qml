@@ -30,10 +30,12 @@ FloatingWindow {
     readonly property string warning: StockStore.error || series.error || quote.error ||
         (quote.stale && quote.price !== undefined ? "Showing saved prices. Refresh to check for updates." : "")
     function refresh() {
-        StockStore.refresh(true)
         if (StockStore.view !== "stock") workspace.refresh()
-        else if (MarketStore.compareMode) fundamentalComparison.refresh()
-        else companyActivity.refresh()
+        else {
+            StockStore.refresh(true)
+            if (MarketStore.compareMode) fundamentalComparison.refresh()
+            else companyActivity.refresh()
+        }
     }
 
     Item {
@@ -55,6 +57,17 @@ FloatingWindow {
         WatchlistMenu { id: watchlistMenu; parent: content }
         Connections { target: StockStore; function onActiveWatchlistChanged() { search.clear(); list.cancelDrag() } }
         Connections {
+            target: StockStore
+            function onStockAdded(ticker) {
+                search.clear()
+                content.forceActiveFocus()
+                Qt.callLater(() => {
+                    list.currentIndex = list.rows.findIndex(row => row.symbol === ticker)
+                    if (list.currentIndex >= 0) list.positionViewAtIndex(list.currentIndex, ListView.Contain)
+                })
+            }
+        }
+        Connections {
             target: MarketStore
             function onCompareModeChanged() {
                 Qt.callLater(() => detailScroll.contentItem.contentY = detailScroll.contentItem.originY || 0)
@@ -73,9 +86,10 @@ FloatingWindow {
                 spacing: Style.space(16)
                 RowLayout {
                     Layout.fillWidth: true
-                    Label {
-                        text: "Stocks"; font.pixelSize: Style.space(24); font.bold: true; Layout.fillWidth: true
-                        fontSizeMode: Text.HorizontalFit; minimumPixelSize: Style.space(14)
+                    Item {
+                        Layout.fillWidth: true
+                        implicitHeight: wordmark.implicitHeight
+                        PixelWordmark { id: wordmark; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                     }
                     ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.busy; onClicked: window.refresh(); font.pixelSize: Style.space(18) }
                     ActionButton { text: "\uf013"; hint: "Settings"; font.pixelSize: Style.space(18); onClicked: settingsMenu.open() }
@@ -132,8 +146,8 @@ FloatingWindow {
                     spacing: Style.space(4)
                     readonly property var rows: {
                         const query = StockStore.searchQuery.toLowerCase()
-                        if (!query) return StockStore.entries
-                        const local = StockStore.entries.filter(entry => (entry.symbol + " " + entry.name).toLowerCase().indexOf(query) >= 0)
+                        if (!query) return StockStore.sortedEntries
+                        const local = StockStore.sortedEntries.filter(entry => (entry.symbol + " " + entry.name).toLowerCase().indexOf(query) >= 0)
                         const results = StockStore.results.map(result =>
                             StockStore.entries.find(entry => entry.symbol === result.symbol) || result)
                         const symbols = results.map(entry => entry.symbol)
@@ -154,7 +168,7 @@ FloatingWindow {
                     readonly property int insertionIndex: Math.max(0, Math.min(count,
                         Math.floor((contentY - originY + dragY + rowHeight / 2) / rowStep)))
                     function beginDrag(entry, point) {
-                        if (StockStore.searchQuery) return
+                        if (StockStore.searchQuery || StockStore.sortMode !== "custom") return
                         // Keep the grabbed delegate alive while edge scrolling.
                         currentIndex = rows.findIndex(row => row.symbol === entry.symbol)
                         dragSymbol = entry.symbol
@@ -220,7 +234,7 @@ FloatingWindow {
                             hoverEnabled: true
                             property bool wasDragged: false
                             preventStealing: !StockStore.searchQuery
-                            cursorShape: list.dragging ? Qt.ClosedHandCursor : StockStore.searchQuery ? Qt.PointingHandCursor : Qt.OpenHandCursor
+                            cursorShape: list.dragging ? Qt.ClosedHandCursor : StockStore.searchQuery || StockStore.sortMode !== "custom" ? Qt.PointingHandCursor : Qt.OpenHandCursor
                             onPressed: mouse => {
                                 wasDragged = false
                                 list.beginDrag(stockRow.modelData, mapToItem(list, mouse.x, mouse.y))
@@ -245,7 +259,7 @@ FloatingWindow {
                                 Label { text: "★"; visible: stockRow.modelData.favorite === true; color: Color.accent; font.pixelSize: Style.font.bodySmall }
                                 Label { text: stockRow.modelData.symbol; font.bold: true; Layout.fillWidth: true }
                                 Label { text: StockStore.price(stockRow.modelData.price); visible: stockRow.hasQuote; font.bold: true }
-                                Label { text: StockStore.percent(stockRow.modelData.percent); color: StockStore.direction(stockRow.modelData.percent); font.pixelSize: Style.font.bodySmall; visible: stockRow.hasQuote }
+                                Label { text: StockStore.watchlistMetricText(stockRow.modelData); color: StockStore.watchlistDisplay === "marketCap" ? Color.muted : StockStore.direction(StockStore.watchlistMetric(stockRow.modelData)); font.pixelSize: Style.font.bodySmall; visible: stockRow.hasQuote }
                                 Label { text: stockRow.modelData.exchange || ""; color: Color.muted; font.pixelSize: Style.font.bodySmall; visible: !stockRow.hasQuote }
                             }
                             RowLayout {
@@ -318,17 +332,23 @@ FloatingWindow {
                     Keys.onReturnPressed: if (currentItem) StockStore.select(currentItem.modelData.symbol)
                     Keys.onDownPressed: moveSelection(1)
                     Keys.onUpPressed: moveSelection(-1)
-                    Label {
+                    Column {
                         anchors.centerIn: parent
                         width: parent.width - Style.space(20)
                         visible: list.count === 0
-                        horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.WordWrap
-                        color: Color.muted
-                        text: StockStore.searchQuery ? (StockStore.searching ? "Searching markets…" : StockStore.searchError || "No matching stocks found.") : "Your watchlist is empty.\nSearch for a stock to begin."
+                        spacing: Style.space(16)
+                        MarketSkyline { anchors.horizontalCenter: parent.horizontalCenter }
+                        Label {
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.WordWrap
+                            color: Color.muted
+                            text: StockStore.searchQuery ? (StockStore.searching ? "Searching markets…" : StockStore.searchError || "No matching stocks found.") : "Your watchlist is empty.\nSearch for a stock to begin."
+                        }
                     }
                 }
                 Label { visible: !!StockStore.searchQuery; text: StockStore.searching ? "Searching markets…" : StockStore.searchError || list.count + " RESULTS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                MarketSession { Layout.fillWidth: true }
             }
         }
         Flow {
@@ -340,7 +360,7 @@ FloatingWindow {
             anchors.margins: Style.space(12)
             spacing: Style.space(4)
             Repeater {
-                model: [{id:"stock",label:"Stock"},{id:"overview",label:"Overview"},{id:"calendar",label:"Calendar"}]
+                model: [{id:"stock",label:"Stock"},{id:"market",label:"Market"},{id:"watchlist",label:"Watchlist"}]
                 ActionButton {
                     required property var modelData
                     objectName: "view_" + modelData.id
@@ -410,6 +430,7 @@ FloatingWindow {
                             Layout.fillWidth: true
                         }
                         ExtendedQuote { Layout.fillWidth: true }
+                        StockBrief { Layout.fillWidth: true }
                     }
                     ChartTools { Layout.fillWidth: true; chart: detailChart }
                     RowLayout {
@@ -469,9 +490,9 @@ FloatingWindow {
                     FundamentalComparison {
                         id: fundamentalComparison
                         Layout.fillWidth: true
-                        visible: MarketStore.compareMode
+                        visible: MarketStore.compareMode && chosen.length > 0
                         verticalFlickable: detailScroll.contentItem
-                        chosen: MarketStore.compareMode && StockStore.selected ? [StockStore.selected].concat(MarketStore.compareSymbols) : []
+                        chosen: MarketStore.compareMode && StockStore.selected ? [StockStore.selected].concat(MarketStore.compareSymbols).filter(ticker => !StockStore.isIndex(ticker)) : []
                     }
                     ColumnLayout {
                         objectName: "individualStockDetails"
@@ -479,18 +500,10 @@ FloatingWindow {
                         Layout.fillWidth: true
                         spacing: Style.space(10)
                         Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                        EarningsPanel { Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.bottomMargin: Style.space(8)
                             Label { text: "MARKET DETAILS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
-                            ActionButton {
-                                text: MarketStore.valuationRequest.busy ? "…" : "ⓘ"
-                                hint: MarketStore.valuation.error || "Quotes: Yahoo Finance · Valuations: TradingView (US listings, cached one hour)"
-                                    + (MarketStore.valuation.stale ? " · Saved data" : "")
-                                onClicked: MarketStore.valuationRequest.reload(true)
-                            }
                         }
                         GridLayout {
                             objectName: "marketDetailsGrid"
@@ -529,12 +542,14 @@ FloatingWindow {
                                 }
                             }
                         }
-                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                        FinancialsPanel { Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
-                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                        AnalystsPanel { Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                        CompanyActivity { id: companyActivity; Layout.fillWidth: true }
+                        Rectangle { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        EarningsPanel { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true }
+                        Rectangle { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        FinancialsPanel { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
+                        Rectangle { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        AnalystsPanel { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true }
+                        Rectangle { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        CompanyActivity { id: companyActivity; visible: !StockStore.selectedIsIndex; Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                         RowLayout {
                             id: feedTabs

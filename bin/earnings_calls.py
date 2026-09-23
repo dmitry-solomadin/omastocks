@@ -52,8 +52,8 @@ def parse_calls(page, ticker):
 
 
 def earnings_calls(ticker):
+    from yahoo_http import read
     url = "https://finance.yahoo.com/quote/" + urllib.parse.quote(ticker, safe="") + "/earnings-calls/"
     request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "text/html"})
-    with urllib.request.urlopen(request, timeout=20) as response:
-        page = response.read().decode("utf-8")
+    page = read(request).decode("utf-8")
     return parse_calls(page, ticker)

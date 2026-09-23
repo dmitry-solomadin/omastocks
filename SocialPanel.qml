@@ -36,8 +36,7 @@ ColumnLayout {
                 HoverHandler { id: buzzHover }
                 Ui.PanelToolTip {
                     visible: buzzHover.hovered
-                    text: "ApeWisdom · Stock-focused subreddits · Mentions and upvotes over the last 24 hours. Changes compare with the prior snapshot. Counts measure attention, not bullish/bearish sentiment."
-                        + (MarketStore.buzz.fetched ? "\nRetrieved " + Qt.formatDateTime(new Date(MarketStore.buzz.fetched * 1000), "d MMM, hh:mm") : "")
+                    text: "Mentions measure attention, not sentiment"
                 }
             }
             ActionButton {
@@ -126,8 +125,6 @@ ColumnLayout {
                             text: post.modelData.sentiment || ""
                             font.pixelSize: Style.font.bodySmall
                             color: post.modelData.sentiment === "Bullish" ? StockStore.gain : StockStore.loss
-                            HoverHandler { id: sentimentHover }
-                            Ui.PanelToolTip { visible: sentimentHover.hovered; text: "Sentiment selected by the post's author" }
                         }
                         Label { visible: post.modelData.likes !== null; text: "♡ " + StockStore.compact(post.modelData.likes); color: Color.muted; font.pixelSize: Style.font.bodySmall }
                     }

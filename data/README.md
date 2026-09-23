@@ -1,5 +1,26 @@
 # Watchlist membership snapshots
 
+## Index heatmaps
+
+`index-presets.json` contains one-time TradingView index memberships downloaded
+on 2026-09-22: **S&P 500 (503 listings)**, **Nasdaq 100 (101 listings)**, and
+**Russell 2000 (1,940 listings)**. Counts are provider listings, including separate
+share classes; the Russell snapshot preserves the provider's OTC listings too.
+
+The source was the public TradingView scanner's index constituent symbol sets
+`SYML:SP;SPX`, `SYML:NASDAQ;NDX`, and `SYML:TVC;RUT`. Each response was retrieved
+with a range of 0–3,000, and its reported `totalCount` matched all returned rows.
+Source component-page URLs, retrieval dates, and response hashes are retained.
+Company names and exact exchange-qualified `providerSymbol` values are stored;
+share-class dots are converted to Yahoo hyphens only in the app's `symbol` field.
+
+At runtime each selected index uses **one bulk TradingView POST** with those saved
+identifiers. Membership is not re-downloaded. Daily/YTD returns and market caps
+come from that response, with unavailable listings left missing and no per-symbol
+fallback requests. Tile area represents company market cap, not official index
+weights. These are membership snapshots, not a guarantee of current index coverage
+after constituent changes.
+
 ## Yahoo sector Top Companies
 
 `yahoo-sector-presets.json` is the smaller snapshot downloaded on 2026-09-22
@@ -27,9 +48,10 @@ are stored as `null`; tickers and share classes are preserved as returned.
 
 The download used an anonymous Yahoo cookie/crumb session, without an account or
 API key. No cookies or crumbs are stored in this repository. This is a static
-membership snapshot, not a runtime data source or a scheduled download; individual
-quote/earnings coverage has not been checked. Overview and Calendar do not yet
-load these lists.
+membership snapshot, not a scheduled membership download. Market uses these
+memberships and matches values from a single bulk sector response for the selected
+sector. Missing symbols are left unavailable. Overview and Calendar continue to
+use the active personal watchlist, with bulk quote and earnings requests.
 
 Print the Yahoo lists:
 

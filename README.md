@@ -2,7 +2,7 @@
 
 A window-first stock watchlist for Omarchy, with an optional favorites strip.
 
-Named watchlists, performance overviews, earnings calendars, price and fundamental
+Sector heatmaps, named watchlists, performance overviews, earnings calendars, price and fundamental
 comparisons, insider activity, charts, financials and news. No API keys.
 
 Built with Quickshell and Omarchy's live theme tokens. The main view is a regular
@@ -35,7 +35,7 @@ No root access or changes to `/usr/share/omarchy` are needed. The marketplace's
 installer loads the manifest directly; it does not run this repository's scripts.
 
 Closing the window leaves the strip running. Use the gear button to open
-**Settings**, then toggle **Show favorites in bar**. You can also hide it with
+**Settings**, then toggle **Enable topbar widget**. You can also hide it with
 `omarchy bar set io.github.dmitry-solomadin.omastocks showStrip false --json`. The window remains
 available from the launcher. Set it to `true` to show the strip again.
 
@@ -72,8 +72,21 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 - Drag a watchlist row up or down to reorder it. The insertion line marks the
   drop position; hold near the top or bottom to scroll longer lists. The order is
   saved and also determines the order of starred stocks in the bar. Clear search
-  before rearranging; Escape or dropping outside the list cancels a drag.
+  before rearranging; choose **Custom** sorting to enable dragging. Escape or
+  dropping outside the list cancels a drag.
+- Click the **Sort Watchlist** button beside the pen to choose **Custom**, **Price
+  Change**, **Percentage Change**, **Market Cap**, **Symbol**, or **Name**. Numeric
+  sorts are highest-first (changes use the regular-session daily change); names
+  and symbols are A–Z, with missing values last. Sidebar and Overview use the same
+  order. Each list remembers its choice; Custom restores its saved manual order.
 - Type in the sidebar to filter your watchlist and automatically search Yahoo Finance.
+  Adding a search result with **+** clears the search, selects the added stock,
+  and switches to the Stock tab after the add succeeds.
+- **Settings → Watchlist** selects one sidebar metric: **Display percentage
+  change**, **Display price change**, or **Display market cap**. The choice is
+  saved globally across lists; market cap uses the shared bulk quote request.
+  It changes the metric beside the current price, not the Overview return columns
+  or the watchlist's sort order.
   A bundled catalog adds 21 major indices, 28 index ETFs and 7 index mutual funds
   with common names and aliases: try **nasdaq**, **sp500**, **dow**, or
   **vanguard sp500**. Index tickers work with or without `^`; the S&P 500 uses
@@ -121,9 +134,10 @@ The scripts accept `--yes` for explicitly confirmed, non-interactive removal.
 
 ## Watchlist workspace
 
-The navigation above the detail pane switches between **Stock**, **Overview**,
-and **Calendar**. Clicking a symbol returns to the Stock view.
-Ctrl+R refreshes the current workspace view as well as prices. Tables scroll
+The navigation above the detail pane switches between **Stock**, **Market**, and
+**Watchlist**. Watchlist combines **Overview** and **Calendar** as sections on one
+scrolling page. Clicking a symbol returns to the Stock view.
+Ctrl+R refreshes the current workspace view. Tables scroll
 horizontally in narrow windows; vertical wheel scrolling still moves the page.
 
 - **Multiple watchlists:** hover over the list name above search (or focus it
@@ -136,13 +150,47 @@ horizontally in narrow windows; vertical wheel scrolling still moves the page.
   Search/add/remove/reorder apply to the active list. The original watchlist is
   migrated in memory and persisted on the next edit, preserving order, favorites,
   names and extra metadata. The last list cannot be removed. No research notes.
-- **Overview:** sortable 1D, 1W, 1M, YTD and 1Y price-return columns, an optional
-  equal-sized heatmap, and S&P 500 / Nasdaq Composite / Russell 2000 / VIX context.
+- **Market:** select any of Yahoo's 11 sectors for a 50-stock, market-cap-weighted
+  treemap. Tile area represents each company's share of the displayed market cap;
+  color shows performance. Small tiles reveal details on hover; missing market
+  caps appear as separate ticker buttons rather than invented tile sizes.
+  The dropdown also includes **S&P 500** and **Nasdaq 100**.
+  Their one-time TradingView membership snapshots contain 503 and 101
+  listings respectively (multiple share classes can appear). Each index refresh
+  uses **one TradingView bulk request** for the saved exchange-qualified listings,
+  including daily/YTD returns and market caps; no per-stock chart/history requests.
+  Large maps use one canvas with themed hover details rather than thousands of
+  QML tile controls. Sizes represent company market cap, not official index weights.
+  Index maps default to the **Top 50** by market cap, with **Top 100 / All** controls
+  for broader coverage. Market opens on **S&P 500 · Top 50**.
+  The index performance row (S&P 500, Nasdaq Composite,
+  Russell 2000, VIX) uses shared bulk quotes and refreshes every five minutes.
+  Market-wide and macro headlines below the map come from a targeted Google News
+  RSS search of established financial/news publishers. Headlines must concern
+  market moves, rates, inflation or economic data; stock-picking stories are
+  excluded. Only dated stories from the last 72 hours are shown, newest first,
+  with duplicate headlines removed. Refreshes every ten minutes; links open via
+  Google News in your browser. The feed needs no account or key.
+  Switch between daily change and the provider's YTD return, or click a tile to open the
+  stock. Membership comes from the bundled one-time Top Companies snapshot;
+  one bulk sector response supplies values for the selected sector. Missing
+  members remain **—**. Only the selected group refreshes, every 15 minutes.
+  The controls share a row with the retrieval timestamp; provider/error details
+  are in themed tooltips. The timestamp is retrieval time, not individual quote
+  times. YTD follows the provider's definition rather than Overview's calculated
+  calendar-boundary return. Membership is never added to personal watchlists.
+- **Overview:** 1D, 1W, 1M, YTD and 1Y price-return columns in the sidebar's selected
+  sort order, an optional
+  equal-sized heatmap.
   Returns exclude dividends. 1D uses the prior regular-session close; longer
   periods compare the latest regular price with the close on or before the
   calendar-date boundary (YTD uses the prior year-end). Hover for baseline and
-  quote timestamps. IPOs or insufficient history show **—**. New requests and
-  five-minute polling use a five-minute history cache.
+  quote timestamps. IPOs or insufficient history show **—**. One bulk request
+  fetches current prices for the watchlist and all four benchmarks every five
+  minutes. This same bulk response supplies numeric sidebar sorting, including
+  market cap, without a second Overview request. Historical baselines use a separate daily cache, invalidated when the
+  exchange date changes. The first visit still needs one history download per
+  uncached stock; subsequent price refreshes reuse successful baselines.
 - **Fundamentals:** appears beneath the chart when you enter **Compare** in the
   Stock view, using exactly the same tickers as the chart (including stocks not
   in your watchlist). Add/remove tickers through the comparison controls. Compare
@@ -156,8 +204,13 @@ horizontally in narrow windows; vertical wheel scrolling still moves the page.
   date. Shows a next-quarter EPS estimate when supplied and the last reported EPS
   surprise. Negative EPS estimates use their absolute value as the surprise
   denominator; zero estimates leave the percentage unavailable. Timing is shown
-  only if explicitly supplied. Nasdaq/Zacks dates are estimates; unsupported
-  instruments and missing dates are listed separately. Six-hour cache.
+  only if explicitly supplied. Uses Yahoo's symbol-filtered bulk earnings
+  calendar, with bounded 100-row pagination, rather than two requests per stock.
+  Looks back 180 days for the latest reported result and ahead 365 days for the
+  next report; dates may be estimates. EPS currency is not supplied by this
+  endpoint, so no currency is inferred. Unsupported instruments and missing dates
+  are listed separately. Six-hour cache; failed/incomplete page sets retain the
+  previous complete snapshot.
 - **Insider activity:** expand beneath Analysts in the Stock view. A **Past 3
   months** summary shows net buying/selling by shares, shares bought versus sold,
   their proportions, and transaction counts. These are Nasdaq's complete
@@ -175,13 +228,80 @@ horizontally in narrow windows; vertical wheel scrolling still moves the page.
   Insider links open the Nasdaq insider page, not an inferred matching Form 4.
   Data loads only when expanded and caches for one hour.
 
-Research batches run at most four symbol requests concurrently, separately from
+Per-symbol research batches run at most four requests concurrently, separately from
 the watchlist lock. Changing a list/view discards obsolete replies. Manual refresh
-bypasses TTL and failure cooldowns. Errors remain attached to the affected symbol;
+bypasses live-data TTL and ordinary failure cooldowns; successful daily Overview
+baselines are retained. Yahoo HTTP 429 pauses requests across helpers, including
+manual refresh, honoring `Retry-After` and otherwise increasing the delay from two
+minutes up to an hour. Yahoo requests share 250 ms start-time pacing; this is an
+application traffic policy, not a published Yahoo allowance. Bulk session cookies
+and crumbs are private local files under the plugin's state directory, shared
+across requests; no account or API key is needed. Errors remain visible;
 cached results survive failed refreshes. Partial fundamental-provider failures
 show the available provider's metrics and an explicit notice.
 
 ## Chart analysis and company news
+
+### Pixel artwork preview
+
+- The sidebar's bitmap **STOCKS** wordmark builds in over 440 ms when the window
+  opens. The app remains interactive during the animation.
+- A pixel bull/bear beside Market's benchmark row follows the **S&P 500's latest
+  daily change**, with a neutral mark for zero or unavailable direction.
+- The sidebar footer's pixel bell shows the provider-reported US market session:
+  open, pre-market, after hours or closed. It briefly rings when a known non-regular
+  session transitions to regular trading. Missing/stale state stays unavailable;
+  no local weekday/time guess is used. Shared bulk quotes refresh every five
+  minutes while the window is open.
+- A candlestick skyline appears in empty sidebar states and below Market news.
+
+Original sprites live in `PixelSprites.js`, rendered at integer pixel sizes by
+`PixelArt.qml`. `PixelWordmark.qml`, `MarketMood.qml`, `MarketSession.qml`, and
+`MarketSkyline.qml` are separate components for easy refinement/removal.
+
+### Brief me
+
+**Brief me** on the Stock page hands a bounded snapshot to **your default Omarchy
+agent**, using `omarchy agent prompt`. It opens that agent's normal window with its
+existing model and authentication; no extra model installation, provider account,
+or API key is configured in Omastocks. Set an installed/authenticated agent using
+Omarchy's default-agent settings first.
+When that default is `opencode` and `opencode2` is installed, Brief me resolves
+the launch to V2 within its isolated request directory. Global agent settings and
+PATH are unchanged.
+
+The agent writes a structured brief back to Stocks with four sections: **Recent
+developments, Business performance, Expectations, Things to watch**. Citation
+buttons open the supplied source pages; the brief shows its snapshot time and
+agent. Only this stock's locally cached quote, available research and headline
+metadata are supplied—not the watchlist, credentials or full articles. Unopened
+research sections may be missing; load the sections you want covered before
+generating. No additional market-data fetching is triggered by Brief me.
+
+Generation is explicit. Reopening a saved brief reads the cache; the refresh button
+requests a new agent session with a fresh snapshot. An identical snapshot reuses
+the previous brief unless explicitly regenerated. Stocks checks the result's
+request identity, section structure and source IDs before displaying it. It cannot
+guarantee the model's interpretation; source links are provided for verification.
+If no result arrives within five minutes, check the agent window and retry.
+
+Briefs and isolated request snapshots are stored in the plugin state directory's
+`briefs/` folder. The agent session remains available for follow-up questions.
+
+The Watchlist earnings calendar also shows **Revenue estimate** for the upcoming
+report and **Last revenue surprise** (actual minus consensus, divided by the
+absolute consensus). One supplemental TradingView bulk request serves the entire
+watchlist. Figures are attached only when the provider's report date matches the
+calendar date; missing data, ambiguous listings, differing dates, and zero surprise
+denominators remain **—**. Hover over revenue surprise for actual and estimated
+amounts and the source. The table scrolls horizontally to fit the added columns.
+
+Indexes are identified by Yahoo's instrument-type metadata, with its `^` symbol
+prefix as a fallback for older cached quotes. Earnings/calls, financial statements,
+analyst targets, company valuations and insider activity are hidden for indexes,
+and their requests are disabled. Indexes remain available for chart comparison
+but are excluded from company fundamental comparisons. Tracking ETFs such as SPY
+are distinct instruments and are not classified as indexes.
 
 - **Settings → Chart → Volume bars** shows per-interval trading volume below the price chart. Hover a
   regular-session price point to see its volume. Pre-market and after-hours hover
@@ -228,8 +348,14 @@ show the available provider's metrics and an explicit notice.
   day; clicking a call opens its individual transcript in your browser.
 - **Latest News** shows relevant company headlines, publishers, dates and optional
   thumbnails from Yahoo. Clicking a story opens the publisher in your browser.
-  Yahoo's symbol-scoped search selects the stories; ticker/company-name matches
-  rank headlines first. Missing or different listing tags do not exclude stories.
+   Yahoo's symbol-scoped search supplies candidates; an explicit ticker/company
+   mention in the headline is required. Provider ticker tags alone are insufficient
+   because they can include unrelated stocks. Missing or different listing tags
+   are accepted when the headline itself matches the company.
+   If Yahoo yields fewer than 12 relevant stories, one company-scoped Google News
+   RSS request adds coverage from the past seven days. The same headline filter
+   applies to both sources; duplicate titles/URLs are removed. Up to 20 articles
+   are displayed, newest first—this is not a daily article quota.
   No API key is required. This is a headline feed, not a full-article reader.
 
 ## Social chatter
@@ -329,15 +455,17 @@ the watchlist lock or wait behind the price/chart queue. News caches for ten min
 earnings for six hours, daily-average history for one hour, and comparison charts
 for one minute intraday or one hour historically. Failed refreshes retain saved
 data and back off before automatic retries. Manual refresh bypasses both the
-cache and retry cooldown. Each section has its own loading/error state;
+cache and ordinary retry cooldown, but respects a shared Yahoo HTTP 429 pause.
+Each section has its own loading/error state;
 Ctrl+R also refreshes these sections. Volume and event visibility are saved in
 plugin settings. Moving-average and comparison choices last for the shell session.
 
 ## Data
 
-Yahoo Finance's unofficial chart, search and fundamentals endpoints supply prices,
-history, corporate actions, headlines and financial statements; Nasdaq/Zacks
-supplies earnings dates and EPS; TradingView supplies valuations and earnings
+Yahoo Finance's unofficial chart, search, fundamentals, sector, bulk quote and
+calendar endpoints supply prices, history, corporate actions, headlines, financial
+statements and the watchlist earnings calendar; Nasdaq/Zacks supplies the Stock
+view's earnings dates and EPS; TradingView supplies valuations and earnings
 revenue comparisons. Prices may be delayed. Quote currency is shown in the
 window; chart hover times use your computer's local timezone. Requests are
 cached, and failed refreshes keep the last successful data marked as stale.
@@ -353,11 +481,12 @@ plugin settings API, preserving the other settings in `shell.json`.
 
 ### Network and storage
 
-The helpers contact `query1.finance.yahoo.com`, `finance.yahoo.com`, `api.nasdaq.com`,
+The helpers contact `query1.finance.yahoo.com`, `finance.yahoo.com`, `fc.yahoo.com`, `api.nasdaq.com`,
 `scanner.tradingview.com`, `api.stocktwits.com` and `apewisdom.io` over HTTPS. The current ticker/search query is sent to
 the corresponding provider; watchlist files stay local. News thumbnails load
 from image URLs supplied by Yahoo. News, earnings searches and filing links open
-in your default browser. No telemetry, credentials or paid services are used.
+in your default browser. No telemetry, user login credentials or paid services are
+used. Yahoo's anonymous cookies and crumb token are stored locally for bulk access.
 These are public, unofficial endpoints and may change or be rate-limited.
 The MIT license covers the code; external market data and publisher images
 remain subject to their respective providers' terms.
@@ -374,14 +503,19 @@ The watchlist additions are separate modules to make iteration/removal contained
 | Feature | UI | Backend |
 |---|---|---|
 | Named lists | `WatchlistSelector.qml`, `WatchlistMenu.qml`, small `StockStore.qml` adapter | `bin/watchlists.py`, `Repository` adapter in `bin/stocks.py` |
-| Overview | `WatchlistOverview.qml` | `bin/overview.py` |
+| Market | `MarketOverview.qml`, `SectorHeatmap.qml`, `DenseHeatmap.qml` | `bin/market_bulk.py`, `bin/index_market.py`, bundled sector/index membership snapshots |
+| Overview | `WatchlistOverview.qml`, `BulkRequest.qml` | `bin/overview.py`, `bin/market_bulk.py` |
 | Fundamental comparison | `FundamentalComparison.qml` | `bin/fundamental_compare.py` |
-| Earnings calendar | `EarningsCalendar.qml` | `bin/earnings_calendar.py` |
+| Earnings calendar | `EarningsCalendar.qml`, `BulkRequest.qml` | `bin/calendar_bulk.py` |
 | Insider activity | `CompanyActivity.qml` | `bin/company_activity.py` |
 
-`WatchlistWorkspace.qml` mounts Overview and Calendar; `FundamentalComparison.qml`
+`WatchlistWorkspace.qml` mounts Market or `WatchlistDashboard.qml`, which combines
+Overview and Calendar with a shared refresh action. `Treemap.js` supplies pure
+market-cap layout geometry for `SectorHeatmap.qml`. `FundamentalComparison.qml`
 is mounted beneath the chart only in Compare mode. `WatchlistBatch.qml`
-owns bounded requests and `FeatureTable.qml` owns their common table presentation.
+owns bounded per-symbol requests, `BulkRequest.qml` owns symbol-set requests, and
+`FeatureTable.qml` owns their common table presentation. `bin/yahoo_http.py` shares
+Yahoo pacing, 429 backoff and the anonymous bulk-data session across helper processes.
 `StocksWindow.qml` adds navigation, the list selector, the activity panel, and the
 comparison table mount; the table receives its tickers from the existing chart
 comparison selection rather than maintaining a separate selection.
@@ -408,6 +542,8 @@ types. No files under `/usr/share/omarchy` are modified.
 ```sh
 python3 -m unittest discover -s tests -v
 node tests/test_chart.cjs
+node tests/test_treemap.cjs
+node tests/test_watchlist_order.cjs
 omarchy plugin validate .
 python3 bin/stocks.py snapshot
 python3 bin/stocks.py chart AAPL 1M

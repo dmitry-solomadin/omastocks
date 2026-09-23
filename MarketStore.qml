@@ -8,6 +8,7 @@ QtObject {
     id: root
     readonly property bool active: StockStore.running && StockStore.windowOpen && StockStore.view === "stock" && !!StockStore.selected
     readonly property bool stockResearchActive: active && !compareMode
+    readonly property bool companyResearchActive: stockResearchActive && !StockStore.selectedIsIndex
     readonly property bool showVolume: StockStore.barSettings.showVolume !== false
     readonly property bool showEvents: StockStore.barSettings.showEvents !== false
     readonly property bool averagesAvailable: ChartMath.dailyAveragesSupported(StockStore.period)
@@ -22,14 +23,24 @@ QtObject {
     readonly property var social: socialRequest.data
     readonly property var buzz: buzzRequest.data
     readonly property var earnings: eventsRequest.data
-    property bool earningsCallsOpen: false
+    property var expandedSections: ({})
+    function sectionOpen(section) {
+        return (expandedSections[StockStore.selected] || {})[section] === true
+    }
+    function toggleSection(section) {
+        if (!StockStore.selected) return
+        const sections = Object.assign({}, expandedSections[StockStore.selected] || {}, {[section]: !sectionOpen(section)})
+        expandedSections = Object.assign({}, expandedSections, {[StockStore.selected]: sections})
+    }
+    readonly property bool earningsCallsOpen: sectionOpen("calls")
     readonly property var earningsCalls: callsRequest.data
     readonly property var averages: averagesRequest.data
-    property bool financialsOpen: false
+    readonly property bool financialsOpen: sectionOpen("financials")
+    function toggleFinancials() { toggleSection("financials") }
     property string financialFrequency: "quarterly"
     readonly property var financials: financialsRequest.data
     readonly property var valuation: valuationRequest.data
-    property bool analystsOpen: false
+    readonly property bool analystsOpen: sectionOpen("analysts")
     readonly property var analysts: analystsRequest.data
     property bool showExtended: false
     readonly property var extended: extendedRequest.data
@@ -94,15 +105,15 @@ QtObject {
     property Timer socialPoll: Timer { interval: 300000; running: root.stockResearchActive && root.socialOpen; repeat: true; onTriggered: root.socialRequest.reload(false) }
     property Timer buzzPoll: Timer { interval: 1800000; running: root.stockResearchActive && root.socialOpen; repeat: true; onTriggered: root.buzzRequest.reload(false) }
     property DataRequest financialsRequest: DataRequest {
-        arguments: root.stockResearchActive && root.financialsOpen ? ["financials", StockStore.selected, root.financialFrequency] : []
+        arguments: root.companyResearchActive && root.financialsOpen ? ["financials", StockStore.selected, root.financialFrequency] : []
     }
-    property DataRequest valuationRequest: DataRequest { arguments: root.stockResearchActive ? ["valuation", StockStore.selected] : [] }
-    property DataRequest analystsRequest: DataRequest { arguments: root.stockResearchActive && root.analystsOpen ? ["analysts", StockStore.selected] : [] }
-    property Timer analystsPoll: Timer { interval: 3600000; running: root.stockResearchActive && root.analystsOpen; repeat: true; onTriggered: root.analystsRequest.reload(false) }
+    property DataRequest valuationRequest: DataRequest { arguments: root.companyResearchActive ? ["valuation", StockStore.selected] : [] }
+    property DataRequest analystsRequest: DataRequest { arguments: root.companyResearchActive && root.analystsOpen ? ["analysts", StockStore.selected] : [] }
+    property Timer analystsPoll: Timer { interval: 3600000; running: root.companyResearchActive && root.analystsOpen; repeat: true; onTriggered: root.analystsRequest.reload(false) }
     property DataRequest extendedRequest: DataRequest { arguments: root.stockResearchActive ? ["extended", StockStore.selected] : [] }
     property Timer extendedPoll: Timer { interval: 60000; running: root.stockResearchActive; repeat: true; onTriggered: root.extendedRequest.reload(false) }
-    property DataRequest eventsRequest: DataRequest { arguments: root.stockResearchActive ? ["events", StockStore.selected] : [] }
-    property DataRequest callsRequest: DataRequest { arguments: root.stockResearchActive && root.earningsCallsOpen ? ["calls", StockStore.selected] : [] }
+    property DataRequest eventsRequest: DataRequest { arguments: root.companyResearchActive ? ["events", StockStore.selected] : [] }
+    property DataRequest callsRequest: DataRequest { arguments: root.companyResearchActive && root.earningsCallsOpen ? ["calls", StockStore.selected] : [] }
     property DataRequest averagesRequest: DataRequest { arguments: root.stockResearchActive && root.averagesAvailable && root.averageWindows.length ? ["averages", StockStore.selected] : [] }
     property DataRequest compareOne: DataRequest { arguments: root.comparisonArguments(0) }
     property DataRequest compareTwo: DataRequest { arguments: root.comparisonArguments(1) }

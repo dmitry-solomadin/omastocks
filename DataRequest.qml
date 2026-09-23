@@ -4,6 +4,7 @@ import Quickshell.Io
 QtObject {
     id: root
     property var arguments: []
+    property string script: "bin/research.py"
     readonly property string requestKey: JSON.stringify(root.arguments)
     property var data: ({})
     readonly property bool busy: pending !== null || helper.running
@@ -24,7 +25,11 @@ QtObject {
     }
     function reload(force) {
         if (!root.arguments.length) return
-        pending = {args: root.arguments.slice(), revision: ++revision, force: force === true}
+        submit(root.arguments, force)
+    }
+    function submit(args, force) {
+        if (!args.length) return
+        pending = {args: args.slice(), revision: ++revision, force: force === true}
         debounce.restart()
     }
     function pump() {
@@ -34,7 +39,7 @@ QtObject {
         activeRevision = task.revision
         captured = ""
         exited = collected = false
-        helper.command = ["python3", Qt.resolvedUrl("bin/research.py").toString().replace(/^file:\/\//, "")]
+        helper.command = ["python3", Qt.resolvedUrl(root.script).toString().replace(/^file:\/\//, "")]
             .concat(task.args).concat(task.force ? ["--force"] : [])
         helper.running = true
         watchdog.restart()

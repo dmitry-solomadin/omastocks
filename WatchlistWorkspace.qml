@@ -15,6 +15,7 @@ Controls.ScrollView {
         width: root.availableWidth
         spacing: Style.space(12)
         Label {
+            visible: StockStore.view !== "market"
             text: StockStore.watchlistName
             Layout.fillWidth: true
             Layout.leftMargin: Style.space(24); Layout.rightMargin: Style.space(24)
@@ -25,11 +26,12 @@ Controls.ScrollView {
             id: page
             objectName: "workspacePage"
             Layout.fillWidth: true
+            Layout.topMargin: StockStore.view === "market" ? Style.space(16) : 0
             Layout.leftMargin: Style.space(24); Layout.rightMargin: Style.space(24); Layout.bottomMargin: Style.space(24)
             active: root.visible
-            sourceComponent: StockStore.view === "overview" ? overview : calendar
+            sourceComponent: StockStore.view === "market" ? market : watchlist
         }
     }
-    Component { id: overview; WatchlistOverview { verticalFlickable: root.contentItem } }
-    Component { id: calendar; EarningsCalendar { verticalFlickable: root.contentItem } }
+    Component { id: watchlist; WatchlistDashboard { verticalFlickable: root.contentItem } }
+    Component { id: market; MarketOverview { verticalFlickable: root.contentItem } }
 }

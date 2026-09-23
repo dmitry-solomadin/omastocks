@@ -19,7 +19,7 @@ Controls.Popup {
         const settings = Object.assign({}, barSettings)
         settings[key] = value
         if (!shell || !shell.updateEntryInline("io.github.dmitry-solomadin.omastocks", settings))
-            saveError = "Could not save the bar setting. Please try again."
+            saveError = "Could not save this setting. Please try again."
         else
             StockStore.barSettings = settings
     }
@@ -35,6 +35,7 @@ Controls.Popup {
     }
 
     width: Math.min(Style.space(380), parent.width - Style.space(32))
+    height: Math.min(settingsContent.implicitHeight + topPadding + bottomPadding, parent.height - Style.space(32))
     x: (parent.width - width) / 2
     y: Math.max(Style.space(16), (parent.height - height) / 2)
     padding: Style.space(24)
@@ -49,7 +50,13 @@ Controls.Popup {
         border.width: 1
         border.color: Util.alpha(Color.foreground, .2)
     }
-    contentItem: ColumnLayout {
+    contentItem: Controls.ScrollView {
+        id: settingsScroll
+        contentWidth: availableWidth
+        clip: true
+        ColumnLayout {
+        id: settingsContent
+        width: settingsScroll.availableWidth
         spacing: Style.space(12)
         RowLayout {
             Layout.fillWidth: true
@@ -94,14 +101,14 @@ Controls.Popup {
         RowLayout {
             Layout.fillWidth: true
             spacing: Style.space(16)
-            Label { text: "Show favorites in bar"; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+            Label { text: "Enable topbar widget"; Layout.fillWidth: true; wrapMode: Text.WordWrap }
             ThemedSwitch {
                 id: barToggle
                 objectName: "barToggle"
                 checked: menu.showStrip
                 enabled: menu.shell !== null
                 onToggled: menu.saveSetting("showStrip", !checked)
-                Accessible.name: "Show favorites in bar"
+                Accessible.name: "Enable topbar widget"
             }
         }
         Label { text: "WIDGET"; visible: menu.showStrip; color: Color.muted; font.pixelSize: Style.font.bodySmall }
@@ -144,6 +151,25 @@ Controls.Popup {
                 onClicked: menu.saveSetting("maxWidth", Math.min(800, menu.stripWidth + 40))
             }
         }
+        Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
+        Label { text: "WATCHLIST"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+        Repeater {
+            model: [{value:"percent",label:"Display percentage change"}, {value:"change",label:"Display price change"}, {value:"marketCap",label:"Display market cap"}]
+            RowLayout {
+                id: displayOption
+                required property var modelData
+                Layout.fillWidth: true
+                Label { text: displayOption.modelData.label; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                ThemedSwitch {
+                    objectName: "watchlistDisplay_" + displayOption.modelData.value
+                    checked: StockStore.watchlistDisplay === displayOption.modelData.value
+                    enabled: menu.shell !== null
+                    Accessible.role: Accessible.RadioButton
+                    Accessible.name: displayOption.modelData.label
+                    onToggled: if (!checked) menu.saveSetting("watchlistDisplay", displayOption.modelData.value)
+                }
+            }
+        }
         Label {
             visible: menu.saveError !== ""
             text: menu.saveError
@@ -151,5 +177,6 @@ Controls.Popup {
             wrapMode: Text.WordWrap
             color: Color.urgent
         }
+    }
     }
 }

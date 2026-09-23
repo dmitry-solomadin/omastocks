@@ -21,12 +21,18 @@ ColumnLayout {
         Label { text: "EARNINGS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
         ActionButton { text: "↻"; hint: MarketStore.earnings.error || MarketStore.earnings.notice || "Refresh earnings"; enabled: !MarketStore.eventsRequest.busy; onClicked: MarketStore.eventsRequest.reload(true) }
     }
+    MarketLoading {
+        Layout.fillWidth: true
+        active: MarketStore.eventsRequest.busy
+        text: MarketStore.earnings.next || root.lastReport ? "Updating earnings…" : "Loading earnings…"
+    }
     Label {
         Layout.fillWidth: true
+        visible: !!MarketStore.earnings.next || !MarketStore.eventsRequest.busy
         wrapMode: Text.WordWrap
         font.bold: true
         text: MarketStore.earnings.next ? "Next report: " + dateLabel(MarketStore.earnings.next.date) + " · Estimated"
-            : MarketStore.eventsRequest.busy ? "Loading earnings dates…" : "No upcoming earnings date available"
+            : "No upcoming earnings date available"
     }
     Label {
         id: reportLabel
@@ -60,7 +66,7 @@ ColumnLayout {
             objectName: "earningsCallsToggle"
             text: (MarketStore.earningsCallsOpen ? "▾ " : "▸ ") + "Earnings calls"
             hint: "Recent earnings call transcripts"
-            onClicked: MarketStore.earningsCallsOpen = !MarketStore.earningsCallsOpen
+            onClicked: MarketStore.toggleSection("calls")
         }
         Item { Layout.fillWidth: true }
         ActionButton {
@@ -76,12 +82,17 @@ ColumnLayout {
         visible: MarketStore.earningsCallsOpen
         Layout.fillWidth: true
         spacing: Style.space(4)
+        MarketLoading {
+            Layout.fillWidth: true
+            active: MarketStore.callsRequest.busy
+            text: (MarketStore.earningsCalls.calls || []).length ? "Updating earnings calls…" : "Loading earnings calls…"
+        }
         Label {
             Layout.fillWidth: true
-            visible: !!MarketStore.earningsCalls.error || !(MarketStore.earningsCalls.calls || []).length
+            visible: !MarketStore.callsRequest.busy && (!!MarketStore.earningsCalls.error || !(MarketStore.earningsCalls.calls || []).length)
             text: MarketStore.earningsCalls.error
                 ? ((MarketStore.earningsCalls.calls || []).length ? "Showing saved calls. " : "") + MarketStore.earningsCalls.error
-                : MarketStore.callsRequest.busy ? "Loading earnings calls…" : "No earnings call transcripts available."
+                : "No earnings call transcripts available."
             wrapMode: Text.WordWrap
             color: Color.muted
             font.pixelSize: Style.font.bodySmall

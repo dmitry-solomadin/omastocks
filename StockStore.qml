@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import "WatchlistOrder.js" as Order
 
 QtObject {
     id: root
@@ -12,6 +13,33 @@ QtObject {
     property var favoriteEntries: []
     property string view: "stock"
     readonly property string watchlistName: (watchlists.find(row => row.id === activeWatchlist) || {}).name || "Watchlist"
+    readonly property string sortMode: (watchlists.find(row => row.id === activeWatchlist) || {}).sort || "custom"
+    readonly property var watchlistQuotes: watchlistQuotesRequest.data.rows || ({})
+    readonly property var sortedEntries: Order.sorted(entries, watchlistQuotes, sortMode)
+    readonly property string watchlistDisplay: ["percent", "change", "marketCap"].indexOf(barSettings.watchlistDisplay) >= 0 ? barSettings.watchlistDisplay : "percent"
+    function watchlistMetric(entry) {
+        const bulk = watchlistQuotes[entry.symbol] || {}
+        return bulk[watchlistDisplay] !== undefined ? bulk[watchlistDisplay] : entry[watchlistDisplay]
+    }
+    function watchlistMetricText(entry) {
+        const value = watchlistMetric(entry)
+        if (watchlistDisplay === "marketCap") return compact(value)
+        if (watchlistDisplay === "percent") return percent(value)
+        return value === null || value === undefined ? "—" : (value >= 0 ? "+" : "−") + financial(Math.abs(value), "perShare", entry.currency || "")
+    }
+    function setSortMode(mode) {
+        if (mode !== sortMode) request(["watchlist", "sort", activeWatchlist, mode])
+    }
+    property DataRequest watchlistQuotesRequest: DataRequest {
+        arguments: root.windowOpen
+            ? ["quotes", Array.from(new Set(root.entries.map(row => row.symbol).concat(["^SPX", "^IXIC", "^RUT", "^VIX"]))).sort().join(",")] : []
+    }
+    property Timer watchlistQuotesTimer: Timer {
+        interval: 300000
+        running: root.watchlistQuotesRequest.arguments.length > 0
+        repeat: true
+        onTriggered: root.watchlistQuotesRequest.reload(false)
+    }
     property var results: []
     property string searchQuery: ""
     property string completedQuery: ""
@@ -35,6 +63,14 @@ QtObject {
         return previewQuotes[selected] || {symbol: selected}
     }
     readonly property bool tracked: entries.some(entry => entry.symbol === selected)
+    function isIndex(ticker) {
+        const entry = entries.find(row => row.symbol === ticker) || previewQuotes[ticker] || {}
+        const detail = chart.symbol === ticker ? chart : {}
+        const result = results.find(row => row.symbol === ticker) || {}
+        const type = detail.instrumentType || entry.instrumentType || result.type || ""
+        return type ? type.toUpperCase() === "INDEX" : ticker.startsWith("^")
+    }
+    readonly property bool selectedIsIndex: isIndex(selected)
     readonly property bool starred: entries.some(entry => entry.symbol === selected && entry.favorite)
     readonly property var visibleChart: chart.symbol === selected && chart.range === period ? chart : ({})
     readonly property bool chartBusy: busy && (!visibleChart.points || !visibleChart.points.length)
@@ -43,6 +79,7 @@ QtObject {
     readonly property color gain: "#4caf50"
     readonly property color loss: "#ef5350"
     signal openRequested()
+    signal stockAdded(string ticker)
 
     function start() {
         if (running) return
@@ -90,10 +127,11 @@ QtObject {
     }
     function range(value) { period = value; if (selected) request(["chart", selected, value]) }
     function refresh(force) {
+        if (force && view !== "watchlist" && watchlistQuotesRequest.arguments.length) watchlistQuotesRequest.reload(true)
         if (force && windowOpen) MarketStore.refresh(true)
         request(force ? ["refresh", "--force"] : ["refresh"])
-        if (selected && windowOpen && !tracked) request(["quote", selected])
-        if (selected && windowOpen) request(force ? ["chart", selected, period, "--force"] : ["chart", selected, period])
+        if (selected && windowOpen && view === "stock" && !tracked) request(["quote", selected])
+        if (selected && windowOpen && view === "stock") request(force ? ["chart", selected, period, "--force"] : ["chart", selected, period])
     }
     function search(value) {
         const query = value.trim()
@@ -131,6 +169,7 @@ QtObject {
         return ordered
     }
     function move(ticker, before) {
+        if (sortMode !== "custom") return
         const ordered = movedEntries(entries, ticker, before)
         if (ordered.every((entry, index) => entry.symbol === entries[index].symbol)) return
         entries = ordered
@@ -199,6 +238,11 @@ QtObject {
                     const quotes = Object.assign({}, previewQuotes)
                     quotes[data.quote.symbol] = data.quote
                     previewQuotes = quotes
+                }
+                if (active[0] === "add" && active[active.length - 1] === activeWatchlist && entries.some(entry => entry.symbol === active[1])) {
+                    search("")
+                    select(active[1])
+                    stockAdded(active[1])
                 }
             }
         } catch (exception) {

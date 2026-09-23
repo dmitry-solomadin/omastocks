@@ -22,7 +22,7 @@ ColumnLayout {
             text: (MarketStore.financialsOpen ? "▾ " : "▸ ") + "FINANCIALS"
             font.pixelSize: Style.font.bodySmall
             hint: "Income statements, balance sheets and cash flow"
-            onClicked: MarketStore.financialsOpen = !MarketStore.financialsOpen
+            onClicked: MarketStore.toggleFinancials()
         }
         Item { Layout.fillWidth: true }
         ActionButton {
@@ -42,7 +42,7 @@ ColumnLayout {
         ActionButton {
             visible: MarketStore.financialsOpen
             text: "↻"; enabled: !MarketStore.financialsRequest.busy
-            hint: MarketStore.financials.error || "Yahoo Finance · Reporting currency per value; dates as supplied by provider. Statement EPS may differ from earnings-surprise EPS. Click a row to chart it."
+            hint: MarketStore.financials.error || "Refresh financials"
             onClicked: MarketStore.financialsRequest.reload(true)
         }
     }
@@ -73,11 +73,15 @@ ColumnLayout {
                 color: Color.muted; font.pixelSize: Style.font.bodySmall
             }
         }
+        MarketLoading {
+            Layout.fillWidth: true
+            active: MarketStore.financialsRequest.busy
+            text: root.statement.rows.length ? "Updating financials…" : "Loading financials…"
+        }
         Label {
             Layout.fillWidth: true; wrapMode: Text.WordWrap
-            visible: !root.statement.rows.length
-            text: MarketStore.financialsRequest.busy ? "Loading financial statements…"
-                : MarketStore.financials.error || "No financial statements available for this symbol."
+            visible: !root.statement.rows.length && !MarketStore.financialsRequest.busy
+            text: MarketStore.financials.error || "No financial statements available for this symbol."
             color: Color.muted
         }
         Label {

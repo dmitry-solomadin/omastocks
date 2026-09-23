@@ -17,4 +17,6 @@ jobs:
           node-version: '24'
       - run: python3 -m unittest discover -s tests -v
       - run: node tests/test_chart.cjs
+      - run: node tests/test_treemap.cjs
+      - run: node tests/test_watchlist_order.cjs
       - run: bash -n install install-launcher uninstall

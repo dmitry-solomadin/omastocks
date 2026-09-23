@@ -23,7 +23,7 @@ def performance(document, ticker):
                "YTD": date(today.year, 1, 1) - timedelta(days=1),
                "1Y": today.replace(year=today.year - 1, day=28) if today.month == 2 and today.day == 29
                      else today.replace(year=today.year - 1)}
-    returns, baselines = {}, {}
+    returns, baselines, prices = {}, {}, {}
     for period, target in targets.items():
         # Holidays use the preceding close. Never substitute the next session.
         earlier = [(day, value) for day, value in samples if day <= target]
@@ -31,7 +31,9 @@ def performance(document, ticker):
         valid = baseline and (target - baseline[0]).days <= 7 and baseline[1] > 0
         returns[period] = (current / baseline[1] - 1) * 100 if valid else None
         baselines[period] = baseline[0].isoformat() if valid else None
+        prices[period] = baseline[1] if valid else None
     return {"symbol": ticker, "returns": returns, "baselines": baselines,
+            "baselinePrices": prices, "baselineDay": today.isoformat(), "timezone": chart["timezone"], "overviewSchema": 2,
             "asOf": chart["updated"], "currency": chart["currency"], "source": "Yahoo Finance"}
 
 

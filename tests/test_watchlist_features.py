@@ -76,6 +76,23 @@ class Watchlists(unittest.TestCase):
             stocks.Repository(self.path)
         self.assertEqual(json.loads(repo.state_path.read_text()), broken)
 
+    def test_sort_persists_per_list_without_changing_memberships_or_custom_order(self):
+        repo = stocks.Repository(self.path)
+        original = copy.deepcopy(repo.state["entries"])
+        repo.watchlist("sort", "default", "marketCap")
+        other = repo.watchlist("create", name="Other")["activeWatchlist"]
+        repo.watchlist("sort", other, "name")
+        reopened = stocks.Repository(self.path)
+        self.assertEqual(reopened.state["watchlists"][0]["entries"], original)
+        sorts = {row["id"]: row["sort"] for row in reopened.snapshot()["watchlists"]}
+        self.assertEqual(sorts, {"default": "marketCap", other: "name"})
+        reopened.watchlist("sort", "default", "custom")
+        reopened.watchlist("select", "default")
+        self.assertEqual(reopened.state["entries"], original)
+        before = repo.state_path.read_bytes()
+        with self.assertRaises(ValueError): reopened.watchlist("sort", "default", "invalid")
+        self.assertEqual(repo.state_path.read_bytes(), before)
+
 
 class ResearchFeatures(unittest.TestCase):
     def test_price_returns_use_preceding_close_and_require_sufficient_history(self):
@@ -177,7 +194,8 @@ class ResearchFeatures(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, patch.object(research,"state_directory",return_value=Path(directory)):
             for action in ["overview","calendar","fundamentals","insiders"]:
                 args = [action,"TEST"] + (["annual"] if action=="fundamentals" else [])
-                with patch.object(research,"load",return_value={"symbol":"TEST","sentinel":action,"insiderSchema":2}) as load:
+                with patch.object(research,"load",return_value={"symbol":"TEST","sentinel":action,"insiderSchema":2,
+                    "overviewSchema":2,"baselineDay":datetime.now(timezone.utc).date().isoformat(),"timezone":"UTC"}) as load:
                     saved = research.main(args)
                     self.assertEqual(research.main(args),saved)
                     load.side_effect = ValueError("offline")

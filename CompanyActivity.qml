@@ -7,7 +7,7 @@ import "."
 ColumnLayout {
     id: root
     objectName: "companyActivity"
-    property bool expanded: false
+    readonly property bool expanded: MarketStore.sectionOpen("insiders")
     readonly property var request: insiderRequest
     readonly property var report: request.data
     readonly property var summary: report.summary || {}
@@ -18,10 +18,10 @@ ColumnLayout {
         : summary.boughtShares === 0 && summary.soldShares === 0 ? "No reported buys or sells" : "Balanced buying and selling"
     spacing: Style.space(10)
     function refresh() { if (expanded) request.reload(true) }
-    DataRequest { id: insiderRequest; arguments: root.expanded && root.visible && StockStore.windowOpen && StockStore.selected ? ["insiders",StockStore.selected] : [] }
+    DataRequest { id: insiderRequest; arguments: root.expanded && root.visible && MarketStore.companyResearchActive ? ["insiders",StockStore.selected] : [] }
     RowLayout {
         Layout.fillWidth: true
-        ActionButton { objectName: "activityToggle"; text: (root.expanded ? "▾ " : "▸ ") + "INSIDER ACTIVITY"; font.pixelSize: Style.font.bodySmall; onClicked: root.expanded = !root.expanded }
+        ActionButton { objectName: "activityToggle"; text: (root.expanded ? "▾ " : "▸ ") + "INSIDER ACTIVITY"; font.pixelSize: Style.font.bodySmall; onClicked: MarketStore.toggleSection("insiders") }
         Item { Layout.fillWidth: true }
         ActionButton { visible: root.expanded; text: "↻"; enabled: !root.request.busy; hint: root.report.error || "Refresh insider activity · Nasdaq" + (root.report.fetched ? " · Retrieved " + Qt.formatDateTime(new Date(root.report.fetched * 1000), "d MMM yyyy hh:mm") : ""); onClicked: root.refresh() }
     }
@@ -33,9 +33,6 @@ ColumnLayout {
             Layout.fillWidth: true
             Label {
                 text: "Past 3 months"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true
-                HoverHandler { id: periodHover }
-                Ui.PanelToolTip { visible: periodHover.hovered; text: "Nasdaq's trailing three-month totals, not the company's fiscal quarter."
-                    + (root.summary.asOf ? "\nProvider as of: " + root.summary.asOf : "") }
             }
             ActionButton { text: "Nasdaq ↗"; hint: "Open insider activity"; onClicked: Qt.openUrlExternally("https://www.nasdaq.com/market-activity/stocks/" + encodeURIComponent(StockStore.selected.toLowerCase()) + "/insider-activity") }
         }
@@ -77,10 +74,15 @@ ColumnLayout {
             }
             Label { text: "By shares · provider totals include automatic sales"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true; wrapMode: Text.WordWrap }
         }
+        MarketLoading {
+            Layout.fillWidth: true
+            active: root.request.busy
+            text: root.report.summary ? "Updating insider activity…" : "Loading insider activity…"
+        }
         Label {
-            visible: !!root.report.error || !!root.report.notice || root.request.busy || !(root.report.rows || []).length
+            visible: !root.request.busy && (!!root.report.error || !!root.report.notice || !(root.report.rows || []).length)
             Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted; font.pixelSize: Style.font.bodySmall
-            text: root.request.busy ? "Loading insider activity…" : root.report.error || root.report.notice || "No recent transactions returned for this symbol."
+            text: root.report.error || root.report.notice || "No recent transactions returned for this symbol."
         }
         Label { visible: !!(root.report.rows || []).length; text: "Latest reported transactions · trade dates"; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted; font.pixelSize: Style.font.bodySmall }
         Repeater {

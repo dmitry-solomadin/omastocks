@@ -22,6 +22,12 @@ SAMPLE = {"chart": {"result": [{
 
 
 class ChartTests(unittest.TestCase):
+    def test_instrument_type_distinguishes_indexes_from_tracking_etfs(self):
+        for ticker, kind in [("^SPX", "INDEX"), ("SPY", "ETF"), ("AMD", "EQUITY")]:
+            data = copy.deepcopy(SAMPLE)
+            data["chart"]["result"][0]["meta"]["instrumentType"] = kind
+            self.assertEqual(stocks.parse_chart(data, ticker, "1D")["instrumentType"], kind)
+
     def test_volume_preserves_timestamp_alignment_and_missing_values(self):
         data = copy.deepcopy(SAMPLE)
         data["chart"]["result"][0]["indicators"]["quote"][0]["volume"] = [100, 200, None, 400]

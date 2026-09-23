@@ -46,7 +46,7 @@ Flickable {
                 Item {
                     width: root.firstWidth - Style.space(8)
                     height: parent.height
-                    Label { anchors.fill: parent; verticalAlignment: Text.AlignVCenter; text: tableRow.modelData.label; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: tableRow.modelData.symbol ? Color.accent : Color.foreground }
+                    Label { anchors.fill: parent; verticalAlignment: Text.AlignVCenter; text: tableRow.modelData.label; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: Color.foreground }
                     MouseArea {
                         id: rowMouse
                         anchors.fill: parent; hoverEnabled: true
@@ -76,7 +76,7 @@ Flickable {
                                 anchors.fill: parent; hoverEnabled: true
                                 acceptedButtons: Qt.NoButton
                             }
-                            Ui.PanelToolTip { visible: cellMouse.containsMouse; text: cell.modelData.hint || cell.modelData.text || "Unavailable" }
+                            Ui.PanelToolTip { visible: cellMouse.containsMouse && !!cell.modelData.hint; text: cell.modelData.hint || "" }
                         }
                     }
                 }
