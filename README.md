@@ -359,6 +359,11 @@ are distinct instruments and are not classified as indexes.
   Nasdaq/Zacks provides upcoming estimates and
   a limited recent earnings history for supported US stocks. Dates are labeled
   estimated; unsupported symbols and provider failures show an unavailable state.
+  **Last report** opens that quarter's earnings release via Google's "I'm Feeling
+  Lucky" first result, usually the company's investor-relations page, which
+  links the webcast, slides and filings. The redirect is resolved locally so the
+  browser opens the release directly, without Google's "Redirect notice"; results
+  are cached for 30 days, and the Google link is used if resolving fails.
   Expand **Earnings calls** for up to 12 recent transcript links from Yahoo Finance,
   in the provider's newest-first order. Links load on demand and are cached for a
   day; clicking a call opens its individual transcript in your browser.

@@ -11,9 +11,38 @@ ColumnLayout {
         const reports = MarketStore.earnings.events || []
         return reports.length ? reports[reports.length - 1] : null
     }
-    readonly property string reportSearchUrl: lastReport ? "https://www.google.com/search?q="
-        + encodeURIComponent((StockStore.quote.name || StockStore.selected) + " " + StockStore.selected
-            + " earnings release " + lastReport.date + " investor relations") : ""
+    // Google's "I'm Feeling Lucky" first result is reliably the company's own
+    // earnings release. The backend resolves its redirect so the browser opens
+    // the release directly, without Google's "Redirect notice"; the Google link
+    // itself is the fallback if resolving fails or takes too long.
+    readonly property string reportSearchUrl: lastReport ? "https://www.google.com/search?btnI=1&q="
+        + encodeURIComponent(StockStore.selected + " earnings release " + lastReport.date + " investor relations") : ""
+    property var releaseArguments: []
+    property string releaseFallback: ""
+    function openRelease() {
+        if (!lastReport) return
+        const wanted = ["release", StockStore.selected, lastReport.date]
+        if (JSON.stringify(wanted) === JSON.stringify(releaseArguments) && release.data.url && !release.data.error) {
+            Qt.openUrlExternally(release.data.url)
+            return
+        }
+        releaseFallback = reportSearchUrl
+        if (JSON.stringify(wanted) === JSON.stringify(releaseArguments)) release.reload(false)
+        else releaseArguments = wanted
+        releaseTimeout.restart()
+    }
+    function settleRelease(url) {
+        if (!releaseFallback) return
+        Qt.openUrlExternally(url || releaseFallback)
+        releaseFallback = ""
+        releaseTimeout.stop()
+    }
+    DataRequest {
+        id: release
+        arguments: root.releaseArguments
+        onDataChanged: if (data.url || data.error) root.settleRelease(data.error ? "" : data.url)
+    }
+    Timer { id: releaseTimeout; interval: 4000; onTriggered: root.settleRelease("") }
     spacing: Style.space(8)
     function dateLabel(date) { return Qt.formatDate(new Date(date + "T12:00:00"), "d MMM yyyy") }
     RowLayout {
@@ -34,30 +63,42 @@ ColumnLayout {
         text: MarketStore.earnings.next ? "Next report: " + dateLabel(MarketStore.earnings.next.date) + " · Estimated"
             : "No upcoming earnings date available"
     }
-    Label {
-        id: reportLabel
+    // The link is its own label so its tooltip centres over the link rather
+    // than over the whole row.
+    RowLayout {
+        visible: !!root.lastReport
         Layout.fillWidth: true
-        wrapMode: Text.WordWrap
-        visible: text !== ""
-        color: Color.muted
-        linkColor: Color.foreground
-        textFormat: Text.StyledText
-        font.pixelSize: Style.font.bodySmall
-        text: root.lastReport ? '<a href="' + root.reportSearchUrl + '">Last report: ' + dateLabel(root.lastReport.date) + '</a>'
-            + " · EPS " + StockStore.price(root.lastReport.eps) + " vs " + StockStore.price(root.lastReport.forecast) + " est."
-            + " · Revenue " + StockStore.revenue(root.lastReport.revenue, root.lastReport.revenueCurrency)
-            + " vs " + StockStore.revenue(root.lastReport.revenueForecast, root.lastReport.revenueCurrency) + " est." : ""
-        onLinkActivated: link => Qt.openUrlExternally(link)
-        activeFocusOnTab: visible
-        Keys.onReturnPressed: Qt.openUrlExternally(root.reportSearchUrl)
-        Keys.onSpacePressed: Qt.openUrlExternally(root.reportSearchUrl)
-        Accessible.role: Accessible.Link
-        Accessible.name: root.lastReport ? "Find earnings release for " + StockStore.selected + " on " + dateLabel(root.lastReport.date) : ""
-        Accessible.onPressAction: Qt.openUrlExternally(root.reportSearchUrl)
-        HoverHandler { cursorShape: reportLabel.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor }
-        Ui.PanelToolTip {
-            visible: !!reportLabel.hoveredLink || reportLabel.activeFocus
-            text: "Search Google for this earnings release"
+        spacing: 0
+        Label {
+            id: reportLabel
+            Layout.alignment: Qt.AlignTop
+            color: Color.muted
+            linkColor: Color.foreground
+            textFormat: Text.StyledText
+            font.pixelSize: Style.font.bodySmall
+            text: root.lastReport ? '<a href="' + root.reportSearchUrl + '">Last report: ' + dateLabel(root.lastReport.date) + '</a>' : ""
+            onLinkActivated: root.openRelease()
+            activeFocusOnTab: visible
+            Keys.onReturnPressed: root.openRelease()
+            Keys.onSpacePressed: root.openRelease()
+            Accessible.role: Accessible.Link
+            Accessible.name: root.lastReport ? "Open the earnings release for " + StockStore.selected + " on " + dateLabel(root.lastReport.date) : ""
+            Accessible.onPressAction: root.openRelease()
+            HoverHandler { cursorShape: root.releaseFallback ? Qt.BusyCursor : reportLabel.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor }
+            Ui.PanelToolTip {
+                visible: !!reportLabel.hoveredLink || reportLabel.activeFocus
+                text: root.releaseFallback ? "Finding the earnings release…" : "Open the earnings release (Google's first result)"
+            }
+        }
+        Label {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignTop
+            wrapMode: Text.WordWrap
+            color: Color.muted
+            font.pixelSize: Style.font.bodySmall
+            text: root.lastReport ? " · EPS " + StockStore.price(root.lastReport.eps) + " vs " + StockStore.price(root.lastReport.forecast) + " est."
+                + " · Revenue " + StockStore.revenue(root.lastReport.revenue, root.lastReport.revenueCurrency)
+                + " vs " + StockStore.revenue(root.lastReport.revenueForecast, root.lastReport.revenueCurrency) + " est." : ""
         }
     }
     RowLayout {

@@ -28,6 +28,8 @@ CACHE_TTLS = {
     "sectors": 86400, "sector": 900, "market-index": 900, "market-news": 600,
     "sentiment": 1800, "economic-calendar": 900, "quotes": 300, "calendar-bulk": 21600,
     "calendar": 21600, "overview": 86400, "fundamentals": 3600, "insiders": 3600, "compare": 3600,
+    # A past quarter's release does not move.
+    "release": 2592000,
 }
 CACHE_SCHEMAS = {
     "events": ("earningsSchema", 2), "sectors": ("catalogSchema", 4),
@@ -246,6 +248,9 @@ def load(action, ticker, period):
     if action in ("sentiment", "economic-calendar"):
         import market_pulse
         return {"sentiment": market_pulse.sentiment, "economic-calendar": market_pulse.economic_calendar}[action]()
+    if action == "release":
+        from release_link import resolve
+        return resolve(ticker, period)
     if action == "market-news":
         from market_news import news
         return news()
@@ -321,7 +326,7 @@ def main(arguments):
         raise ValueError("Unknown research request.")
     if action == "buzz":
         ticker = "ALL"
-    period = arguments[2] if action in ("compare", "financials", "fundamentals") else ""
+    period = arguments[2] if action in ("compare", "financials", "fundamentals", "release") else ""
     if action == "compare" and period not in RANGES:
         raise ValueError("Unknown chart range.")
     directory = state_directory() / "research"
