@@ -26,8 +26,8 @@ ColumnLayout {
         Repeater { model: ["This week", "Next week", "All upcoming"]; ActionButton { required property string modelData; text: modelData; selected: root.horizon === modelData; onClicked: root.horizon = modelData } }
         ActionButton { text: "↻"; enabled: !batch.busy; hint: "Refresh watchlist earnings"; onClicked: root.refresh() }
     }
-    Label { visible: !!batch.report.error; text: batch.report.error || ""; color: Color.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap }
-    Label { visible: !root.scheduled.length; text: !StockStore.entries.length ? "Add stocks to this watchlist to see their upcoming earnings." : batch.busy ? "" : "No upcoming reports in this period."; color: Color.muted; Layout.fillWidth: true }
+    Label { visible: !!batch.report.error; text: batch.report.error || ""; color: Tone.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+    Label { visible: !root.scheduled.length; text: !StockStore.entries.length ? "Add stocks to this watchlist to see their upcoming earnings." : batch.busy ? "" : "No upcoming reports in this period."; color: Tone.muted; Layout.fillWidth: true }
     FeatureTable {
         visible: StockStore.entries.length > 0
         verticalFlickable: root.verticalFlickable
@@ -52,7 +52,7 @@ ColumnLayout {
     Label {
         visible: root.undatedSymbols.length > 0
         Layout.fillWidth: true; wrapMode: Text.WordWrap
-        font.pixelSize: Style.font.bodySmall; color: Color.muted
+        font.pixelSize: Style.font.bodySmall; color: Tone.muted
         text: "Next report date unavailable: " + root.undatedSymbols.join(", ")
     }
     Timer { interval: 60000; running: root.visible && StockStore.windowOpen; repeat: true; triggeredOnStart: true; onTriggered: root.today = Qt.formatDate(new Date(), "yyyy-MM-dd") }

@@ -279,7 +279,7 @@ Item {
             y: root.topInset + root.plotHeight * index / 3 - height / 2
             width: root.rightInset - Style.space(12)
             text: root.axisLabel(root.extent[1] - (root.extent[1] - root.extent[0]) * index / 3)
-            color: Color.muted
+            color: Tone.muted
             font.pixelSize: Style.font.bodySmall
         }
     }
@@ -289,7 +289,7 @@ Item {
         y: root.volumeTop
         width: root.rightInset - Style.space(12)
         text: "Vol\n" + StockStore.compact(root.maxVolume)
-        color: Color.muted
+        color: Tone.muted
         font.pixelSize: Style.font.bodySmall
     }
     Repeater {
@@ -304,7 +304,7 @@ Item {
             y: root.height - root.bottomInset + Style.space(12)
             text: root.timeLabel(timestamp)
             font.pixelSize: Style.font.bodySmall
-            color: Color.muted
+            color: Tone.muted
         }
     }
     Rectangle {
@@ -377,7 +377,7 @@ Item {
         width: root.width - root.leftInset
         text: root.comparison ? root.selectionTime(root.points[root.comparison.first][0]) + " → "
             + root.selectionTime(root.points[root.comparison.last][0]) : ""
-        color: Color.muted
+        color: Tone.muted
         font.pixelSize: Style.font.bodySmall
     }
     MouseArea {
@@ -449,7 +449,7 @@ Item {
         anchors.centerIn: parent
         visible: root.comparing && root.points.length > 0 && !root.normalized
         text: "No shared trading intervals"
-        color: Color.muted
+        color: Tone.muted
     }
     Repeater {
         model: root.comparing && root.hoveredPoint ? root.hoverRows.filter(row => row.price !== null) : []
@@ -475,7 +475,7 @@ Item {
             id: hoverContent
             anchors.centerIn: parent
             spacing: Style.space(5)
-            Label { text: root.hoveredPoint ? root.hoverTime(root.hoveredPoint[0]) : ""; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+            Label { text: root.hoveredPoint ? root.hoverTime(root.hoveredPoint[0]) : ""; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
             Repeater {
                 model: root.hoverRows
                 RowLayout {

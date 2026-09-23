@@ -60,7 +60,7 @@ RowLayout {
     Label {
         Layout.fillWidth: true
         text: root.text
-        color: Color.muted
+        color: Tone.muted
         font.pixelSize: Style.font.bodySmall
         wrapMode: Text.WordWrap
     }

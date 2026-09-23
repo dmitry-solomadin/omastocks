@@ -29,8 +29,8 @@ ColumnLayout {
         ActionButton { text: root.heatmap ? "Table" : "Heatmap"; onClicked: root.heatmap = !root.heatmap }
         ActionButton { text: "↻"; enabled: !batch.busy && !quotes.busy; onClicked: root.refresh(); hint: "Refresh watchlist performance" }
     }
-    Label { visible: !!quotes.data.error; text: quotes.data.error || ""; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted }
-    Label { visible: !StockStore.entries.length; text: "Add stocks to this watchlist to see their performance."; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted }
+    Label { visible: !!quotes.data.error; text: quotes.data.error || ""; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted }
+    Label { visible: !StockStore.entries.length; text: "Add stocks to this watchlist to see their performance."; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted }
     FeatureTable {
         visible: !root.heatmap && StockStore.entries.length > 0
         verticalFlickable: root.verticalFlickable

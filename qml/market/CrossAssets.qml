@@ -35,7 +35,7 @@ GridLayout {
             spacing: Style.space(2)
             Label {
                 text: group.modelData.title.toUpperCase()
-                color: Color.muted
+                color: Tone.muted
                 font.pixelSize: Style.font.bodySmall
                 Layout.fillWidth: true
                 Layout.bottomMargin: Style.space(4)
@@ -70,7 +70,7 @@ GridLayout {
                                 font.pixelSize: Style.font.bodySmall
                             }
                         }
-                        Label { text: Assets.price(row.modelData, row.quote.price); color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                        Label { text: Assets.price(row.modelData, row.quote.price); color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
                     }
                     MouseArea {
                         id: rowMouse

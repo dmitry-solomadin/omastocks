@@ -32,7 +32,7 @@ Flickable {
             Item { width: root.firstWidth; height: 1 }
             Repeater {
                 model: root.headers
-                Label { required property string modelData; text: modelData; width: root.actualCellWidth; height: Style.space(36); verticalAlignment: Text.AlignVCenter; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+                Label { required property string modelData; text: modelData; width: root.actualCellWidth; height: Style.space(36); verticalAlignment: Text.AlignVCenter; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
             }
         }
         Repeater {
@@ -69,7 +69,7 @@ Flickable {
                                 width: parent.width - Style.space(8)
                                 spacing: Style.space(3)
                                 Label { width: parent.width; text: cell.modelData.text || "—"; color: cell.modelData.color || Color.foreground; font.pixelSize: Style.font.bodySmall }
-                                Label { width: parent.width; visible: !!cell.modelData.subtext; text: cell.modelData.subtext || ""; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+                                Label { width: parent.width; visible: !!cell.modelData.subtext; text: cell.modelData.subtext || ""; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
                             }
                             MouseArea {
                                 id: cellMouse

@@ -18,7 +18,7 @@ ColumnLayout {
     readonly property var currentPrice: StockStore.quote.currency === report.currency && valid(StockStore.quote.price) ? StockStore.quote.price : null
     readonly property var upside: valid(summary.average) && currentPrice !== null ? (summary.average / currentPrice - 1) * 100 : null
     readonly property var groups: [{key: "buy", label: "Buy", color: StockStore.gain},
-        {key: "hold", label: "Hold", color: Color.muted}, {key: "sell", label: "Sell", color: StockStore.loss}]
+        {key: "hold", label: "Hold", color: Tone.muted}, {key: "sell", label: "Sell", color: StockStore.loss}]
     function valid(value) { return value !== null && value !== undefined && isFinite(value) && value > 0 }
     function count(value) { return value === null || value === undefined ? "—" : String(value) }
     function money(value) { return StockStore.financial(value, "perShare", report.currency || "USD") }
@@ -37,7 +37,7 @@ ColumnLayout {
             visible: MarketStore.analystsOpen && (root.distribution || root.report.stale === true)
             Layout.minimumWidth: 0
             text: (root.distribution ? root.total + " analysts" : "") + (root.report.stale ? (root.distribution ? " · " : "") + "Saved data" : "")
-            font.pixelSize: Style.font.bodySmall; color: Color.muted
+            font.pixelSize: Style.font.bodySmall; color: Tone.muted
         }
         ActionButton {
             objectName: "analystsSourceLink"
@@ -66,7 +66,7 @@ ColumnLayout {
         }
         Label {
             visible: !root.available && !MarketStore.analystsRequest.busy
-            Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted
+            Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted
             text: root.report.error || "No analyst recommendations available for this symbol."
         }
         Row {
@@ -127,7 +127,7 @@ ColumnLayout {
         Label {
             visible: root.available && root.currentPrice !== null
             text: "● Current " + root.money(root.currentPrice)
-            font.pixelSize: Style.font.bodySmall; color: Color.muted
+            font.pixelSize: Style.font.bodySmall; color: Tone.muted
         }
         ActionButton {
             objectName: "analystsHistoryToggle"
@@ -143,9 +143,9 @@ ColumnLayout {
             spacing: Style.space(10)
             RowLayout {
                 Layout.fillWidth: true
-                Label { text: "Month"; Layout.preferredWidth: Style.space(85); color: Color.muted; font.pixelSize: Style.font.bodySmall }
-                Label { text: "Avg. target"; Layout.preferredWidth: Style.space(110); color: Color.muted; font.pixelSize: Style.font.bodySmall }
-                Label { text: "Buy / Hold / Sell"; Layout.fillWidth: true; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+                Label { text: "Month"; Layout.preferredWidth: Style.space(85); color: Tone.muted; font.pixelSize: Style.font.bodySmall }
+                Label { text: "Avg. target"; Layout.preferredWidth: Style.space(110); color: Tone.muted; font.pixelSize: Style.font.bodySmall }
+                Label { text: "Buy / Hold / Sell"; Layout.fillWidth: true; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
             }
             Repeater {
                 model: root.history
@@ -155,7 +155,7 @@ ColumnLayout {
                     Label { text: Qt.formatDate(new Date(modelData.date + "T12:00:00"), "MMM yyyy"); Layout.preferredWidth: Style.space(85); font.pixelSize: Style.font.bodySmall }
                     Label { text: root.money(modelData.average); Layout.preferredWidth: Style.space(110); font.pixelSize: Style.font.bodySmall }
                     Label { text: root.count(modelData.buy); color: StockStore.gain; font.pixelSize: Style.font.bodySmall }
-                    Label { text: "/ " + root.count(modelData.hold) + " /"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+                    Label { text: "/ " + root.count(modelData.hold) + " /"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
                     Label { text: root.count(modelData.sell); color: StockStore.loss; font.pixelSize: Style.font.bodySmall }
                     Item { Layout.fillWidth: true }
                 }

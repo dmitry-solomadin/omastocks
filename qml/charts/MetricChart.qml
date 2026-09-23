@@ -41,7 +41,7 @@ Item {
                 }
                 Label {
                     width: parent.width; horizontalAlignment: Text.AlignHCenter
-                    y: root.height - height; font.pixelSize: Style.font.bodySmall; color: Color.muted
+                    y: root.height - height; font.pixelSize: Style.font.bodySmall; color: Tone.muted
                     text: Qt.formatDate(new Date(bar.modelData.date + "T12:00:00"), "MMM yy")
                 }
                 HoverHandler { id: hover }

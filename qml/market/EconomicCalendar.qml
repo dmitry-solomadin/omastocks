@@ -42,7 +42,7 @@ ColumnLayout {
     Label {
         visible: !root.events.length
         text: root.report.error || (root.report.fetched ? "No major US releases in the next two weeks." : "")
-        color: Color.muted
+        color: Tone.muted
         font.pixelSize: Style.font.bodySmall
         Layout.fillWidth: true
         wrapMode: Text.WordWrap
@@ -56,7 +56,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.topMargin: Style.space(6)
             spacing: Style.space(2)
-            Label { text: root.dayLabel(day.modelData.time); color: Color.muted; font.pixelSize: Style.font.bodySmall; font.bold: true }
+            Label { text: root.dayLabel(day.modelData.time); color: Tone.muted; font.pixelSize: Style.font.bodySmall; font.bold: true }
             Repeater {
                 model: day.modelData.events
                 Rectangle {
@@ -78,13 +78,13 @@ ColumnLayout {
                         spacing: Style.space(12)
                         Label {
                             text: Qt.formatTime(new Date(row.modelData.time * 1000), "hh:mm")
-                            color: row.upcoming ? Color.foreground : Color.muted
+                            color: row.upcoming ? Color.foreground : Tone.muted
                             font.pixelSize: Style.font.bodySmall
                             Layout.preferredWidth: Style.space(44)
                         }
                         Label {
                             text: row.modelData.title + (row.modelData.period ? "  ·  " + row.modelData.period : "")
-                            color: row.upcoming || row.released ? Color.foreground : Color.muted
+                            color: row.upcoming || row.released ? Color.foreground : Tone.muted
                             font.pixelSize: Style.font.bodySmall
                             Layout.fillWidth: true
                         }
@@ -99,7 +99,7 @@ ColumnLayout {
                         Label {
                             text: [["Fcst", row.modelData.forecast], ["Prev", row.modelData.previous]]
                                 .filter(pair => Number.isFinite(pair[1])).map(pair => pair[0] + " " + root.value(row.modelData, pair[1])).join("  ")
-                            color: Color.muted
+                            color: Tone.muted
                             font.pixelSize: Style.font.bodySmall
                         }
                     }

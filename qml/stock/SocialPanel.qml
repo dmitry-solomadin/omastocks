@@ -31,7 +31,7 @@ ColumnLayout {
             Label {
                 text: "REDDIT BUZZ · 24H"
                 Layout.fillWidth: true
-                color: Color.muted
+                color: Tone.muted
                 font.pixelSize: Style.font.bodySmall
                 HoverHandler { id: buzzHover }
                 Ui.PanelToolTip {
@@ -50,7 +50,7 @@ ColumnLayout {
             visible: !!MarketStore.buzz.error || !root.buzz
             text: MarketStore.buzz.error ? (root.buzz ? "Showing saved activity. " : "") + MarketStore.buzz.error
                 : MarketStore.buzzRequest.busy ? "Loading Reddit activity…" : "Not listed in the current tracked rankings."
-            color: Color.muted
+            color: Tone.muted
             font.pixelSize: Style.font.bodySmall
             wrapMode: Text.WordWrap
         }
@@ -62,7 +62,7 @@ ColumnLayout {
             Label {
                 visible: root.mentionChange !== null
                 text: StockStore.percent(root.mentionChange) + " vs prior 24h"
-                color: Color.muted
+                color: Tone.muted
             }
             Label { text: "Upvotes " + StockStore.compact(root.buzz ? root.buzz.upvotes : null) }
             Label { text: "Rank " + (root.buzz && root.buzz.rank !== null ? "#" + root.buzz.rank : "—") }
@@ -70,7 +70,7 @@ ColumnLayout {
         RowLayout {
             Layout.fillWidth: true
             Layout.topMargin: Style.space(8)
-            Label { text: "STOCKTWITS"; Layout.fillWidth: true; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+            Label { text: "STOCKTWITS"; Layout.fillWidth: true; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
             ActionButton {
                 text: "Stocktwits ↗"
                 hint: "Open this symbol's discussion on Stocktwits"
@@ -82,7 +82,7 @@ ColumnLayout {
             visible: !!MarketStore.social.error || !root.posts.length
             text: MarketStore.social.error ? (root.posts.length ? "Showing saved posts. " : "") + MarketStore.social.error
                 : MarketStore.socialRequest.busy ? "Loading Stocktwits posts…" : "No recent posts available."
-            color: Color.muted
+            color: Tone.muted
             font.pixelSize: Style.font.bodySmall
             wrapMode: Text.WordWrap
         }
@@ -107,8 +107,8 @@ ColumnLayout {
                     RowLayout {
                         Layout.fillWidth: true
                         Label { text: "@" + post.modelData.author; Layout.fillWidth: true; font.bold: true; font.pixelSize: Style.font.bodySmall }
-                        Label { text: root.age(post.modelData.published); color: Color.muted; font.pixelSize: Style.font.bodySmall }
-                        Label { text: "↗"; color: Color.muted }
+                        Label { text: root.age(post.modelData.published); color: Tone.muted; font.pixelSize: Style.font.bodySmall }
+                        Label { text: "↗"; color: Tone.muted }
                     }
                     Label {
                         text: post.modelData.text
@@ -126,7 +126,7 @@ ColumnLayout {
                             font.pixelSize: Style.font.bodySmall
                             color: post.modelData.sentiment === "Bullish" ? StockStore.gain : StockStore.loss
                         }
-                        Label { visible: post.modelData.likes !== null; text: "♡ " + StockStore.compact(post.modelData.likes); color: Color.muted; font.pixelSize: Style.font.bodySmall }
+                        Label { visible: post.modelData.likes !== null; text: "♡ " + StockStore.compact(post.modelData.likes); color: Tone.muted; font.pixelSize: Style.font.bodySmall }
                     }
                 }
             }

@@ -31,7 +31,7 @@ ColumnLayout {
         visible: !root.busy && (!!root.report.error || !root.articles.length)
         text: root.report.error ? (root.articles.length ? "Showing saved headlines. " : "") + root.report.error
             : root.busy ? "Loading " + root.subject + " news…" : "No recent " + root.subject + " news found."
-        color: Color.muted
+        color: Tone.muted
         wrapMode: Text.WordWrap
         font.pixelSize: Style.font.bodySmall
     }
@@ -76,7 +76,7 @@ ColumnLayout {
                     }
                     Label {
                         text: article.modelData.source + (article.modelData.published ? "  ·  " + root.age(article.modelData.published) : "")
-                        color: Color.muted
+                        color: Tone.muted
                         font.pixelSize: Style.font.bodySmall
                         Layout.fillWidth: true
                     }

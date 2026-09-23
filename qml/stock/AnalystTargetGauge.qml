@@ -51,14 +51,14 @@ Item {
     Label {
         visible: root.validRange
         text: (root.low === root.high ? "Low / high " : "Low ") + root.money(root.low)
-        font.pixelSize: Style.font.bodySmall; color: Color.muted
+        font.pixelSize: Style.font.bodySmall; color: Tone.muted
         width: Math.min(implicitWidth, root.width / 2)
         x: root.validRange ? Math.max(0, Math.min(root.width - width, root.position(root.low) - width / 2)) : 0; y: Style.space(31)
     }
     Label {
         visible: root.validRange && root.high !== root.low
         text: "High " + root.money(root.high)
-        font.pixelSize: Style.font.bodySmall; color: Color.muted
+        font.pixelSize: Style.font.bodySmall; color: Tone.muted
         width: Math.min(implicitWidth, root.width / 2)
         x: root.validRange ? Math.max(0, Math.min(root.width - width, root.position(root.high) - width / 2)) : 0; y: Style.space(31)
     }

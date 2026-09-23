@@ -1,12 +1,13 @@
 import QtQuick
 import qs.Commons
+import ".."
 
 Canvas {
     id: root
     property var pixels: []
     property int pixelSize: Math.max(1, Math.round(Style.space(2)))
     property color ink: Color.foreground
-    property color shade: Color.muted
+    property color shade: Tone.muted
     property color accent: Color.accent
     property real reveal: 1
     readonly property int columns: pixels.reduce((maximum, row) => Math.max(maximum, row.length), 0)

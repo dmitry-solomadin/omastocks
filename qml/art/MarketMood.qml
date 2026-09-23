@@ -16,7 +16,7 @@ Item {
         id: art
         anchors.centerIn: parent
         pixels: !root.known || root.change === 0 ? Sprites.neutral : root.change < 0 ? Sprites.bear : Sprites.bull
-        ink: !root.known || root.change === 0 ? Color.muted : StockStore.direction(root.change)
+        ink: !root.known || root.change === 0 ? Tone.muted : StockStore.direction(root.change)
         shade: Color.foreground
         opacity: root.known ? 1 : .35
     }

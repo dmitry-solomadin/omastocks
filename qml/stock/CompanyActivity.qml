@@ -32,7 +32,7 @@ ColumnLayout {
         RowLayout {
             Layout.fillWidth: true
             Label {
-                text: "Past 3 months"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true
+                text: "Past 3 months"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true
             }
             ActionButton { text: "Nasdaq ↗"; hint: "Open insider activity"; onClicked: Qt.openUrlExternally("https://www.nasdaq.com/market-activity/stocks/" + encodeURIComponent(StockStore.selected.toLowerCase()) + "/insider-activity") }
         }
@@ -41,7 +41,7 @@ ColumnLayout {
             Layout.fillWidth: true; spacing: Style.space(8)
             Label {
                 objectName: "insiderVerdict"
-                text: root.verdict; font.bold: true; color: root.hasNet && root.summary.netShares !== 0 ? StockStore.direction(root.summary.netShares) : Color.muted
+                text: root.verdict; font.bold: true; color: root.hasNet && root.summary.netShares !== 0 ? StockStore.direction(root.summary.netShares) : Tone.muted
                 Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
             Rectangle {
@@ -68,11 +68,11 @@ ColumnLayout {
                             HoverHandler { id: totalHover }
                             Ui.PanelToolTip { visible: totalHover.hovered; text: total.modelData.label + ": " + (Number.isFinite(total.modelData.shares) ? Number(total.modelData.shares).toLocaleString(Qt.locale(), 'f', 0) : "Unavailable") + " shares" }
                         }
-                        Label { text: (Number.isFinite(total.modelData.trades) ? total.modelData.trades : "—") + " " + total.modelData.kind; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                        Label { text: (Number.isFinite(total.modelData.trades) ? total.modelData.trades : "—") + " " + total.modelData.kind; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true; wrapMode: Text.WordWrap }
                     }
                 }
             }
-            Label { text: "By shares · provider totals include automatic sales"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+            Label { text: "By shares · provider totals include automatic sales"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true; wrapMode: Text.WordWrap }
         }
         MarketLoading {
             Layout.fillWidth: true
@@ -81,10 +81,10 @@ ColumnLayout {
         }
         Label {
             visible: !root.request.busy && (!!root.report.error || !!root.report.notice || !(root.report.rows || []).length)
-            Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted; font.pixelSize: Style.font.bodySmall
+            Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted; font.pixelSize: Style.font.bodySmall
             text: root.report.error || root.report.notice || "No recent transactions returned for this symbol."
         }
-        Label { visible: !!(root.report.rows || []).length; text: "Latest reported transactions · trade dates"; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+        Label { visible: !!(root.report.rows || []).length; text: "Latest reported transactions · trade dates"; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
         Repeater {
             model: root.report.rows || []
             ColumnLayout {
@@ -93,7 +93,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Style.space(5)
                 Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground,.09) }
-                Label { text: record.modelData.date + " · " + record.modelData.type; Layout.fillWidth: true; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: Color.muted }
+                Label { text: record.modelData.date + " · " + record.modelData.type; Layout.fillWidth: true; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: Tone.muted }
                 Label {
                     text: record.modelData.name + (record.modelData.role ? " · " + record.modelData.role : "")
                     Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.accent
@@ -102,7 +102,7 @@ ColumnLayout {
                 Label {
                     text: StockStore.compact(record.modelData.shares) + " shares · " + StockStore.financial(record.modelData.price,"perShare",record.modelData.currency)
                         + " · " + (record.modelData.ownership || "Ownership unspecified") + " · Held " + StockStore.compact(record.modelData.held)
-                    Layout.fillWidth: true; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: Color.muted
+                    Layout.fillWidth: true; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: Tone.muted
                 }
             }
         }

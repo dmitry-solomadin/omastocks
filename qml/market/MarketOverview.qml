@@ -38,7 +38,7 @@ ColumnLayout {
     MarketSentiment { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20); report: sentiment.data }
     // The heatmap section: today's sector leaders and laggards, then the
     // selector and map.
-    Label { objectName: "marketMapHeading"; text: "MARKET MAP"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+    Label { objectName: "marketMapHeading"; text: "MARKET MAP"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
     SectorLeaders {
         Layout.fillWidth: true
         onPicked: sector => { root.sector = sector; root.period = "1D" }
@@ -75,7 +75,7 @@ ColumnLayout {
         Label {
             objectName: "marketRetrieved"
             Layout.alignment: Qt.AlignVCenter
-            color: Color.muted
+            color: Tone.muted
             font.pixelSize: Style.font.bodySmall
             text: root.report.fetched ? "Retrieved " + Qt.formatDateTime(new Date(root.report.fetched * 1000), "hh:mm") : ""
             HoverHandler { id: timeHover }
@@ -103,8 +103,8 @@ ColumnLayout {
         }
     }
     SectorHeatmap { Layout.fillWidth: true; rows: root.displayedRows; period: root.period; busy: request.busy || catalog.busy || !root.started; error: root.report.error || "" }
-    Label { text: "ECONOMIC CALENDAR"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.topMargin: Style.space(20) }
+    Label { text: "ECONOMIC CALENDAR"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.topMargin: Style.space(20) }
     EconomicCalendar { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20); report: economy.data; limit: 8 }
-    Label { text: "MARKET NEWS"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+    Label { text: "MARKET NEWS"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
     CompanyNews { Layout.fillWidth: true; report: news.data; busy: news.busy; subject: "market" }
 }

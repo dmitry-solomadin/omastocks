@@ -26,7 +26,7 @@ ColumnLayout {
         ActionButton { text: "↻"; enabled: !batch.busy; hint: "Refresh fundamental comparison"; onClicked: root.refresh() }
     }
     Label {
-        Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted; font.pixelSize: Style.font.bodySmall
+        Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted; font.pixelSize: Style.font.bodySmall
         text: batch.busy ? "Loading company fundamentals…" : "Latest reported " + (root.frequency === "annual" ? "12-month" : "3-month") + " periods · fiscal dates and currencies shown per cell · valuation ratios use provider definitions"
     }
     FeatureTable {
@@ -42,6 +42,6 @@ ColumnLayout {
     }
     Repeater {
         model: root.chosen.filter(ticker => (batch.rows[ticker] || {}).error || (batch.rows[ticker] || {}).notice)
-        Label { required property string modelData; text: modelData + " · " + (batch.rows[modelData].error || batch.rows[modelData].notice); Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+        Label { required property string modelData; text: modelData + " · " + (batch.rows[modelData].error || batch.rows[modelData].notice); Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
     }
 }

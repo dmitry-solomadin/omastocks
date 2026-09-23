@@ -9,7 +9,7 @@ RowLayout {
     id: root
     objectName: "marketStatus"
     required property MarketSession session
-    readonly property color tone: session.opened ? StockStore.gain : session.state === "PRE" || session.state === "POST" ? Color.foreground : Color.muted
+    readonly property color tone: session.opened ? StockStore.gain : session.state === "PRE" || session.state === "POST" ? Color.foreground : Tone.muted
     spacing: Style.space(8)
     // Caps have no descenders, so centre the dot on the cap height rather than
     // the line box: sit it on the baseline, raised by half the spare cap height.

@@ -18,7 +18,7 @@ Flow {
     spacing: Style.space(6)
 
     component Heading: Label {
-        color: Color.muted
+        color: Tone.muted
         font.pixelSize: Style.font.bodySmall
         height: Style.space(28)
         verticalAlignment: Text.AlignVCenter
@@ -40,7 +40,7 @@ Flow {
         NumberAnimation on opacity { from: 0; to: 1; duration: 250 }
     }
     // Keeps the line's height while sector quotes load, so the page below never jumps.
-    component Pending: Label { visible: !root.ready; text: "—"; color: Color.muted; height: Style.space(28); verticalAlignment: Text.AlignVCenter }
+    component Pending: Label { visible: !root.ready; text: "—"; color: Tone.muted; height: Style.space(28); verticalAlignment: Text.AlignVCenter }
 
     Heading { text: "Leading" }
     Pending {}

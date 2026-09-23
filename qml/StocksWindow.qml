@@ -119,7 +119,7 @@ FloatingWindow {
                     implicitHeight: Style.space(38)
                     placeholderText: "Search stocks · Ctrl+K"
                     color: Color.foreground
-                    placeholderTextColor: Color.muted
+                    placeholderTextColor: Tone.muted
                     selectionColor: Util.alpha(Color.accent, .3)
                     selectedTextColor: Color.foreground
                     font.family: Style.font.family
@@ -145,7 +145,7 @@ FloatingWindow {
                         color: Util.alpha(Color.foreground, .04)
                         radius: Style.cornerRadius
                         border.width: 1
-                        border.color: search.activeFocus ? Color.accent : Util.alpha(Color.foreground, .12)
+                        border.color: search.activeFocus ? Color.accent : Tone.border
                     }
                     onTextChanged: { list.cancelDrag(); StockStore.search(text) }
                     onAccepted: list.selectIndex(0)
@@ -276,13 +276,13 @@ FloatingWindow {
                                 Label { text: "★"; visible: stockRow.modelData.favorite === true; color: Color.accent; font.pixelSize: Style.font.bodySmall }
                                 Label { text: stockRow.modelData.symbol; font.bold: true; Layout.fillWidth: true }
                                 Label { text: StockStore.price(stockRow.modelData.price); visible: stockRow.hasQuote; font.bold: true }
-                                Label { text: StockStore.watchlistMetricText(stockRow.modelData); color: StockStore.watchlistDisplay === "marketCap" ? Color.muted : StockStore.direction(StockStore.watchlistMetric(stockRow.modelData)); font.pixelSize: Style.font.bodySmall; visible: stockRow.hasQuote }
-                                Label { text: stockRow.modelData.exchange || ""; color: Color.muted; font.pixelSize: Style.font.bodySmall; visible: !stockRow.hasQuote }
+                                Label { text: StockStore.watchlistMetricText(stockRow.modelData); color: StockStore.watchlistDisplay === "marketCap" ? Tone.muted : StockStore.direction(StockStore.watchlistMetric(stockRow.modelData)); font.pixelSize: Style.font.bodySmall; visible: stockRow.hasQuote }
+                                Label { text: stockRow.modelData.exchange || ""; color: Tone.muted; font.pixelSize: Style.font.bodySmall; visible: !stockRow.hasQuote }
                             }
                             RowLayout {
                                 width: parent.width
                                 spacing: Style.space(8)
-                                Label { text: stockRow.modelData.name; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                                Label { text: stockRow.modelData.name; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
                                 PriceChart {
                                     Layout.preferredWidth: Style.space(45)
                                     Layout.preferredHeight: Style.space(20)
@@ -343,7 +343,7 @@ FloatingWindow {
                             anchors.margins: Style.space(10)
                             spacing: Style.space(4)
                             Label { text: list.dragSymbol; font.bold: true; width: parent.width }
-                            Label { text: list.dragName; color: Color.muted; font.pixelSize: Style.font.bodySmall; width: parent.width }
+                            Label { text: list.dragName; color: Tone.muted; font.pixelSize: Style.font.bodySmall; width: parent.width }
                         }
                     }
                     Keys.onReturnPressed: if (currentItem) StockStore.select(currentItem.modelData.symbol)
@@ -358,7 +358,7 @@ FloatingWindow {
                         error: StockStore.searchError
                     }
                 }
-                Label { visible: !!StockStore.searchQuery; text: StockStore.searching ? "Searching markets…" : StockStore.searchError || list.count + " RESULTS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                Label { visible: !!StockStore.searchQuery; text: StockStore.searching ? "Searching markets…" : StockStore.searchError || list.count + " RESULTS"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
             }
         }
         Flow {
@@ -429,13 +429,13 @@ FloatingWindow {
                         visible: !MarketStore.compareMode
                         Layout.fillWidth: true
                         spacing: Style.space(10)
-                        Label { text: window.quote.name || StockStore.selected; font.pixelSize: Style.space(18); color: Color.muted; Layout.fillWidth: true }
+                        Label { text: window.quote.name || StockStore.selected; font.pixelSize: Style.space(18); color: Tone.muted; Layout.fillWidth: true }
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.topMargin: Style.space(8)
                             spacing: Style.space(12)
                             Label { text: StockStore.price(window.quote.price); font.pixelSize: Style.space(48); font.bold: true }
-                            Label { text: window.quote.currency || ""; color: Color.muted; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: Style.space(8) }
+                            Label { text: window.quote.currency || ""; color: Tone.muted; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: Style.space(8) }
                             Item { Layout.fillWidth: true }
                         }
                         Label {
@@ -499,7 +499,7 @@ FloatingWindow {
                             anchors.centerIn: parent
                             text: StockStore.chartBusy ? "Loading chart…" : "No chart data available"
                             visible: window.points.length === 0
-                            color: Color.muted
+                            color: Tone.muted
                         }
                     }
                     FundamentalComparison {
@@ -518,7 +518,7 @@ FloatingWindow {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.bottomMargin: Style.space(8)
-                            Label { text: "MARKET DETAILS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                            Label { text: "MARKET DETAILS"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
                         }
                         GridLayout {
                             objectName: "marketDetailsGrid"
@@ -546,7 +546,7 @@ FloatingWindow {
                                     Layout.preferredWidth: 0
                                     Layout.alignment: Qt.AlignTop
                                     spacing: Style.space(6)
-                                    Label { text: modelData.name; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                                    Label { text: modelData.name; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
                                     Label { visible: !modelData.range; text: modelData.value || ""; font.bold: true; Layout.fillWidth: true; wrapMode: Text.Wrap }
                                     RangeGauge {
                                         objectName: modelData.range ? "yearRangeGauge" : ""
@@ -624,7 +624,7 @@ FloatingWindow {
                     Layout.margins: Style.space(32)
                     text: "Make it your watchlist.\n\nSearch for a company or ticker in the sidebar\nto explore."
                     wrapMode: Text.WordWrap
-                    color: Color.muted
+                    color: Tone.muted
                 }
             }
         }

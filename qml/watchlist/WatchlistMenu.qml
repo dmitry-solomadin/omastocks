@@ -87,7 +87,7 @@ Controls.Popup {
         implicitHeight: Style.space(36)
         maximumLength: 40
         color: Color.foreground
-        placeholderTextColor: Color.muted
+        placeholderTextColor: Tone.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         selectionColor: Util.alpha(Color.accent, .3)
@@ -96,7 +96,7 @@ Controls.Popup {
             color: Util.alpha(Color.foreground, .05)
             radius: Style.cornerRadius
             border.width: 1
-            border.color: parent.activeFocus ? Color.accent : Color.muted
+            border.color: parent.activeFocus ? Color.accent : Tone.muted
         }
     }
     contentItem: ColumnLayout {

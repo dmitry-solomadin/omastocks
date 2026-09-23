@@ -70,7 +70,7 @@ ColumnLayout {
             Item { Layout.fillWidth: true }
             Label {
                 text: MarketStore.financials.stale ? "Saved data" : ""
-                color: Color.muted; font.pixelSize: Style.font.bodySmall
+                color: Tone.muted; font.pixelSize: Style.font.bodySmall
             }
         }
         MarketLoading {
@@ -82,7 +82,7 @@ ColumnLayout {
             Layout.fillWidth: true; wrapMode: Text.WordWrap
             visible: !root.statement.rows.length && !MarketStore.financialsRequest.busy
             text: MarketStore.financials.error || "No financial statements available for this symbol."
-            color: Color.muted
+            color: Tone.muted
         }
         Label {
             text: root.metric ? root.metric.label : ""
@@ -110,7 +110,7 @@ ColumnLayout {
                 // Handle vertical wheel input before the nested horizontal ScrollView consumes it.
                 FastWheel { flickable: root.verticalFlickable }
                 Row {
-                    Label { width: root.nameWidth; height: Style.space(32); text: "Period ended"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+                    Label { width: root.nameWidth; height: Style.space(32); text: "Period ended"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
                     Repeater {
                         model: root.statement.dates
                         Label {
@@ -118,7 +118,7 @@ ColumnLayout {
                             width: root.cellWidth; height: Style.space(32)
                             horizontalAlignment: Text.AlignRight
                             text: Qt.formatDate(new Date(modelData + "T12:00:00"), "d MMM yyyy")
-                            color: Color.muted; font.pixelSize: Style.font.bodySmall
+                            color: Tone.muted; font.pixelSize: Style.font.bodySmall
                         }
                     }
                 }

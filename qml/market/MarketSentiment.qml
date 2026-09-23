@@ -28,13 +28,13 @@ ColumnLayout {
 
     function zoneColor(score) {
         return score < 25 ? StockStore.loss : score < 45 ? Qt.tint(StockStore.loss, Qt.rgba(1, 1, 1, .25))
-            : score <= 55 ? Color.muted : score <= 75 ? Qt.tint(StockStore.gain, Qt.rgba(1, 1, 1, .25)) : StockStore.gain
+            : score <= 55 ? Tone.muted : score <= 75 ? Qt.tint(StockStore.gain, Qt.rgba(1, 1, 1, .25)) : StockStore.gain
     }
     function zoneName(score) {
         return score < 25 ? "Extreme fear" : score < 45 ? "Fear" : score <= 55 ? "Neutral" : score <= 75 ? "Greed" : "Extreme greed"
     }
 
-    component Caption: Label { color: Color.muted; font.pixelSize: Style.font.bodySmall }
+    component Caption: Label { color: Tone.muted; font.pixelSize: Style.font.bodySmall }
 
     Caption { text: "SENTIMENT" }
     GridLayout {
@@ -99,7 +99,7 @@ ColumnLayout {
                 Label { text: root.known ? Math.round(root.shown) : "—"; font.pixelSize: Style.space(34); font.bold: true }
                 Label {
                     text: root.known ? root.zoneName(root.report.score) : root.report.error ? "Unavailable" : ""
-                    color: root.known ? root.zoneColor(root.report.score) : Color.muted
+                    color: root.known ? root.zoneColor(root.report.score) : Tone.muted
                     font.bold: true
                 }
                 Caption {
@@ -138,7 +138,7 @@ ColumnLayout {
                         readonly property bool known: Number.isFinite(modelData[1])
                         Layout.preferredWidth: Style.space(26)
                         text: known ? Math.round(modelData[1]) : "—"
-                        color: known ? root.zoneColor(modelData[1]) : Color.muted
+                        color: known ? root.zoneColor(modelData[1]) : Tone.muted
                         font.bold: true
                         font.pixelSize: Style.font.bodySmall
                         Behavior on color { ColorAnimation { duration: 300 } }

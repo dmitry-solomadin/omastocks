@@ -14,7 +14,7 @@ Item {
     readonly property color foreground: Color.foreground
     readonly property color gain: StockStore.gain
     readonly property color loss: StockStore.loss
-    readonly property color muted: Color.muted
+    readonly property color muted: Tone.muted
     readonly property string family: Style.font.family
     readonly property real fontSize: Style.font.bodySmall
     readonly property real scale: Style.space(1)

@@ -29,7 +29,7 @@ ColumnLayout {
             Label {
                 anchors.centerIn: parent
                 text: root.busy ? "Loading market map…" : root.error || ""
-                color: Color.muted
+                color: Tone.muted
                 font.pixelSize: Style.font.bodySmall
             }
         }

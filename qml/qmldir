@@ -1,6 +1,7 @@
 # One module keeps shared stores unique across all feature folders.
 singleton StockStore 1.0 stores/StockStore.qml
 singleton MarketStore 1.0 stores/MarketStore.qml
+singleton Tone 1.0 stores/Tone.qml
 
 Service 1.0 Service.qml
 SettingsMenu 1.0 SettingsMenu.qml

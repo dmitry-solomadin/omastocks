@@ -73,7 +73,7 @@ Controls.Popup {
             }
         }
         Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
-        Label { text: "CHART"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+        Label { text: "CHART"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
         RowLayout {
             Layout.fillWidth: true
             Label { text: "Volume bars"; Layout.fillWidth: true }
@@ -111,7 +111,7 @@ Controls.Popup {
                 Accessible.name: "Enable topbar widget"
             }
         }
-        Label { text: "WIDGET"; visible: menu.showStrip; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+        Label { text: "WIDGET"; visible: menu.showStrip; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
         Repeater {
             model: [
                 {key: "showPrice", label: "Price", defaultValue: false},
@@ -152,7 +152,7 @@ Controls.Popup {
             }
         }
         Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
-        Label { text: "WATCHLIST"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+        Label { text: "WATCHLIST"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
         Repeater {
             model: [{value:"percent",label:"Display percentage change"}, {value:"change",label:"Display price change"}, {value:"marketCap",label:"Display market cap"}]
             RowLayout {

@@ -47,7 +47,7 @@ ColumnLayout {
     function dateLabel(date) { return Qt.formatDate(new Date(date + "T12:00:00"), "d MMM yyyy") }
     RowLayout {
         Layout.fillWidth: true
-        Label { text: "EARNINGS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+        Label { text: "EARNINGS"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
         ActionButton { text: "↻"; hint: MarketStore.earnings.error || MarketStore.earnings.notice || "Refresh earnings"; enabled: !MarketStore.eventsRequest.busy; onClicked: MarketStore.eventsRequest.reload(true) }
     }
     MarketLoading {
@@ -72,7 +72,7 @@ ColumnLayout {
         Label {
             id: reportLabel
             Layout.alignment: Qt.AlignTop
-            color: Color.muted
+            color: Tone.muted
             linkColor: Color.foreground
             textFormat: Text.StyledText
             font.pixelSize: Style.font.bodySmall
@@ -94,7 +94,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignTop
             wrapMode: Text.WordWrap
-            color: Color.muted
+            color: Tone.muted
             font.pixelSize: Style.font.bodySmall
             text: root.lastReport ? " · EPS " + StockStore.price(root.lastReport.eps) + " vs " + StockStore.price(root.lastReport.forecast) + " est."
                 + " · Revenue " + StockStore.revenue(root.lastReport.revenue, root.lastReport.revenueCurrency)
@@ -138,7 +138,7 @@ ColumnLayout {
                 ? ((MarketStore.earningsCalls.calls || []).length ? "Showing saved calls. " : "") + MarketStore.earningsCalls.error
                 : "No earnings call transcripts available."
             wrapMode: Text.WordWrap
-            color: Color.muted
+            color: Tone.muted
             font.pixelSize: Style.font.bodySmall
         }
         Repeater {

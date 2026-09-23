@@ -31,9 +31,9 @@ ColumnLayout {
         Label { text: ">"; color: Color.accent; font.bold: true }
         Label {
             text: root.mode === "empty" ? root.demoText : root.query.toUpperCase()
-            color: root.mode === "nomatch" ? Color.muted : Color.foreground
+            color: root.mode === "nomatch" ? Tone.muted : Color.foreground
         }
-        Label { visible: root.mode === "searching"; text: ".".repeat(root.frame % 4); color: Color.muted; width: Style.space(18) }
+        Label { visible: root.mode === "searching"; text: ".".repeat(root.frame % 4); color: Tone.muted; width: Style.space(18) }
         Rectangle {
             visible: root.mode !== "searching"
             anchors.verticalCenter: parent.verticalCenter
@@ -47,7 +47,7 @@ ColumnLayout {
         Layout.fillWidth: true
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.WordWrap
-        color: Color.muted
+        color: Tone.muted
         font.pixelSize: Style.font.bodySmall
         text: root.mode === "empty" ? "No tickers yet · Ctrl K to search"
             : root.mode === "searching" ? "Searching markets"

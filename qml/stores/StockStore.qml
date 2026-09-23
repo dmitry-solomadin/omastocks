@@ -138,7 +138,7 @@ QtObject {
         search("")
     }
 
-    function direction(value) { return value === null || value === undefined ? Color.muted : value < 0 ? loss : gain }
+    function direction(value) { return value === null || value === undefined ? Tone.muted : value < 0 ? loss : gain }
     function price(value) {
         return value === undefined || value === null || !isFinite(value) ? "—" : Number(value).toLocaleString(Qt.locale(), 'f', 2)
     }

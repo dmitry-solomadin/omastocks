@@ -42,13 +42,13 @@ RowLayout {
         enabled: MarketStore.compareSymbols.length < 4
         placeholderText: enabled ? "Add ticker, e.g. MSFT or SPY" : "Five stocks selected"
         color: Color.foreground
-        placeholderTextColor: Color.muted
+        placeholderTextColor: Tone.muted
         selectionColor: Util.alpha(Color.accent, .3)
         selectedTextColor: Color.foreground
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         leftPadding: Style.space(10)
-        background: Rectangle { color: Util.alpha(Color.foreground, .04); radius: Style.cornerRadius; border.width: 1; border.color: compareInput.activeFocus ? Color.accent : Util.alpha(Color.foreground, .12) }
+        background: Rectangle { color: Util.alpha(Color.foreground, .04); radius: Style.cornerRadius; border.width: 1; border.color: compareInput.activeFocus ? Color.accent : Tone.border }
         onAccepted: if (MarketStore.compare(text)) clear()
         onTextEdited: MarketStore.compareValidation = ""
         Accessible.name: "Comparison ticker symbol"
