@@ -39,3 +39,11 @@ class MarketNews(unittest.TestCase):
     def test_old_articles_are_not_used_to_fill_the_feed(self):
         result = parse(b'<rss><channel><item><title>Stock futures rise</title><source>CNBC</source><link>https://example.com/</link><pubDate>2026-01-01T14:37:00Z</pubDate></item></channel></rss>', now=1790120000)
         self.assertEqual(result["articles"], [])
+
+    def test_invalid_date_does_not_hide_a_valid_duplicate(self):
+        items = ''.join('<item><title>Stock futures rise</title><source>Reuters</source>'
+                        '<link>https://example.com/story</link><pubDate>' + stamp + '</pubDate></item>'
+                        for stamp in ["bad date", "2026-01-01T12:00:00Z", "2026-09-22T12:00:00Z"])
+        articles = parse('<rss><channel>' + items + '</channel></rss>', now=1790120000)["articles"]
+        self.assertEqual(len(articles), 1)
+        self.assertEqual(articles[0]["published"], 1790078400)

@@ -9,7 +9,7 @@ ColumnLayout {
     property string horizon: "All upcoming"
     property string today: Qt.formatDate(new Date(), "yyyy-MM-dd")
     readonly property var available: StockStore.entries.map(entry => ({entry:entry, report:batch.rows[entry.symbol] || {}}))
-    readonly property var undatedSymbols: available.filter(row => !StockStore.isIndex(row.entry.symbol) && batch.rows[row.entry.symbol] && (!row.report.next || row.report.next.date < root.today)).map(row => row.entry.symbol)
+    readonly property var undatedSymbols: available.filter(row => !StockStore.isNonCompany(row.entry.symbol) && batch.rows[row.entry.symbol] && (!row.report.next || row.report.next.date < root.today)).map(row => row.entry.symbol)
     readonly property var dated: available.filter(row => row.report.next && row.report.next.date >= today).sort((a,b)=>a.report.next.date.localeCompare(b.report.next.date) || a.entry.symbol.localeCompare(b.entry.symbol))
     readonly property var scheduled: dated.filter(row => {
         if (horizon === "All upcoming") return true
@@ -20,15 +20,16 @@ ColumnLayout {
     })
     spacing: Style.space(12)
     function refresh() { batch.reload(true) }
-    BulkRequest { id: batch; active: StockStore.windowOpen && root.visible; action: "calendar-bulk"; symbols: StockStore.entries.map(row=>row.symbol) }
+    BulkRequest { id: batch; active: StockStore.windowOpen && root.visible; action: "calendar-bulk"; symbols: StockStore.entries.map(row=>row.symbol); refreshInterval: 21600000 }
     Flow {
         Layout.fillWidth: true; spacing: Style.space(4)
         Repeater { model: ["This week", "Next week", "All upcoming"]; ActionButton { required property string modelData; text: modelData; selected: root.horizon === modelData; onClicked: root.horizon = modelData } }
         ActionButton { text: "↻"; enabled: !batch.busy; hint: "Refresh watchlist earnings"; onClicked: root.refresh() }
     }
     Label { visible: !!batch.report.error; text: batch.report.error || ""; color: Color.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap }
-    Label { visible: !root.scheduled.length; text: batch.busy ? "" : "No upcoming reports in this period."; color: Color.muted; Layout.fillWidth: true }
+    Label { visible: !root.scheduled.length; text: !StockStore.entries.length ? "Add stocks to this watchlist to see their upcoming earnings." : batch.busy ? "" : "No upcoming reports in this period."; color: Color.muted; Layout.fillWidth: true }
     FeatureTable {
+        visible: StockStore.entries.length > 0
         verticalFlickable: root.verticalFlickable
         headers: ["Report date", "EPS estimate", "Revenue estimate", "Last EPS surprise", "Last revenue surprise"]
         cellWidth: Style.space(140)
@@ -54,6 +55,5 @@ ColumnLayout {
         font.pixelSize: Style.font.bodySmall; color: Color.muted
         text: "Next report date unavailable: " + root.undatedSymbols.join(", ")
     }
-    Timer { interval: 60000; running: root.visible && StockStore.windowOpen; repeat: true; onTriggered: root.today = Qt.formatDate(new Date(), "yyyy-MM-dd") }
-    Timer { interval: 21600000; running: root.visible && StockStore.windowOpen; repeat: true; onTriggered: batch.reload(false) }
+    Timer { interval: 60000; running: root.visible && StockStore.windowOpen; repeat: true; triggeredOnStart: true; onTriggered: root.today = Qt.formatDate(new Date(), "yyyy-MM-dd") }
 }

@@ -3,5 +3,8 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "$0")" && pwd)"
 applications="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 mkdir -p "$applications"
+icons="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
+mkdir -p "$icons"
+install -m 644 "$root/icon.svg" "$icons/io.github.dmitry-solomadin.omastocks.svg"
 install -m 644 "$root/omastocks.desktop" "$applications/io.github.dmitry-solomadin.omastocks.desktop"
 echo "Omastocks launcher installed."

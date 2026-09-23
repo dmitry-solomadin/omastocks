@@ -31,6 +31,9 @@ launcher, run the optional, user-local launcher installer:
 ~/.config/omarchy/plugins/io.github.dmitry-solomadin.omastocks/install-launcher
 ```
 
+It installs the launcher entry and the Omastocks icon (`icon.svg`, the logo's
+candlesticks) under your user data directory; `uninstall` removes both.
+
 No root access or changes to `/usr/share/omarchy` are needed. The marketplace's
 installer loads the manifest directly; it does not run this repository's scripts.
 
@@ -150,12 +153,25 @@ horizontally in narrow windows; vertical wheel scrolling still moves the page.
   Search/add/remove/reorder apply to the active list. The original watchlist is
   migrated in memory and persisted on the next edit, preserving order, favorites,
   names and extra metadata. The last list cannot be removed. No research notes.
-- **Market:** select any of Yahoo's 11 sectors for a 50-stock, market-cap-weighted
+- **Market:** **Across markets** opens the page with index futures (S&P 500,
+  Nasdaq 100, Dow), commodities (gold, silver, crude oil, natural gas, copper),
+  crypto (Bitcoin, Ethereum, Solana) and rates & currencies (US 10Y and 30Y
+  yields, the dollar index, EUR/USD, USD/JPY). Yields show their daily change in
+  basis points. A row opens the instrument in the Stock view, where company-only
+  panels are skipped for futures, crypto and currencies.
+  **Sentiment** shows CNN's Fear & Greed index (0–100, with the previous close,
+  week, month and year) and the VIX term structure (9-day, 30-day, 3- and 6-month);
+  an inverted curve is flagged as stress. The **Economic calendar**
+  lists the next high-importance US releases (TradingView: CPI, payrolls, Fed, GDP,
+  PCE, ISM…) in local time with forecast, previous and, once released, the actual,
+  colored above/below forecast; it sits above Market news. The **Market map**
+  section opens with **Leading/Lagging**, today's best and worst sectors from the
+  SPDR sector ETFs (clicking one opens its heatmap). Select any of Yahoo's 11 sectors for a 50-stock, market-cap-weighted
   treemap. Tile area represents each company's share of the displayed market cap;
   color shows performance. Small tiles reveal details on hover; missing market
   caps appear as separate ticker buttons rather than invented tile sizes.
-  The dropdown also includes **S&P 500** and **Nasdaq 100**.
-  Their one-time TradingView membership snapshots contain 503 and 101
+  The dropdown also includes **S&P 500**, **Nasdaq 100** and **Dow Jones**.
+  Their one-time TradingView membership snapshots contain 503, 101 and 30
   listings respectively (multiple share classes can appear). Each index refresh
   uses **one TradingView bulk request** for the saved exchange-qualified listings,
   including daily/YTD returns and market caps; no per-stock chart/history requests.
@@ -164,7 +180,7 @@ horizontally in narrow windows; vertical wheel scrolling still moves the page.
   Index maps default to the **Top 50** by market cap, with **Top 100 / All** controls
   for broader coverage. Market opens on **S&P 500 · Top 50**.
   The index performance row (S&P 500, Nasdaq Composite,
-  Russell 2000, VIX) uses shared bulk quotes and refreshes every five minutes.
+  Dow Jones, VIX) uses shared bulk quotes and refreshes every five minutes.
   Market-wide and macro headlines below the map come from a targeted Google News
   RSS search of established financial/news publishers. Headlines must concern
   market moves, rates, inflation or economic data; stock-picking stories are
@@ -240,26 +256,47 @@ across requests; no account or API key is needed. Errors remain visible;
 cached results survive failed refreshes. Partial fundamental-provider failures
 show the available provider's metrics and an explicit notice.
 
-## Chart analysis and company news
+## Pixel artwork preview
 
-### Pixel artwork preview
-
-- The sidebar's bitmap **STOCKS** wordmark builds in over 440 ms when the window
-  opens. The app remains interactive during the animation.
-- A pixel bull/bear beside Market's benchmark row follows the **S&P 500's latest
-  daily change**, with a neutral mark for zero or unavailable direction.
-- The sidebar footer's pixel bell shows the provider-reported US market session:
-  open, pre-market, after hours or closed. It briefly rings when a known non-regular
-  session transitions to regular trading. Missing/stale state stays unavailable;
-  no local weekday/time guess is used. Shared bulk quotes refresh every five
-  minutes while the window is open.
-- A candlestick skyline appears in empty sidebar states and below Market news.
+- Each time the window opens, the visible page header plays a short intro
+  painted over the header: a pixel price line draws across
+  a dotted previous-close baseline (green above, red below, dithered fill) ending
+  on the S&P 500's latest direction, pins a flag with its daily move when known,
+  then dissolves outward from the last price to reveal the header. It takes no
+  input, so the app is usable immediately.
+- The sidebar logo (`StocksLogo.qml`) is a vector candlestick mark
+  (`CandleMark.qml`) beside "Stocks"; the candles rise when the window opens.
+- The Stock and Market headers share a pixel "Wall Street sky" drawn at 45%
+  opacity behind them (70% on light themes). The sun crosses the header on the
+  New York clock over the 04:00–20:00 ET day: dawn during pre-market, daylight
+  with drifting clouds while open, dusk after hours, and a moon with twinkling
+  stars when closed. The NYSE facade's hall lights and flag follow the session;
+  the flag is raised with confetti when a known non-regular session turns
+  regular. A status chip under each title shows the provider-reported session
+  with a countdown to the next open/close. The clock only positions and counts
+  down; holidays are not modelled, so the countdown is hidden whenever the
+  provider state disagrees with the schedule. Benchmarks, the session and
+  cross-asset quotes share one request, independent of the active watchlist. It
+  reloads in the background when the window opens, on the refresh button,
+  every five minutes, and 5 s after each scheduled session change, retrying every
+   15 s (up to four checks total) until the provider reports the new session; the chip keeps its last session
+   while reloading and shows "Checking market…" only before the first result.
+   Session timers stop when the window closes and account for daylight-saving
+   changes over weekends.
+- The Market header carries a pixel bull/bear following the **S&P 500's latest
+  daily change** (neutral for zero or unavailable) and the benchmarks, each showing
+  its price and daily change; clicking one opens it in the Stock view.
+- Empty sidebar states show a minimal terminal prompt: an empty list types and
+  erases example tickers, searching echoes the query with ticking dots, and a
+  miss leaves the query at a blinking cursor.
 
 Original sprites live in `PixelSprites.js`, rendered at integer pixel sizes by
-`PixelArt.qml`. `PixelWordmark.qml`, `MarketMood.qml`, `MarketSession.qml`, and
-`MarketSkyline.qml` are separate components for easy refinement/removal.
+`PixelArt.qml`; session math is in `MarketClock.js` (`node tests/test_pixel_art.cjs`).
+`MarketMood.qml`, `SessionHeader.qml`
+(with `StocksIntro.qml`, `MarketSession.qml`, `MarketStatus.qml`, `MarketSky.qml`) and
+`WatchlistEmpty.qml` are separate components for easy refinement/removal.
 
-### Brief me
+## Brief me
 
 **Brief me** on the Stock page hands a bounded snapshot to **your default Omarchy
 agent**, using `omarchy agent prompt`. It opens that agent's normal window with its
@@ -288,6 +325,8 @@ If no result arrives within five minutes, check the agent window and retry.
 Briefs and isolated request snapshots are stored in the plugin state directory's
 `briefs/` folder. The agent session remains available for follow-up questions.
 
+## Chart analysis and company news
+
 The Watchlist earnings calendar also shows **Revenue estimate** for the upcoming
 report and **Last revenue surprise** (actual minus consensus, divided by the
 absolute consensus). One supplemental TradingView bulk request serves the entire
@@ -296,10 +335,11 @@ calendar date; missing data, ambiguous listings, differing dates, and zero surpr
 denominators remain **—**. Hover over revenue surprise for actual and estimated
 amounts and the source. The table scrolls horizontally to fit the added columns.
 
-Indexes are identified by Yahoo's instrument-type metadata, with its `^` symbol
-prefix as a fallback for older cached quotes. Earnings/calls, financial statements,
-analyst targets, company valuations and insider activity are hidden for indexes,
-and their requests are disabled. Indexes remain available for chart comparison
+Non-company instruments (indexes, futures, crypto and currencies) are identified
+by Yahoo's instrument-type metadata, with symbol-format fallbacks for older caches.
+Earnings/calls, financial statements, analyst targets, company valuations and
+insider activity are hidden for them, and their requests are disabled.
+They remain available for chart comparison
 but are excluded from company fundamental comparisons. Tracking ETFs such as SPY
 are distinct instruments and are not classified as indexes.
 
@@ -419,7 +459,7 @@ Only standalone three-month or full-year records are accepted, not YTD figures.
 Statement diluted EPS is separate from the earnings-surprise feed's EPS and
 can differ in definition. Valuations retain TradingView's field definitions and
 are not currency-converted. Financials are fetched only when expanded and cached
-for one day; valuations cache for one hour. The refresh/info controls expose
+for one day; valuations cache for one hour. Refresh controls expose
 source and error details; saved results remain available after a failed refresh.
 
 ## Analyst recommendations
@@ -481,8 +521,10 @@ plugin settings API, preserving the other settings in `shell.json`.
 
 ### Network and storage
 
-The helpers contact `query1.finance.yahoo.com`, `finance.yahoo.com`, `fc.yahoo.com`, `api.nasdaq.com`,
-`scanner.tradingview.com`, `api.stocktwits.com` and `apewisdom.io` over HTTPS. The current ticker/search query is sent to
+The helpers contact `query1.finance.yahoo.com`, `finance.yahoo.com`, `fc.yahoo.com`,
+`api.nasdaq.com`, `scanner.tradingview.com`, `economic-calendar.tradingview.com`,
+`production.dataviz.cnn.io`, `news.google.com`, `api.stocktwits.com` and
+`apewisdom.io` over HTTPS. The current ticker/search query is sent to
 the corresponding provider; watchlist files stay local. News thumbnails load
 from image URLs supplied by Yahoo. News, earnings searches and filing links open
 in your default browser. No telemetry, user login credentials or paid services are
@@ -504,9 +546,10 @@ The watchlist additions are separate modules to make iteration/removal contained
 |---|---|---|
 | Named lists | `WatchlistSelector.qml`, `WatchlistMenu.qml`, small `StockStore.qml` adapter | `bin/watchlists.py`, `Repository` adapter in `bin/stocks.py` |
 | Market | `MarketOverview.qml`, `SectorHeatmap.qml`, `DenseHeatmap.qml` | `bin/market_bulk.py`, `bin/index_market.py`, bundled sector/index membership snapshots |
+| Market pulse | `CrossAssets.qml`, `MarketSentiment.qml`, `EconomicCalendar.qml` | `bin/market_bulk.py`, `bin/market_pulse.py` |
 | Overview | `WatchlistOverview.qml`, `BulkRequest.qml` | `bin/overview.py`, `bin/market_bulk.py` |
 | Fundamental comparison | `FundamentalComparison.qml` | `bin/fundamental_compare.py` |
-| Earnings calendar | `EarningsCalendar.qml`, `BulkRequest.qml` | `bin/calendar_bulk.py` |
+| Earnings calendar | `EarningsCalendar.qml`, `BulkRequest.qml` | `bin/calendar_bulk.py`, `bin/calendar_revenue.py` |
 | Insider activity | `CompanyActivity.qml` | `bin/company_activity.py` |
 
 `WatchlistWorkspace.qml` mounts Market or `WatchlistDashboard.qml`, which combines
@@ -520,6 +563,11 @@ Yahoo pacing, 429 backoff and the anonymous bulk-data session across helper proc
 comparison table mount; the table receives its tickers from the existing chart
 comparison selection rather than maintaining a separate selection.
 Research actions are registered in `bin/research.py` and use its cache/backoff.
+`CACHE_TTLS` and `CACHE_SCHEMAS` define cache policy in one place. Failed refreshes
+retry after their failure cooldown rather than waiting for a successful cache's TTL.
+`DataRequest.qml` owns polling (`refreshInterval`), debouncing and obsolete-reply
+rejection; a task completes only after both process exit and stdout collection.
+`bin/tradingview.py` shares bounded screener transport and share-class symbol mapping.
 Each view can be disconnected at its mount/registration without editing the other
 feature implementations. Named-list state remains in `watchlist.json`; `entries`
 is maintained as a mirror of the active list for the existing storage contract.
@@ -544,13 +592,15 @@ python3 -m unittest discover -s tests -v
 node tests/test_chart.cjs
 node tests/test_treemap.cjs
 node tests/test_watchlist_order.cjs
+node tests/test_pixel_art.cjs
+node tests/test_market_assets.cjs
 omarchy plugin validate .
 python3 bin/stocks.py snapshot
 python3 bin/stocks.py chart AAPL 1M
 omarchy-shell io.github.dmitry-solomadin.omastocks status
 ```
 
-Node.js is needed only for the chart-math tests. For isolated helper runs, set
+Node.js is needed only for the JavaScript tests. For isolated helper runs, set
 `STOCKS_STATE_DIR` to a test directory; never copy test state over your live data.
 
 For the window lifecycle check, open Omastocks, close it with Hyprland's Super+W,

@@ -7,6 +7,7 @@ Canvas {
     property int pixelSize: Math.max(1, Math.round(Style.space(2)))
     property color ink: Color.foreground
     property color shade: Color.muted
+    property color accent: Color.accent
     property real reveal: 1
     readonly property int columns: pixels.reduce((maximum, row) => Math.max(maximum, row.length), 0)
     implicitWidth: columns * pixelSize
@@ -17,6 +18,7 @@ Canvas {
     onPixelSizeChanged: requestPaint()
     onInkChanged: requestPaint()
     onShadeChanged: requestPaint()
+    onAccentChanged: requestPaint()
     onRevealChanged: requestPaint()
     onPaint: {
         const ctx = getContext("2d")
@@ -24,8 +26,8 @@ Canvas {
         const edge = Math.ceil(columns * reveal)
         pixels.forEach((row, y) => {
             for (let x = 0; x < Math.min(row.length, edge); x++) {
-                if (row[x] !== "1" && row[x] !== "2") continue
-                ctx.fillStyle = row[x] === "1" ? root.ink : root.shade
+                if (row[x] !== "1" && row[x] !== "2" && row[x] !== "3") continue
+                ctx.fillStyle = row[x] === "1" ? root.ink : row[x] === "2" ? root.shade : root.accent
                 ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
             }
         })

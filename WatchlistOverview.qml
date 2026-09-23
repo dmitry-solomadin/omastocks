@@ -32,7 +32,7 @@ ColumnLayout {
     Label { visible: !!quotes.data.error; text: quotes.data.error || ""; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted }
     Label { visible: !StockStore.entries.length; text: "Add stocks to this watchlist to see their performance."; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.muted }
     FeatureTable {
-        visible: !root.heatmap
+        visible: !root.heatmap && StockStore.entries.length > 0
         verticalFlickable: root.verticalFlickable
         headers: root.periods
         rows: root.ordered.map(entry => ({label: entry.symbol, symbol: entry.symbol, hint: entry.name,

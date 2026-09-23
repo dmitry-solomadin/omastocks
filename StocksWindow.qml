@@ -19,6 +19,7 @@ FloatingWindow {
     onClosed: visible = false
     onVisibleChanged: {
         StockStore.windowOpen = visible
+        if (visible) wordmark.play()
         if (!visible) { settingsMenu.close(); watchlistMenu.close(); watchlistSelector.close(); list.cancelDrag() }
     }
     readonly property var quote: StockStore.quote
@@ -30,6 +31,7 @@ FloatingWindow {
     readonly property string warning: StockStore.error || series.error || quote.error ||
         (quote.stale && quote.price !== undefined ? "Showing saved prices. Refresh to check for updates." : "")
     function refresh() {
+        StockStore.marketQuotesRequest.reload(true)
         if (StockStore.view !== "stock") workspace.refresh()
         else {
             StockStore.refresh(true)
@@ -89,7 +91,9 @@ FloatingWindow {
                     Item {
                         Layout.fillWidth: true
                         implicitHeight: wordmark.implicitHeight
-                        PixelWordmark { id: wordmark; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        // The icon glyphs sit slightly high in their buttons; lift the logo to
+                        // share their visual centre line.
+                        StocksLogo { id: wordmark; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; anchors.verticalCenterOffset: -Style.space(1) }
                     }
                     ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.busy; onClicked: window.refresh(); font.pixelSize: Style.space(18) }
                     ActionButton { text: "\uf013"; hint: "Settings"; font.pixelSize: Style.space(18); onClicked: settingsMenu.open() }
@@ -332,23 +336,16 @@ FloatingWindow {
                     Keys.onReturnPressed: if (currentItem) StockStore.select(currentItem.modelData.symbol)
                     Keys.onDownPressed: moveSelection(1)
                     Keys.onUpPressed: moveSelection(-1)
-                    Column {
+                    WatchlistEmpty {
                         anchors.centerIn: parent
                         width: parent.width - Style.space(20)
                         visible: list.count === 0
-                        spacing: Style.space(16)
-                        MarketSkyline { anchors.horizontalCenter: parent.horizontalCenter }
-                        Label {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.WordWrap
-                            color: Color.muted
-                            text: StockStore.searchQuery ? (StockStore.searching ? "Searching markets…" : StockStore.searchError || "No matching stocks found.") : "Your watchlist is empty.\nSearch for a stock to begin."
-                        }
+                        mode: !StockStore.searchQuery ? "empty" : StockStore.searching ? "searching" : "nomatch"
+                        query: StockStore.searchQuery
+                        error: StockStore.searchError
                     }
                 }
                 Label { visible: !!StockStore.searchQuery; text: StockStore.searching ? "Searching markets…" : StockStore.searchError || list.count + " RESULTS"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
-                MarketSession { Layout.fillWidth: true }
             }
         }
         Flow {
@@ -395,16 +392,20 @@ FloatingWindow {
             ColumnLayout {
                 width: detailScroll.availableWidth
                 spacing: 0
-                RowLayout {
+                SessionHeader {
+                    id: stockHeader
                     objectName: "stockHeader"
                     visible: !MarketStore.compareMode
                     Layout.fillWidth: true
-                    Layout.margins: Style.space(24)
-                    Label { text: StockStore.selected || "Your markets, at a glance"; font.pixelSize: Style.space(22); font.bold: true; Layout.fillWidth: true }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Style.space(6)
+                        Label { text: StockStore.selected || "Your markets, at a glance"; font.pixelSize: Style.space(22); font.bold: true; Layout.fillWidth: true }
+                        MarketStatus { session: stockHeader.session }
+                    }
                     ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Color.accent : Color.foreground; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
                     ActionButton { text: StockStore.tracked ? "Remove" : "+ Watchlist"; hint: StockStore.tracked ? "Remove from watchlist" : "Add to watchlist"; visible: !!StockStore.selected; enabled: !StockStore.busy; onClicked: StockStore.tracked ? StockStore.remove() : StockStore.add() }
                 }
-                Rectangle { visible: !MarketStore.compareMode; Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .09) }
                 ColumnLayout {
                     visible: !!StockStore.selected
                     Layout.fillWidth: true
@@ -492,7 +493,7 @@ FloatingWindow {
                         Layout.fillWidth: true
                         visible: MarketStore.compareMode && chosen.length > 0
                         verticalFlickable: detailScroll.contentItem
-                        chosen: MarketStore.compareMode && StockStore.selected ? [StockStore.selected].concat(MarketStore.compareSymbols).filter(ticker => !StockStore.isIndex(ticker)) : []
+                        chosen: MarketStore.compareMode && StockStore.selected ? [StockStore.selected].concat(MarketStore.compareSymbols).filter(ticker => !StockStore.isNonCompany(ticker)) : []
                     }
                     ColumnLayout {
                         objectName: "individualStockDetails"
@@ -542,14 +543,14 @@ FloatingWindow {
                                 }
                             }
                         }
-                        Rectangle { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                        EarningsPanel { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true }
-                        Rectangle { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                        FinancialsPanel { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
-                        Rectangle { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                        AnalystsPanel { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true }
-                        Rectangle { visible: !StockStore.selectedIsIndex; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
-                        CompanyActivity { id: companyActivity; visible: !StockStore.selectedIsIndex; Layout.fillWidth: true }
+                        Rectangle { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        EarningsPanel { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true }
+                        Rectangle { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        FinancialsPanel { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
+                        Rectangle { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        AnalystsPanel { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true }
+                        Rectangle { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        CompanyActivity { id: companyActivity; visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
                         RowLayout {
                             id: feedTabs
@@ -590,11 +591,14 @@ FloatingWindow {
                         Item {
                             objectName: "feedBody"
                             Layout.fillWidth: true
-                            // Keep a viewport below the tabs even during loading/empty states.
-                            // Otherwise Flickable clamps contentY as the old feed disappears.
+                            readonly property bool loading: MarketStore.socialOpen
+                                ? MarketStore.socialRequest.busy || MarketStore.buzzRequest.busy : MarketStore.newsRequest.busy
+                            // While a feed loads, keep a viewport below the tabs so the Flickable
+                            // does not clamp contentY as the old feed disappears. Once loaded, take
+                            // the feed's own height so there is no empty space at the bottom.
                             Layout.preferredHeight: Math.max(
                                 MarketStore.socialOpen ? socialFeed.implicitHeight : newsFeed.implicitHeight,
-                                detailScroll.availableHeight - feedTabs.height - Style.space(10))
+                                loading ? detailScroll.availableHeight - feedTabs.height - Style.space(10) : 0)
                             CompanyNews { id: newsFeed; objectName: "newsFeed"; width: parent.width; height: implicitHeight; visible: !MarketStore.socialOpen }
                             SocialPanel { id: socialFeed; width: parent.width; height: implicitHeight; visible: MarketStore.socialOpen }
                         }

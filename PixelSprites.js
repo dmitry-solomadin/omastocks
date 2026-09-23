@@ -1,4 +1,5 @@
-// Original low-resolution artwork. Dots are transparent; 1/2/3 are palette slots.
+// Original low-resolution artwork. Dots are transparent; 1/2/3 are palette slots
+// (ink, shade, accent).
 var neutral = Array.from({length:14}, (_, y) => y === 6 || y === 7 ? "....11111111...." : "................")
 var bull = [
     "1..............1", "11............11", "111..........111", ".11111111111111.",
@@ -12,32 +13,53 @@ var bear = [
     ".111222..222111.", "..11222..22211..", "..112222222211..", "...1111..1111...",
     "....11111111....", "......1111......"
 ]
-var bell = [
-    ".......11.......", "......1221......", ".....111111.....", "....11111111....",
-    "....12111111....", "....12111111....", "....12111111....", "....12111111....",
-    "...1121111111...", "...1111111111...", "..111111111111..", ".11111111111111.",
-    "................", "......1111......", ".......11......."
-]
-var glyphs = {
-    S: ["11111","1....","1....","11111","....1","....1","11111"],
-    T: ["11111","..1..","..1..","..1..","..1..","..1..","..1.."],
-    O: [".111.","1...1","1...1","1...1","1...1","1...1",".111."],
-    C: [".1111","1....","1....","1....","1....","1....",".1111"],
-    K: ["1...1","1..1.","1.1..","11...","1.1..","1..1.","1...1"]
+
+// 3x5 cells for flags and screen captions.
+var tiny = {
+    "0":["111","1.1","1.1","1.1","111"], "1":[".1.","11.",".1.",".1.","111"],
+    "2":["111","..1","111","1..","111"], "3":["111","..1",".11","..1","111"],
+    "4":["1.1","1.1","111","..1","..1"], "5":["111","1..","111","..1","111"],
+    "6":["111","1..","111","1.1","111"], "7":["111","..1","..1",".1.",".1."],
+    "8":["111","1.1","111","1.1","111"], "9":["111","1.1","111","..1","111"],
+    "+":["...",".1.","111",".1.","..."], "-":["...","...","111","...","..."],
+    ".":[".",".",".",".","1"], "%":["1.1","..1",".1.","1..","1.1"],
+    "?":["111","..1",".11","...",".1."], " ":["..","..","..","..",".."]
 }
-function wordmark() {
-    return Array.from({length:7}, (_, y) => "STOCKS".split("").map(letter => glyphs[letter][y]).join("."))
+
+function text(value) {
+    const glyphs = String(value).split("").map(letter => tiny[letter] || tiny["?"])
+    return Array.from({length:5}, (_, y) => glyphs.map(glyph => glyph[y]).join("."))
 }
-function skyline() {
-    const width = 64, height = 18
-    const pixels = Array.from({length:height}, () => Array(width).fill("."))
-    const heights = [5,8,6,11,9,14,10,16,12,9,13,17]
-    heights.forEach((h, i) => {
-        const left = i * 5 + 2, top = height - h
-        for (let y = top + 2; y < height; y++)
-            for (let x = left; x < left + 4; x++) pixels[y][x] = "1"
-        for (let y = top; y < top + 3; y++) pixels[y][left + 1] = "2"
-        for (let y = top + 4; y < height - 1; y += 3) pixels[y][left + 1] = "."
+
+// Deterministic PRNG so a seed always produces the same walk.
+function random(seed) {
+    let state = seed >>> 0
+    return function() {
+        state = (state + 0x6D2B79F5) >>> 0
+        let t = state
+        t = Math.imul(t ^ (t >>> 15), t | 1)
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+}
+
+// A trading-day shaped walk from 0 that dips early and settles on the requested
+// side of zero. Values are normalised to [-1, 1].
+function walk(count, seed, rising) {
+    const next = random(seed)
+    const values = [0]
+    let drift = 0
+    for (let i = 1; i < count; i++) {
+        drift = drift * .6 + (next() - .5) * .8
+        values.push(values[i - 1] + drift + (next() - .5) * 2.2)
+    }
+    const end = values[count - 1]
+    const target = (rising ? 1 : -1) * count * .12
+    const shaped = values.map((value, i) => {
+        const t = i / Math.max(1, count - 1)
+        const dip = -Math.sin(Math.min(1, t / .4) * Math.PI) * count * .07 * (rising ? 1 : -1)
+        return value + (target - end) * t + dip
     })
-    return pixels.map(row => row.join(""))
+    const scale = Math.max(1e-9, Math.max.apply(null, shaped.map(Math.abs)))
+    return shaped.map(value => value / scale)
 }

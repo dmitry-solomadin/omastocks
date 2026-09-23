@@ -19,6 +19,22 @@ from financials import statements, valuation
 from extended import extended
 from earnings_calls import earnings_calls
 from social import stocktwits, reddit_buzz
+from tradingview import listings, request as scan
+
+
+CACHE_TTLS = {
+    "news": 600, "social": 300, "buzz": 1800, "events": 21600, "calls": 86400,
+    "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
+    "sectors": 86400, "sector": 900, "market-index": 900, "market-news": 600,
+    "sentiment": 1800, "economic-calendar": 900, "quotes": 300, "calendar-bulk": 21600,
+    "calendar": 21600, "overview": 86400, "fundamentals": 3600, "insiders": 3600, "compare": 3600,
+}
+CACHE_SCHEMAS = {
+    "events": ("earningsSchema", 2), "sectors": ("catalogSchema", 4),
+    "market-news": ("marketNewsSchema", 3), "quotes": ("quotesSchema", 3),
+    "calendar-bulk": ("calendarSchema", 2), "news": ("newsSchema", 6),
+    "insiders": ("insiderSchema", 2), "overview": ("overviewSchema", 2),
+}
 
 
 def web_url(value):
@@ -142,7 +158,7 @@ def parse_earnings(upcoming, history, today=None):
 def parse_revenue(document, ticker):
     matches = []
     for row in document.get("data") or []:
-        if row.get("s") not in {f"{exchange}:{ticker}" for exchange in ("NASDAQ", "NYSE", "AMEX")}:
+        if row.get("s") not in listings(ticker):
             continue
         values = row.get("d") or []
         if len(values) != 5:
@@ -162,17 +178,9 @@ def parse_revenue(document, ticker):
 
 
 def revenue(ticker):
-    payload = {"symbols": {"tickers": [f"{exchange}:{ticker}" for exchange in ("NASDAQ", "NYSE", "AMEX")],
-                           "query": {"types": []}},
+    payload = {"symbols": {"tickers": listings(ticker), "query": {"types": []}},
                "columns": ["total_revenue_fq", "revenue_forecast_fq", "earnings_release_date", "currency", "type"]}
-    request = urllib.request.Request("https://scanner.tradingview.com/america/scan",
-                                     data=json.dumps(payload).encode(),
-                                     headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(request, timeout=10) as response:
-        raw = response.read(1024 * 1024 + 1)
-    if len(raw) > 1024 * 1024:
-        raise ValueError("The revenue response was too large.")
-    return parse_revenue(json.loads(raw), ticker)
+    return parse_revenue(scan(payload), ticker)
 
 
 def attach_revenue(calendar, report):
@@ -229,12 +237,15 @@ def load(action, ticker, period):
     if action == "sectors":
         from market_bulk import presets
         from index_market import presets as indexes
-        return {"catalogSchema": 3, "sectors":
+        return {"catalogSchema": 4, "sectors":
                 [{"value": group["id"], "label": group["name"], "kind": "index"} for group in indexes() if group["id"] != "russell2000"]
                 + [{"value": group["id"], "label": group["name"], "kind": "sector"} for group in presets()]}
     if action == "market-index":
         from index_market import index
         return index(ticker.lower())
+    if action in ("sentiment", "economic-calendar"):
+        import market_pulse
+        return {"sentiment": market_pulse.sentiment, "economic-calendar": market_pulse.economic_calendar}[action]()
     if action == "market-news":
         from market_news import news
         return news()
@@ -306,7 +317,7 @@ def main(arguments):
         ticker = ",".join(symbols(arguments[1]))
     else:
         ticker = symbol(arguments[1])
-    if action not in ("sectors", "sector", "market-index", "market-news", "quotes", "calendar-bulk", "calendar", "overview", "fundamentals", "insiders", "news", "events", "calls", "social", "buzz", "averages", "compare", "financials", "valuation", "extended", "analysts"):
+    if action not in CACHE_TTLS:
         raise ValueError("Unknown research request.")
     if action == "buzz":
         ticker = "ALL"
@@ -317,27 +328,20 @@ def main(arguments):
     directory.mkdir(parents=True, exist_ok=True)
     key = hashlib.sha256(f"{action}:{ticker}:{period}".encode()).hexdigest()
     path = directory / (key + ".json")
-    ttl = {"news": 600, "social": 300, "buzz": 1800, "events": 21600, "calls": 86400, "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
-           "sectors": 86400, "sector": 900, "market-index": 900, "market-news": 600, "quotes": 300, "calendar-bulk": 21600,
-           "calendar": 21600, "overview": 86400, "fundamentals": 3600, "insiders": 3600,
-           "compare": 60 if period in ("1D", "1W") else 3600}[action]
+    ttl = 60 if action == "compare" and period in ("1D", "1W") else CACHE_TTLS[action]
     with (directory / (key + ".lock")).open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         saved = read_json(path, {})
         now = time.time()
-        current_schema = ((action != "events" or saved.get("earningsSchema") == 2)
-                          and (action != "sectors" or saved.get("catalogSchema") == 3)
-                          and (action != "market-news" or saved.get("marketNewsSchema") == 3)
-                          and (action != "quotes" or saved.get("quotesSchema") == 3)
-                          and (action != "calendar-bulk" or saved.get("calendarSchema") == 2)
-                          and (action != "news" or saved.get("newsSchema") == 6)
-                          and (action != "insiders" or saved.get("insiderSchema") == 2)
-                          and (action != "overview" or (saved.get("overviewSchema") == 2
-                               and saved.get("baselineDay") == datetime.now(ZoneInfo(saved.get("timezone", "UTC"))).date().isoformat())))
+        schema = CACHE_SCHEMAS.get(action)
+        current_schema = schema is None or saved.get(schema[0]) == schema[1]
+        if action == "overview" and current_schema:
+            current_schema = saved.get("baselineDay") == datetime.now(ZoneInfo(saved.get("timezone", "UTC"))).date().isoformat()
         # Overview refreshes live prices in bulk. Successful historical baselines
         # have a separate daily lifecycle; failed baseline downloads still retry.
-        fixed_baselines = action == "overview" and "--keep-baselines" in arguments and current_schema and not saved.get("stale", True) and saved.get("fetched", 0) + ttl > now
-        if fixed_baselines or ("--force" not in arguments and (saved.get("retryAfter", 0) > now or (current_schema and saved.get("fetched", 0) + ttl > now))):
+        fresh = bool(saved.get("fetched")) and current_schema and not saved.get("stale", False) and saved["fetched"] + ttl > now
+        fixed_baselines = action == "overview" and "--keep-baselines" in arguments and fresh
+        if fixed_baselines or ("--force" not in arguments and (saved.get("retryAfter", 0) > now or fresh)):
             return saved
         try:
             result = {**load(action, ticker, period), "fetched": now, "stale": False, "error": ""}

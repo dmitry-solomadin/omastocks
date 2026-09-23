@@ -3055,6 +3055,168 @@
       ]
     },
     {
+      "id": "dowjones",
+      "name": "Dow Jones",
+      "kind": "index",
+      "providerIndex": "DJ:DJI",
+      "source": "https://www.tradingview.com/symbols/DJ-DJI/components/",
+      "retrievedAt": "2026-09-23T15:59:18+00:00",
+      "responseSha256": "857f1a2e3d8efadeccf6976a8d37fbdc51292fa35021d8232bc0004306508d47",
+      "count": 30,
+      "members": [
+        {
+          "symbol": "AAPL",
+          "name": "Apple Inc.",
+          "providerSymbol": "NASDAQ:AAPL"
+        },
+        {
+          "symbol": "AMGN",
+          "name": "Amgen Inc.",
+          "providerSymbol": "NASDAQ:AMGN"
+        },
+        {
+          "symbol": "AMZN",
+          "name": "Amazon.com, Inc.",
+          "providerSymbol": "NASDAQ:AMZN"
+        },
+        {
+          "symbol": "AXP",
+          "name": "American Express Company",
+          "providerSymbol": "NYSE:AXP"
+        },
+        {
+          "symbol": "BA",
+          "name": "Boeing Company",
+          "providerSymbol": "NYSE:BA"
+        },
+        {
+          "symbol": "CAT",
+          "name": "Caterpillar Inc.",
+          "providerSymbol": "NYSE:CAT"
+        },
+        {
+          "symbol": "CRM",
+          "name": "Salesforce, Inc.",
+          "providerSymbol": "NYSE:CRM"
+        },
+        {
+          "symbol": "CSCO",
+          "name": "Cisco Systems, Inc.",
+          "providerSymbol": "NASDAQ:CSCO"
+        },
+        {
+          "symbol": "CVX",
+          "name": "Chevron Corporation",
+          "providerSymbol": "NYSE:CVX"
+        },
+        {
+          "symbol": "DIS",
+          "name": "Walt Disney Company",
+          "providerSymbol": "NYSE:DIS"
+        },
+        {
+          "symbol": "GOOGL",
+          "name": "Alphabet Inc. Class A",
+          "providerSymbol": "NASDAQ:GOOGL"
+        },
+        {
+          "symbol": "GS",
+          "name": "Goldman Sachs Group, Inc.",
+          "providerSymbol": "NYSE:GS"
+        },
+        {
+          "symbol": "HD",
+          "name": "Home Depot, Inc.",
+          "providerSymbol": "NYSE:HD"
+        },
+        {
+          "symbol": "HON",
+          "name": "Honeywell International Inc.",
+          "providerSymbol": "NASDAQ:HON"
+        },
+        {
+          "symbol": "IBM",
+          "name": "International Business Machines Corporation",
+          "providerSymbol": "NYSE:IBM"
+        },
+        {
+          "symbol": "JNJ",
+          "name": "Johnson & Johnson",
+          "providerSymbol": "NYSE:JNJ"
+        },
+        {
+          "symbol": "JPM",
+          "name": "JPMorgan Chase & Co.",
+          "providerSymbol": "NYSE:JPM"
+        },
+        {
+          "symbol": "KO",
+          "name": "Coca-Cola Company",
+          "providerSymbol": "NYSE:KO"
+        },
+        {
+          "symbol": "MCD",
+          "name": "McDonald's Corporation",
+          "providerSymbol": "NYSE:MCD"
+        },
+        {
+          "symbol": "MMM",
+          "name": "3M Company",
+          "providerSymbol": "NYSE:MMM"
+        },
+        {
+          "symbol": "MRK",
+          "name": "Merck & Co., Inc.",
+          "providerSymbol": "NYSE:MRK"
+        },
+        {
+          "symbol": "MSFT",
+          "name": "Microsoft Corporation",
+          "providerSymbol": "NASDAQ:MSFT"
+        },
+        {
+          "symbol": "NKE",
+          "name": "NIKE, Inc. Class B",
+          "providerSymbol": "NYSE:NKE"
+        },
+        {
+          "symbol": "NVDA",
+          "name": "NVIDIA Corporation",
+          "providerSymbol": "NASDAQ:NVDA"
+        },
+        {
+          "symbol": "PG",
+          "name": "Procter & Gamble Company",
+          "providerSymbol": "NYSE:PG"
+        },
+        {
+          "symbol": "SHW",
+          "name": "Sherwin-Williams Company",
+          "providerSymbol": "NYSE:SHW"
+        },
+        {
+          "symbol": "TRV",
+          "name": "Travelers Companies, Inc.",
+          "providerSymbol": "NYSE:TRV"
+        },
+        {
+          "symbol": "UNH",
+          "name": "UnitedHealth Group Incorporated",
+          "providerSymbol": "NYSE:UNH"
+        },
+        {
+          "symbol": "V",
+          "name": "Visa Inc. Class A",
+          "providerSymbol": "NYSE:V"
+        },
+        {
+          "symbol": "WMT",
+          "name": "Walmart Inc.",
+          "providerSymbol": "NASDAQ:WMT"
+        }
+      ]
+    },
+    {
       "id": "russell2000",
       "name": "Russell 2000",
       "kind": "index",

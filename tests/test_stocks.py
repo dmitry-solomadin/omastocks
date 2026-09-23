@@ -175,6 +175,20 @@ class StateTests(unittest.TestCase):
         self.repository.chart("AAPL", "1D")
         request.assert_called_once()
 
+    @patch.object(stocks, "fetch", return_value=SAMPLE)
+    def test_historical_chart_recovers_after_failure_cooldown(self, request):
+        with patch.object(stocks.time, "time", return_value=1000) as clock:
+            self.repository.chart("AAPL", "1Y")
+            request.side_effect = ValueError("offline")
+            self.repository.chart("AAPL", "1Y", force=True)
+            request.side_effect = None
+            clock.return_value = 1119
+            self.assertTrue(self.repository.chart("AAPL", "1Y")["stale"])
+            self.assertEqual(request.call_count, 2)
+            clock.return_value = 1121
+            self.assertFalse(self.repository.chart("AAPL", "1Y")["stale"])
+            self.assertEqual(request.call_count, 3)
+
     @patch.object(stocks, "fetch", side_effect=ValueError("rate limiting"))
     def test_failed_symbol_backs_off_automatically_but_manual_refresh_retries(self, request):
         self.repository.chart("AAPL", "1D")

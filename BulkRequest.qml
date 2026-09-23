@@ -8,6 +8,7 @@ Item {
     property bool active: false
     property string action: "quotes"
     property var symbols: []
+    property alias refreshInterval: request.refreshInterval
     readonly property var rows: request.data.rows || ({})
     readonly property var report: request.data
     readonly property bool busy: request.busy

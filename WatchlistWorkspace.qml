@@ -14,6 +14,19 @@ Controls.ScrollView {
     ColumnLayout {
         width: root.availableWidth
         spacing: Style.space(12)
+        SessionHeader {
+            id: marketHeader
+            objectName: "marketHeader"
+            visible: StockStore.view === "market"
+            Layout.fillWidth: true
+            MarketMood { Layout.alignment: Qt.AlignVCenter }
+            ColumnLayout {
+                spacing: Style.space(6)
+                Label { text: "Market"; font.pixelSize: Style.space(22); font.bold: true }
+                MarketStatus { session: marketHeader.session }
+            }
+            MarketIndexes { Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter }
+        }
         Label {
             visible: StockStore.view !== "market"
             text: StockStore.watchlistName
@@ -26,7 +39,7 @@ Controls.ScrollView {
             id: page
             objectName: "workspacePage"
             Layout.fillWidth: true
-            Layout.topMargin: StockStore.view === "market" ? Style.space(16) : 0
+            Layout.topMargin: StockStore.view === "market" ? Style.space(4) : 0
             Layout.leftMargin: Style.space(24); Layout.rightMargin: Style.space(24); Layout.bottomMargin: Style.space(24)
             active: root.visible
             sourceComponent: StockStore.view === "market" ? market : watchlist

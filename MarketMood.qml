@@ -7,9 +7,9 @@ import "PixelSprites.js" as Sprites
 Item {
     id: root
     objectName: "marketMood"
-    readonly property var quote: StockStore.watchlistQuotes["^SPX"] || {}
+    readonly property var quote: StockStore.marketQuotes["^SPX"] || {}
     readonly property var change: quote.percent
-    readonly property bool known: Number.isFinite(change) && !StockStore.watchlistQuotesRequest.data.stale && !StockStore.watchlistQuotesRequest.data.error
+    readonly property bool known: Number.isFinite(change) && !StockStore.marketQuotesRequest.data.stale && !StockStore.marketQuotesRequest.data.error
     implicitWidth: art.implicitWidth
     implicitHeight: art.implicitHeight
     PixelArt {

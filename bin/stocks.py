@@ -48,6 +48,11 @@ def symbol(value):
     return value
 
 
+def quote_units(currency):
+    return {"GBp": ("GBP", .01), "GBX": ("GBP", .01),
+            "ZAc": ("ZAR", .01), "ILA": ("ILS", .01)}.get(currency, (currency, 1))
+
+
 def read_json(path, default):
     if not path.exists():
         return default
@@ -94,9 +99,7 @@ def parse_chart(document, ticker, period):
         raise ValueError(f"No chart data for {ticker}.")
     result = results[0]
     meta = result.get("meta") or {}
-    raw_currency = meta.get("currency", "")
-    currency, scale = {"GBp": ("GBP", .01), "GBX": ("GBP", .01),
-                       "ZAc": ("ZAR", .01), "ILA": ("ILS", .01)}.get(raw_currency, (raw_currency, 1))
+    currency, scale = quote_units(meta.get("currency", ""))
 
     def price(value):
         parsed = number(value)
@@ -183,7 +186,7 @@ class Repository:
         cached = self.cache.get(key, {})
         now = time.time()
         ttl = 60 if period == "1D" else 3600
-        if cached.get("schema") == 2 and not force and now - cached.get("fetched", 0) < ttl:
+        if cached.get("schema") == 2 and not cached.get("stale", False) and not force and now - cached.get("fetched", 0) < ttl:
             return cached
         if not force and now < cached.get("retryAfter", 0):
             return cached

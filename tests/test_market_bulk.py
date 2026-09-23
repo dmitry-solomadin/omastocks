@@ -62,6 +62,11 @@ class BulkData(unittest.TestCase):
             result = market_bulk.parse_quotes({"quoteResponse": {"result": [{"symbol": "^SPX", "marketState": state}]}}, ["^SPX"])
             self.assertEqual(result["rows"]["^SPX"]["marketState"], expected)
 
+    def test_empty_or_unrelated_quote_response_cannot_replace_saved_prices(self):
+        for rows in ([], [{"symbol": "OTHER", "regularMarketPrice": 1}]):
+            with self.subTest(rows=rows), self.assertRaises(ValueError):
+                market_bulk.parse_quotes({"quoteResponse": {"result": rows}}, ["AAA"])
+
     def test_calendar_paginates_and_keeps_eps_zeros_negative_values_and_timing(self):
         request = Mock(side_effect=[page([["AAA", "2026-08-01T20:00:00Z", "TAS", -.2, -.1]], 3),
                                    page([["AAA", "2026-11-01T20:00:00Z", "AMC", 0, None],
@@ -123,6 +128,20 @@ class BulkCaching(unittest.TestCase):
             research.main(["quotes", "AAA,BBB"])
             self.assertEqual(load.call_count, 2)
             research.main(["quotes", "AAA,BBB", "--force"])
+            self.assertEqual(load.call_count, 3)
+
+    def test_failed_refresh_retries_after_cooldown_before_original_ttl(self):
+        with patch.object(research.time, "time", return_value=1000) as clock, \
+                patch.object(research, "load", return_value={"quotesSchema": 3, "rows": {"AAA": {"price": 1}}}) as load:
+            research.main(["quotes", "AAA"])
+            load.side_effect = ValueError("offline")
+            research.main(["quotes", "AAA", "--force"])
+            clock.return_value = 1119
+            self.assertTrue(research.main(["quotes", "AAA"])["stale"])
+            self.assertEqual(load.call_count, 2)
+            load.side_effect = None
+            clock.return_value = 1121
+            self.assertFalse(research.main(["quotes", "AAA"])["stale"])
             self.assertEqual(load.call_count, 3)
 
     def test_history_baselines_refresh_on_exchange_date_rollover_not_five_minutes(self):

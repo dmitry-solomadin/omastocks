@@ -4,6 +4,8 @@ import Quickshell
 import Quickshell.Io
 import qs.Commons
 import "WatchlistOrder.js" as Order
+import "MarketAssets.js" as Assets
+import "MarketClock.js" as Clock
 
 QtObject {
     id: root
@@ -12,8 +14,9 @@ QtObject {
     property string activeWatchlist: "default"
     property var favoriteEntries: []
     property string view: "stock"
-    readonly property string watchlistName: (watchlists.find(row => row.id === activeWatchlist) || {}).name || "Watchlist"
-    readonly property string sortMode: (watchlists.find(row => row.id === activeWatchlist) || {}).sort || "custom"
+    readonly property var activeList: watchlists.find(row => row.id === activeWatchlist) || ({})
+    readonly property string watchlistName: activeList.name || "Watchlist"
+    readonly property string sortMode: activeList.sort || "custom"
     readonly property var watchlistQuotes: watchlistQuotesRequest.data.rows || ({})
     readonly property var sortedEntries: Order.sorted(entries, watchlistQuotes, sortMode)
     readonly property string watchlistDisplay: ["percent", "change", "marketCap"].indexOf(barSettings.watchlistDisplay) >= 0 ? barSettings.watchlistDisplay : "percent"
@@ -31,14 +34,52 @@ QtObject {
         if (mode !== sortMode) request(["watchlist", "sort", activeWatchlist, mode])
     }
     property DataRequest watchlistQuotesRequest: DataRequest {
-        arguments: root.windowOpen
-            ? ["quotes", Array.from(new Set(root.entries.map(row => row.symbol).concat(["^SPX", "^IXIC", "^RUT", "^VIX"]))).sort().join(",")] : []
+        arguments: root.windowOpen && root.entries.length
+            ? ["quotes", Array.from(new Set(root.entries.map(row => row.symbol))).sort().join(",")] : []
+        refreshInterval: 300000
     }
-    property Timer watchlistQuotesTimer: Timer {
-        interval: 300000
-        running: root.watchlistQuotesRequest.arguments.length > 0
-        repeat: true
-        onTriggered: root.watchlistQuotesRequest.reload(false)
+    // Benchmarks, the US session and cross-asset quotes. Its arguments never
+    // change once started, so switching watchlists cannot reset it, and a
+    // reload keeps showing the previous result until the new one arrives.
+    property bool marketStarted: false
+    property DataRequest marketQuotesRequest: DataRequest {
+        arguments: root.marketStarted ? ["quotes", Assets.symbols().join(",")] : []
+        refreshInterval: root.windowOpen ? 300000 : 0
+    }
+    readonly property var marketQuotes: marketQuotesRequest.data.rows || ({})
+    onWindowOpenChanged: {
+        if (windowOpen) {
+            if (marketStarted) marketQuotesRequest.reload(false)
+            marketStarted = true
+        } else {
+            marketRetries = 0
+            marketRetryTimer.stop()
+        }
+    }
+    // Force a reload 5 s after each scheduled session change. If the provider
+    // still reports the old session, retry every 15 s up to four times; the cap
+    // also covers holidays, when the schedule and the provider disagree.
+    property int marketRetries: 0
+    property Timer marketBoundaryTimer: Timer {
+        running: root.windowOpen && root.marketStarted
+        onRunningChanged: if (running) interval = Clock.nextBoundary(Date.now()) + 5000
+        onTriggered: {
+            root.marketRetries = 4
+            root.marketQuotesRequest.reload(true)
+            interval = Clock.nextBoundary(Date.now()) + 5000
+            restart()
+        }
+    }
+    property Timer marketRetryTimer: Timer { interval: 15000; onTriggered: if (root.windowOpen) root.marketQuotesRequest.reload(true) }
+    property Connections marketBoundaryCheck: Connections {
+        target: root.marketQuotesRequest
+        function onDataChanged() {
+            if (!root.windowOpen || root.marketRetries <= 0) return
+            root.marketRetries--
+            const reported = Clock.normalize((root.marketQuotes["^SPX"] || {}).marketState)
+            if (reported === Clock.scheduled(Date.now())) root.marketRetries = 0
+            else if (root.marketRetries > 0) root.marketRetryTimer.restart()
+        }
     }
     property var results: []
     property string searchQuery: ""
@@ -63,14 +104,16 @@ QtObject {
         return previewQuotes[selected] || {symbol: selected}
     }
     readonly property bool tracked: entries.some(entry => entry.symbol === selected)
-    function isIndex(ticker) {
+    function isNonCompany(ticker) {
         const entry = entries.find(row => row.symbol === ticker) || previewQuotes[ticker] || {}
         const detail = chart.symbol === ticker ? chart : {}
         const result = results.find(row => row.symbol === ticker) || {}
         const type = detail.instrumentType || entry.instrumentType || result.type || ""
-        return type ? type.toUpperCase() === "INDEX" : ticker.startsWith("^")
+        // Indexes, futures, crypto and currencies have no company research.
+        return type ? ["INDEX", "FUTURE", "CRYPTOCURRENCY", "CURRENCY"].indexOf(type.toUpperCase()) >= 0
+            : /^\^|=[FX]$|-USD$/.test(ticker)
     }
-    readonly property bool selectedIsIndex: isIndex(selected)
+    readonly property bool selectedIsNonCompany: isNonCompany(selected)
     readonly property bool starred: entries.some(entry => entry.symbol === selected && entry.favorite)
     readonly property var visibleChart: chart.symbol === selected && chart.range === period ? chart : ({})
     readonly property bool chartBusy: busy && (!visibleChart.points || !visibleChart.points.length)

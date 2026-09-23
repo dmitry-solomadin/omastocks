@@ -19,4 +19,6 @@ jobs:
       - run: node tests/test_chart.cjs
       - run: node tests/test_treemap.cjs
       - run: node tests/test_watchlist_order.cjs
+      - run: node tests/test_pixel_art.cjs
+      - run: node tests/test_market_assets.cjs
       - run: bash -n install install-launcher uninstall

@@ -1,25 +1,14 @@
 """One bulk screener request for a saved index membership, never per-stock history."""
 import json
 from pathlib import Path
-import urllib.request
 from stocks import number
+from tradingview import request
 
 COLUMNS = ["name", "description", "close", "change", "market_cap_basic", "Perf.YTD", "currency"]
-ENDPOINT = "https://scanner.tradingview.com/america/scan"
 
 
 def presets():
     return json.loads((Path(__file__).resolve().parents[1] / "data/index-presets.json").read_text())["lists"]
-
-
-def request(payload):
-    req = urllib.request.Request(ENDPOINT, data=json.dumps(payload).encode(),
-                                 headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=10) as response:
-        raw = response.read(4 * 1024 * 1024 + 1)
-    if len(raw) > 4 * 1024 * 1024:
-        raise ValueError("TradingView returned an oversized index response.")
-    return json.loads(raw)
 
 
 def parse(document, group):

@@ -2,7 +2,7 @@
 from datetime import datetime
 import re
 from zoneinfo import ZoneInfo
-from index_market import request
+from tradingview import listings, request
 from stocks import number
 
 COLUMNS = ["total_revenue_fq", "revenue_forecast_fq", "revenue_forecast_next_fq",
@@ -42,9 +42,9 @@ def attach(report, document, identifiers):
 
 
 def enrich(report, fetch=request):
-    identifiers = {exchange + ":" + ticker.replace("-", "."): ticker
+    identifiers = {identifier: ticker
                    for ticker in report["rows"] if re.fullmatch(r"[A-Z][A-Z0-9-]*", ticker)
-                   for exchange in ("NASDAQ", "NYSE", "AMEX")}
+                   for identifier in listings(ticker)}
     report["calendarSchema"] = 2
     if not identifiers:
         return report

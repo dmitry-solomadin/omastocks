@@ -69,6 +69,14 @@ class FinancialsTests(unittest.TestCase):
         self.assertEqual(financials.parse_valuation({"data": [row, dict(row, s="NYSE:AAPL")]}, "AAPL")["metrics"], [])
         self.assertEqual(financials.parse_valuation({"data": [row]}, "MSFT")["metrics"], [])
 
+    def test_share_class_symbol_is_normalized_in_request_and_response(self):
+        document = {"data": [{"s": "NYSE:BRK.B", "d": [1000, 10, 2, 3, 4, "Finance", "Insurance", "USD", "stock"]}]}
+        with patch.object(financials, "request", return_value=document) as fetch:
+            result = financials.valuation("BRK-B")
+        self.assertIn("NYSE:BRK.B", fetch.call_args.args[0]["symbols"]["tickers"])
+        self.assertEqual(result["symbol"], "BRK-B")
+        self.assertEqual(result["metrics"][0]["value"], 1000)
+
     def test_research_financials_are_separate_from_valuation(self):
         import research
         with patch.object(research, "statements", return_value={"statements": []}) as statements, \

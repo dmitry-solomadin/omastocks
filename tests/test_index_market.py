@@ -60,9 +60,9 @@ class IndexMarket(unittest.TestCase):
         self.assertIsNone(result["rows"][0]["percent"])
         self.assertIsNone(result["rows"][0]["ytd"])
 
-    def test_local_catalog_includes_all_three_unique_complete_snapshots(self):
+    def test_local_catalog_includes_all_four_unique_complete_snapshots(self):
         groups = index_market.presets()
-        self.assertEqual([g["id"] for g in groups], ["sp500", "nasdaq100", "russell2000"])
+        self.assertEqual([g["id"] for g in groups], ["sp500", "nasdaq100", "dowjones", "russell2000"])
         for saved in groups:
             self.assertEqual(saved["count"], len(saved["members"]))
             self.assertEqual(saved["count"], len({row["symbol"] for row in saved["members"]}))
@@ -74,7 +74,7 @@ class IndexMarket(unittest.TestCase):
             with patch.object(research, "load", return_value={"sectors": []}):
                 research.main(["sectors", "ALL"])
             catalog = research.main(["sectors", "ALL"])["sectors"]
-            self.assertEqual(len(catalog), 13)
+            self.assertEqual(len(catalog), 14)
             self.assertNotIn("russell2000", [row["value"] for row in catalog])
             saved = index_market.parse({"totalCount": 1, "data": [quote()]}, group())
             with patch.object(research, "load", return_value=saved) as load:

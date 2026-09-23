@@ -189,6 +189,13 @@ class ResearchTests(unittest.TestCase):
         self.assertIn("Revenue", result["notice"])
         self.assertEqual(result["earningsSchema"], 2)
 
+    def test_revenue_uses_provider_share_class_symbol(self):
+        document = {"data": [{"s": "NYSE:BRK.B", "d": [100, 90, 1785443580, "USD", "stock"]}]}
+        with patch.object(research, "scan", return_value=document) as fetch:
+            result = research.revenue("BRK-B")
+        self.assertIn("NYSE:BRK.B", fetch.call_args.args[0]["symbols"]["tickers"])
+        self.assertEqual(result["revenue"], 100)
+
     def test_failed_news_refresh_retains_cache_and_backs_off(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

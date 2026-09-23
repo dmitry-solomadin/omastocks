@@ -1,13 +1,12 @@
 """Financial statements and valuation snapshots. Python standard library only."""
 
-import json
 import re
 import time
 import urllib.parse
-import urllib.request
 from datetime import date
 
 from stocks import fetch, number
+from tradingview import listings, request
 
 
 STATEMENTS = {
@@ -120,7 +119,7 @@ VALUATION_FIELDS = ["market_cap_basic", "price_earnings_ttm", "price_sales_curre
 
 def parse_valuation(document, ticker):
     matches = [row for row in document.get("data") or []
-               if row.get("s") in {f"{exchange}:{ticker}" for exchange in ("NASDAQ", "NYSE", "AMEX")}
+               if row.get("s") in listings(ticker)
                and len(row.get("d") or []) == len(VALUATION_FIELDS)]
     if len(matches) != 1:
         return {"symbol": ticker, "metrics": [], "source": "TradingView"}
@@ -140,12 +139,6 @@ def parse_valuation(document, ticker):
 def valuation(ticker):
     if not re.fullmatch(r"[A-Z][A-Z0-9.-]*", ticker):
         return {"symbol": ticker, "metrics": [], "source": "TradingView"}
-    payload = {"symbols": {"tickers": [f"{exchange}:{ticker}" for exchange in ("NASDAQ", "NYSE", "AMEX")], "query": {"types": []}},
+    payload = {"symbols": {"tickers": listings(ticker), "query": {"types": []}},
                "columns": VALUATION_FIELDS}
-    request = urllib.request.Request("https://scanner.tradingview.com/america/scan", data=json.dumps(payload).encode(),
-                                     headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(request, timeout=10) as response:
-        raw = response.read(1024 * 1024 + 1)
-    if len(raw) > 1024 * 1024:
-        raise ValueError("The valuation response was too large.")
-    return parse_valuation(json.loads(raw), ticker)
+    return parse_valuation(request(payload), ticker)

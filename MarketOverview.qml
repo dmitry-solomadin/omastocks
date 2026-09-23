@@ -20,11 +20,21 @@ ColumnLayout {
         return rows.sort((a,b) => (b.marketCap || 0) - (a.marketCap || 0) || a.symbol.localeCompare(b.symbol)).slice(0, Number(sizeLimit))
     }
     spacing: Style.space(12)
-    function refresh() { request.reload(true); StockStore.watchlistQuotesRequest.reload(true); news.reload(true) }
+    function refresh() { catalog.reload(true); request.reload(true); news.reload(true); sentiment.reload(true); economy.reload(true) }
     DataRequest { id: catalog; arguments: ["sectors", "ALL"] }
-    DataRequest { id: request; arguments: root.active && root.group.kind ? [root.group.kind === "index" ? "market-index" : "sector", root.sector] : [] }
-    DataRequest { id: news; arguments: root.active ? ["market-news", "ALL"] : [] }
-    MarketIndexes { Layout.fillWidth: true }
+    DataRequest { id: request; arguments: root.active && root.group.kind ? [root.group.kind === "index" ? "market-index" : "sector", root.sector] : []; refreshInterval: 900000 }
+    DataRequest { id: news; arguments: root.active ? ["market-news", "ALL"] : []; refreshInterval: 600000 }
+    DataRequest { id: sentiment; arguments: root.active ? ["sentiment", "ALL"] : []; refreshInterval: 1800000 }
+    DataRequest { id: economy; arguments: root.active ? ["economic-calendar", "ALL"] : []; refreshInterval: 900000 }
+    CrossAssets { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20) }
+    MarketSentiment { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20); report: sentiment.data }
+    // The heatmap section: today's sector leaders and laggards, then the
+    // selector and map.
+    Label { objectName: "marketMapHeading"; text: "MARKET MAP"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
+    SectorLeaders {
+        Layout.fillWidth: true
+        onPicked: sector => { root.sector = sector; root.period = "1D" }
+    }
     RowLayout {
         Layout.fillWidth: true
         spacing: Style.space(6)
@@ -69,7 +79,8 @@ ColumnLayout {
         }
     }
     Flow {
-        visible: root.group.kind === "index"
+        // Size limits only matter for indexes larger than the smallest limit.
+        visible: root.group.kind === "index" && (root.report.rows || []).length > 50
         Layout.fillWidth: true
         spacing: Style.space(4)
         Repeater {
@@ -84,9 +95,8 @@ ColumnLayout {
         }
     }
     SectorHeatmap { Layout.fillWidth: true; rows: root.displayedRows; period: root.period }
+    Label { text: "ECONOMIC CALENDAR"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.topMargin: Style.space(20) }
+    EconomicCalendar { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20); report: economy.data; limit: 8 }
     Label { text: "MARKET NEWS"; color: Color.muted; font.pixelSize: Style.font.bodySmall }
     CompanyNews { Layout.fillWidth: true; report: news.data; busy: news.busy; subject: "market" }
-    MarketSkyline { Layout.alignment: Qt.AlignHCenter; Layout.topMargin: Style.space(12); Layout.bottomMargin: Style.space(8) }
-    Timer { interval: 900000; running: root.active; repeat: true; onTriggered: request.reload(false) }
-    Timer { interval: 600000; running: root.active; repeat: true; onTriggered: news.reload(false) }
 }

@@ -20,7 +20,7 @@ ColumnLayout {
         return minutes < 1 ? "Just now" : minutes < 60 ? minutes + "m ago" : minutes < 1440 ? Math.floor(minutes / 60) + "h ago"
             : Qt.formatDate(new Date(timestamp * 1000), "d MMM yyyy")
     }
-    Timer { interval: 60000; running: StockStore.windowOpen && MarketStore.socialOpen; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() / 1000 }
+    Timer { interval: 60000; running: root.visible && MarketStore.stockResearchActive && MarketStore.socialOpen; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() / 1000 }
     ColumnLayout {
         objectName: "socialContent"
         visible: MarketStore.socialOpen

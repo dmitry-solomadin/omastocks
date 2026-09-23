@@ -1,5 +1,6 @@
 """Watchlist price returns, independent of chart selection and daily quotes."""
 
+from calendar import monthrange
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 from stocks import fetch, parse_chart
@@ -14,11 +15,7 @@ def performance(document, ticker):
     def month_before(day):
         month = day.month - 1 or 12
         year = day.year - (day.month == 1)
-        for offset in range(4):
-            try:
-                return date(year, month, day.day - offset)
-            except ValueError:
-                pass
+        return date(year, month, min(day.day, monthrange(year, month)[1]))
     targets = {"1W": today - timedelta(days=7), "1M": month_before(today),
                "YTD": date(today.year, 1, 1) - timedelta(days=1),
                "1Y": today.replace(year=today.year - 1, day=28) if today.month == 2 and today.day == 29

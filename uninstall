@@ -6,6 +6,7 @@ id="io.github.dmitry-solomadin.omastocks"
 remove_plugin() {
   omarchy plugin remove "$id" "$@"
   rm -f -- "${XDG_DATA_HOME:-$HOME/.local/share}/applications/$id.desktop"
+  rm -f -- "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps/$id.svg"
   echo "Omastocks uninstalled. Your watchlist is preserved in the user state directory."
 }
 remove_plugin "$@"

@@ -1,7 +1,7 @@
 """Bulk sector snapshots and quotes. Never expand sectors into chart requests."""
 import json
 from pathlib import Path
-from stocks import number, symbol
+from stocks import number, quote_units, symbol
 from yahoo_http import authenticated
 
 
@@ -56,8 +56,7 @@ def parse_quotes(document, tickers):
             continue
         if ticker in rows:
             raise ValueError("Yahoo returned duplicate quotes.")
-        currency = quote.get("currency", "")
-        currency, scale = {"GBp": ("GBP", .01), "GBX": ("GBP", .01), "ZAc": ("ZAR", .01), "ILA": ("ILS", .01)}.get(currency, (currency, 1))
+        currency, scale = quote_units(quote.get("currency", ""))
         price = number(quote.get("regularMarketPrice"))
         change = number(quote.get("regularMarketChange"))
         rows[ticker] = {"symbol": ticker, "price": price * scale if price is not None else None,
@@ -65,6 +64,8 @@ def parse_quotes(document, tickers):
                         "percent": number(quote.get("regularMarketChangePercent")),
                         "currency": currency, "updated": number(quote.get("regularMarketTime")),
                         "marketState": quote.get("marketState") if quote.get("marketState") in ("REGULAR", "PRE", "PREPRE", "POST", "POSTPOST", "CLOSED") else ""}
+    if not rows:
+        raise ValueError("Yahoo returned no quotes for the requested symbols.")
     for ticker in tickers:
         rows.setdefault(ticker, {"symbol": ticker, "price": None, "percent": None, "error": "Bulk quote unavailable"})
     return {"rows": rows, "source": "Yahoo Finance", "quotesSchema": 3}

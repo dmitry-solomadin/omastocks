@@ -4,11 +4,12 @@
 
 `index-presets.json` contains one-time TradingView index memberships downloaded
 on 2026-09-22: **S&P 500 (503 listings)**, **Nasdaq 100 (101 listings)**, and
-**Russell 2000 (1,940 listings)**. Counts are provider listings, including separate
+**Russell 2000 (1,940 listings)**, plus **Dow Jones (30 listings)** added on
+2026-09-23. Counts are provider listings, including separate
 share classes; the Russell snapshot preserves the provider's OTC listings too.
 
 The source was the public TradingView scanner's index constituent symbol sets
-`SYML:SP;SPX`, `SYML:NASDAQ;NDX`, and `SYML:TVC;RUT`. Each response was retrieved
+`SYML:SP;SPX`, `SYML:NASDAQ;NDX`, `SYML:TVC;RUT`, and `SYML:DJ;DJI`. Each response was retrieved
 with a range of 0–3,000, and its reported `totalCount` matched all returned rows.
 Source component-page URLs, retrieval dates, and response hashes are retained.
 Company names and exact exchange-qualified `providerSymbol` values are stored;

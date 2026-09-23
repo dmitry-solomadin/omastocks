@@ -48,8 +48,6 @@ def parse(raw, now=None):
         identity = re.sub(r"\W+", " ", title.casefold()).strip()
         if identity in seen or not relevant(title):
             continue
-        seen.add(url)
-        seen.add(identity)
         try:
             published = int(parsedate_to_datetime(item.findtext("pubDate") or "").timestamp())
         except (ValueError, TypeError, OverflowError):
@@ -60,6 +58,8 @@ def parse(raw, now=None):
                 published = None
         if published is None or published < now - 3 * 86400 or published > now + 3600:
             continue
+        seen.add(url)
+        seen.add(identity)
         articles.append({"title": title, "url": url, "source": source or "Publisher",
                          "published": published, "image": ""})
     if not channel.findall("item"):

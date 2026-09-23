@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Omastocks: the logo's three candlesticks (CandleMark.qml geometry), the middle one hollow. -->
+  <rect width="128" height="128" rx="28" fill="#26211f"/>
+  <g stroke="#f0875f" stroke-width="4.8" stroke-linecap="round" fill="#f0875f">
+    <line x1="42.2" y1="60.4" x2="42.2" y2="100"/>
+    <rect x="34.3" y="67.6" width="15.8" height="28.8" rx="4"/>
+    <line x1="66.6" y1="42.4" x2="66.6" y2="49.6"/>
+    <line x1="66.6" y1="82" x2="66.6" y2="89.2"/>
+    <rect x="58.7" y="49.6" width="15.8" height="32.4" rx="4" fill="#26211f"/>
+    <line x1="91.1" y1="28" x2="91.1" y2="78.4"/>
+    <rect x="83.1" y="35.2" width="15.8" height="36" rx="4"/>
+  </g>
+</svg>

@@ -169,7 +169,7 @@ Item {
         function onGainChanged() { canvas.requestPaint() }
         function onLossChanged() { canvas.requestPaint() }
     }
-    Timer { interval: 30000; running: root.period === "1D" && (!root.miniature || StockStore.windowOpen); repeat: true; onTriggered: root.now = Date.now() / 1000 }
+    Timer { interval: 30000; running: root.period === "1D" && root.visible && StockStore.windowOpen; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() / 1000 }
     Canvas {
         id: canvas
         anchors.fill: parent
