@@ -12,6 +12,14 @@ ColumnLayout {
     property string period: "1D"
     property string sizeLimit: "50"
     readonly property bool active: StockStore.windowOpen && visible
+    // Requests keep their arguments once started, so hiding the page (another
+    // tab, a closed window) never clears loaded data; becoming visible again
+    // reloads in the background, usually straight from the cache. Polling runs
+    // only while the page is active.
+    property bool started: false
+    onActiveChanged: if (active) { if (started) reloadAll(false); started = true }
+    Component.onCompleted: if (active) started = true
+    function reloadAll(force) { request.reload(force); news.reload(force); sentiment.reload(force); economy.reload(force) }
     readonly property var report: request.data
     readonly property var group: (catalog.data.sectors || []).find(row => row.value === root.sector) || ({})
     readonly property var displayedRows: {
@@ -20,12 +28,12 @@ ColumnLayout {
         return rows.sort((a,b) => (b.marketCap || 0) - (a.marketCap || 0) || a.symbol.localeCompare(b.symbol)).slice(0, Number(sizeLimit))
     }
     spacing: Style.space(12)
-    function refresh() { catalog.reload(true); request.reload(true); news.reload(true); sentiment.reload(true); economy.reload(true) }
+    function refresh() { catalog.reload(true); reloadAll(true) }
     DataRequest { id: catalog; arguments: ["sectors", "ALL"] }
-    DataRequest { id: request; arguments: root.active && root.group.kind ? [root.group.kind === "index" ? "market-index" : "sector", root.sector] : []; refreshInterval: 900000 }
-    DataRequest { id: news; arguments: root.active ? ["market-news", "ALL"] : []; refreshInterval: 600000 }
-    DataRequest { id: sentiment; arguments: root.active ? ["sentiment", "ALL"] : []; refreshInterval: 1800000 }
-    DataRequest { id: economy; arguments: root.active ? ["economic-calendar", "ALL"] : []; refreshInterval: 900000 }
+    DataRequest { id: request; arguments: root.started && root.group.kind ? [root.group.kind === "index" ? "market-index" : "sector", root.sector] : []; refreshInterval: root.active ? 900000 : 0 }
+    DataRequest { id: news; arguments: root.started ? ["market-news", "ALL"] : []; refreshInterval: root.active ? 600000 : 0 }
+    DataRequest { id: sentiment; arguments: root.started ? ["sentiment", "ALL"] : []; refreshInterval: root.active ? 1800000 : 0 }
+    DataRequest { id: economy; arguments: root.started ? ["economic-calendar", "ALL"] : []; refreshInterval: root.active ? 900000 : 0 }
     CrossAssets { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20) }
     MarketSentiment { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20); report: sentiment.data }
     // The heatmap section: today's sector leaders and laggards, then the
@@ -94,7 +102,7 @@ ColumnLayout {
             }
         }
     }
-    SectorHeatmap { Layout.fillWidth: true; rows: root.displayedRows; period: root.period }
+    SectorHeatmap { Layout.fillWidth: true; rows: root.displayedRows; period: root.period; busy: request.busy || catalog.busy || !root.started; error: root.report.error || "" }
     Label { text: "ECONOMIC CALENDAR"; color: Color.muted; font.pixelSize: Style.font.bodySmall; Layout.topMargin: Style.space(20) }
     EconomicCalendar { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20); report: economy.data; limit: 8 }
     Label { text: "MARKET NEWS"; color: Color.muted; font.pixelSize: Style.font.bodySmall }

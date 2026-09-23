@@ -28,6 +28,11 @@ FloatingWindow {
     readonly property var rangeChange: points.length > 1 && points[0][1] !== 0
         ? (points[points.length - 1][1] - points[0][1]) / points[0][1] * 100 : null
     readonly property color chartColor: StockStore.direction(StockStore.period === "1D" && !MarketStore.extendedChart ? quote.percent : rangeChange)
+    // While a company's valuation loads, Market details keeps placeholder slots
+    // in their final order, so the grid does not grow or reshuffle on arrival.
+    readonly property var valuationLabels: ["Market cap", "P/E (TTM)", "Price / sales", "Price / book", "EV / EBITDA"]
+    readonly property bool valuationPending: MarketStore.companyResearchActive
+        && (MarketStore.valuation.symbol !== StockStore.selected || (MarketStore.valuationRequest.busy && !(MarketStore.valuation.metrics || []).length))
     readonly property string warning: StockStore.error || series.error || quote.error ||
         (quote.stale && quote.price !== undefined ? "Showing saved prices. Refresh to check for updates." : "")
     function refresh() {
@@ -517,12 +522,12 @@ FloatingWindow {
                                     {name: "Open", value: StockStore.price(window.quote.open)},
                                     {name: "Previous close", value: StockStore.price(window.quote.previous)},
                                     {name: "52-week range", range: true}
-                                ].concat((MarketStore.valuation.metrics || []).map(metric => ({name: metric.label,
-                                    value: StockStore.financial(metric.value, metric.kind, metric.currency)})))
+                                ].concat((window.valuationPending ? window.valuationLabels.map(label => ({label: label})) : MarketStore.valuation.metrics || [])
+                                    .map(metric => ({name: metric.label, value: StockStore.financial(metric.value, metric.kind, metric.currency)})))
                                 .concat([{name: "Volume", value: StockStore.compact(window.quote.volume)},
                                     {name: "Exchange", value: window.quote.exchange || "—"}])
-                                .concat(MarketStore.valuation.sector ? [{name: "Sector", value: MarketStore.valuation.sector},
-                                    {name: "Industry", value: MarketStore.valuation.industry}] : [])
+                                .concat(MarketStore.valuation.sector || window.valuationPending ? [{name: "Sector", value: MarketStore.valuation.sector || "—"},
+                                    {name: "Industry", value: MarketStore.valuation.industry || "—"}] : [])
                                 ColumnLayout {
                                     required property var modelData
                                     objectName: "marketDetail_" + modelData.name

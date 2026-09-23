@@ -52,6 +52,7 @@ ColumnLayout {
         ColumnLayout {
             id: day
             required property var modelData
+            NumberAnimation on opacity { from: 0; to: 1; duration: 250 }
             Layout.fillWidth: true
             Layout.topMargin: Style.space(6)
             spacing: Style.space(2)

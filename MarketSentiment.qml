@@ -14,7 +14,13 @@ ColumnLayout {
     property var report: ({})
     readonly property bool known: Number.isFinite(report.score)
     readonly property var history: [["Prev close", report.previousClose], ["1 week ago", report.previousWeek],
-        ["1 month ago", report.previousMonth], ["1 year ago", report.previousYear]].filter(pair => Number.isFinite(pair[1]))
+        ["1 month ago", report.previousMonth], ["1 year ago", report.previousYear]]
+    // The needle and score sweep up to each new reading rather than jumping.
+    property real shown: 0
+    Behavior on shown { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
+    onKnownChanged: if (known) shown = report.score
+    onReportChanged: if (known) shown = report.score
+    Component.onCompleted: if (known) shown = report.score
     readonly property var curve: Assets.volatility.map(point => Object.assign({}, point, {value: (StockStore.marketQuotes[point.symbol] || {}).price}))
     readonly property bool curveKnown: curve.every(point => Number.isFinite(point.value))
     readonly property bool inverted: curveKnown && curve[1].value > curve[2].value
@@ -38,14 +44,18 @@ ColumnLayout {
         rowSpacing: Style.space(20)
 
         // Gauge, score and rating.
+        // Fixed column proportions, so nothing shifts sideways as data arrives.
         RowLayout {
             Layout.alignment: Qt.AlignTop
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
+            Layout.minimumWidth: implicitWidth
             spacing: Style.space(18)
             Canvas {
                 id: gauge
                 Layout.preferredWidth: Style.space(150)
                 Layout.preferredHeight: Style.space(84)
-                readonly property real score: root.known ? root.report.score : -1
+                readonly property real score: root.known ? root.shown : -1
                 onScoreChanged: requestPaint()
                 onWidthChanged: requestPaint()
                 onPaint: {
@@ -55,7 +65,7 @@ ColumnLayout {
                     ctx.lineWidth = line
                     ;[[0, 25], [25, 45], [45, 55], [55, 75], [75, 100]].forEach(([from, to]) => {
                         ctx.strokeStyle = root.zoneColor((from + to) / 2)
-                        ctx.globalAlpha = score < 0 || (score >= from && (score < to || to === 100)) ? .95 : .28
+                        ctx.globalAlpha = score >= from && (score < to || to === 100) ? .95 : .28
                         ctx.beginPath()
                         ctx.arc(cx, cy, r, Math.PI * (1 + from / 100) + .03, Math.PI * (1 + to / 100) - .03)
                         ctx.stroke()
@@ -74,7 +84,7 @@ ColumnLayout {
             ColumnLayout {
                 Layout.alignment: Qt.AlignVCenter
                 spacing: Style.space(2)
-                Label { text: root.known ? Math.round(root.report.score) : "—"; font.pixelSize: Style.space(34); font.bold: true }
+                Label { text: root.known ? Math.round(root.shown) : "—"; font.pixelSize: Style.space(34); font.bold: true }
                 Label {
                     text: root.known ? root.zoneName(root.report.score) : root.report.error ? "Unavailable" : ""
                     color: root.known ? root.zoneColor(root.report.score) : Color.muted
@@ -101,6 +111,8 @@ ColumnLayout {
         // Recent history, each reading coloured by its zone.
         GridLayout {
             Layout.alignment: Qt.AlignTop
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
             Layout.topMargin: Style.space(6)
             columns: 2
             columnSpacing: Style.space(24)
@@ -111,7 +123,14 @@ ColumnLayout {
                     required property var modelData
                     spacing: Style.space(8)
                     Caption { text: modelData[0]; Layout.preferredWidth: Style.space(92) }
-                    Label { text: Math.round(modelData[1]); color: root.zoneColor(modelData[1]); font.bold: true; font.pixelSize: Style.font.bodySmall }
+                    Label {
+                        readonly property bool known: Number.isFinite(modelData[1])
+                        text: known ? Math.round(modelData[1]) : "—"
+                        color: known ? root.zoneColor(modelData[1]) : Color.muted
+                        font.bold: true
+                        font.pixelSize: Style.font.bodySmall
+                        Behavior on color { ColorAnimation { duration: 300 } }
+                    }
                 }
             }
         }
@@ -119,6 +138,7 @@ ColumnLayout {
         // VIX term structure.
         ColumnLayout {
             Layout.fillWidth: true
+            Layout.preferredWidth: 1.2
             Layout.alignment: Qt.AlignTop
             Layout.topMargin: Style.space(4)
             spacing: Style.space(6)

@@ -2,12 +2,17 @@ import QtQuick
 import qs.Commons
 import qs.Ui as Ui
 import "."
+import "MarketClock.js" as Clock
 
 Label {
     id: root
     objectName: "extendedQuote"
     readonly property var quote: MarketStore.extended.quote || null
-    visible: !!quote
+    // Outside regular hours the line usually appears once data loads; keep its
+    // height while loading so the page below does not jump.
+    readonly property bool pending: MarketStore.stockResearchActive && MarketStore.extended.symbol !== StockStore.selected
+        && Clock.normalize((StockStore.marketQuotes["^SPX"] || {}).marketState) !== "REGULAR"
+    visible: !!quote || pending
     text: quote ? quote.label + "  " + StockStore.price(quote.price)
         + (quote.change !== null ? "  " + (quote.change >= 0 ? "+" : "") + StockStore.price(quote.change)
             + " (" + StockStore.percent(quote.percent) + ")" : "")

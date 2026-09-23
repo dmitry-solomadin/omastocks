@@ -12,9 +12,9 @@ Flow {
     objectName: "sectorLeaders"
     readonly property var ranked: Assets.rankedSectors(StockStore.marketQuotes)
     readonly property var leaders: ranked.slice(0, 2)
-    readonly property var laggards: ranked.length > 4 ? ranked.slice(-2).reverse() : []
+    readonly property bool ready: ranked.length > 4
+    readonly property var laggards: ready ? ranked.slice(-2).reverse() : []
     signal picked(string sector)
-    visible: ranked.length > 4
     spacing: Style.space(6)
 
     component Heading: Label {
@@ -37,11 +37,16 @@ Flow {
         ink: StockStore.direction(modelData.percent)
         hint: "Show " + modelData.name + " in the heatmap · " + modelData.symbol
         onClicked: root.picked(modelData.sector)
+        NumberAnimation on opacity { from: 0; to: 1; duration: 250 }
     }
+    // Keeps the line's height while sector quotes load, so the page below never jumps.
+    component Pending: Label { visible: !root.ready; text: "—"; color: Color.muted; height: Style.space(28); verticalAlignment: Text.AlignVCenter }
 
     Heading { text: "Leading" }
-    Repeater { model: root.leaders; Sector {} }
+    Pending {}
+    Repeater { model: root.ready ? root.leaders : []; Sector {} }
     Item { width: Style.space(12); height: 1 }
     Heading { text: "Lagging" }
+    Pending {}
     Repeater { model: root.laggards; Sector {} }
 }
