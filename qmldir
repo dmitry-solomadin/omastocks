@@ -40,6 +40,7 @@ MarketSentiment 1.0 MarketSentiment.qml
 SectorLeaders 1.0 SectorLeaders.qml
 EconomicCalendar 1.0 EconomicCalendar.qml
 MarketLoading 1.0 MarketLoading.qml
+StockBrief 1.0 StockBrief.qml
 PixelArt 1.0 PixelArt.qml
 CandleMark 1.0 CandleMark.qml
 StocksLogo 1.0 StocksLogo.qml

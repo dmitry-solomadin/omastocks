@@ -296,10 +296,36 @@ Original sprites live in `PixelSprites.js`, rendered at integer pixel sizes by
 (with `StocksIntro.qml`, `MarketSession.qml`, `MarketStatus.qml`, `MarketSky.qml`) and
 `WatchlistEmpty.qml` are separate components for easy refinement/removal.
 
-## Experimental AI
+## Brief me
 
-The optional **Brief me** feature is maintained on the `feature/brief-me` branch
-while it is being developed. It is not included in `main`.
+This experimental feature is developed on `feature/brief-me`.
+
+**Brief me** on the Stock page hands a bounded snapshot to **your default Omarchy
+agent**, using `omarchy agent prompt`. It opens that agent's normal window with its
+existing model and authentication; no extra model installation, provider account,
+or API key is configured in Omastocks. Set an installed/authenticated agent using
+Omarchy's default-agent settings first.
+When that default is `opencode` and `opencode2` is installed, Brief me resolves
+the launch to V2 within its isolated request directory. Global agent settings and
+PATH are unchanged.
+
+The agent writes a structured brief back to Stocks with four sections: **Recent
+developments, Business performance, Expectations, Things to watch**. Citation
+buttons open the supplied source pages; the brief shows its snapshot time and
+agent. Only this stock's locally cached quote, available research and headline
+metadata are supplied—not the watchlist, credentials or full articles. Unopened
+research sections may be missing; load the sections you want covered before
+generating. No additional market-data fetching is triggered by Brief me.
+
+Generation is explicit. Reopening a saved brief reads the cache; the refresh button
+requests a new agent session with a fresh snapshot. An identical snapshot reuses
+the previous brief unless explicitly regenerated. Stocks checks the result's
+request identity, section structure and source IDs before displaying it. It cannot
+guarantee the model's interpretation; source links are provided for verification.
+If no result arrives within five minutes, check the agent window and retry.
+
+Briefs and isolated request snapshots are stored in the plugin state directory's
+`briefs/` folder. The agent session remains available for follow-up questions.
 
 ## Chart analysis and company news
 

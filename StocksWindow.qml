@@ -431,6 +431,7 @@ FloatingWindow {
                             Layout.fillWidth: true
                         }
                         ExtendedQuote { Layout.fillWidth: true }
+                        StockBrief { Layout.fillWidth: true }
                     }
                     ChartTools { Layout.fillWidth: true; chart: detailChart }
                     RowLayout {
