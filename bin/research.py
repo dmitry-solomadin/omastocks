@@ -32,7 +32,7 @@ CACHE_TTLS = {
     "release": 2592000,
 }
 CACHE_SCHEMAS = {
-    "events": ("earningsSchema", 2), "sectors": ("catalogSchema", 4),
+    "events": ("earningsSchema", 3), "sectors": ("catalogSchema", 4),
     "market-news": ("marketNewsSchema", 3), "quotes": ("quotesSchema", 3),
     "calendar-bulk": ("calendarSchema", 2), "news": ("newsSchema", 6),
     "insiders": ("insiderSchema", 2), "overview": ("overviewSchema", 2),
@@ -195,14 +195,32 @@ def attach_revenue(calendar, report):
     return False
 
 
+def merge_history(calendar, older):
+    """Add older reported quarters (Yahoo) to Nasdaq's recent ones for long charts.
+
+    Nasdaq entries win; a Yahoo date within three days of one is the same report
+    (providers can disagree by a day around after-close releases)."""
+    known = [datetime.fromisoformat(event["date"]) for event in calendar["events"]]
+    for event in older:
+        day = datetime.fromisoformat(event["date"])
+        if all(abs((day - other).days) > 3 for other in known):
+            calendar["events"].append({"type": "earnings", "date": event["date"], "estimated": False,
+                                       "eps": event.get("eps"), "forecast": event.get("forecast")})
+            known.append(day)
+    calendar["events"].sort(key=lambda event: event["date"])
+    return calendar
+
+
 def earnings(ticker):
     if not re.fullmatch(r"[A-Z][A-Z0-9.-]*", ticker):
-        return {"symbol": ticker, "next": None, "events": [], "notice": "Earnings coverage is available for supported US stocks.", "earningsSchema": 2}
+        return {"symbol": ticker, "next": None, "events": [], "notice": "Earnings coverage is available for supported US stocks.", "earningsSchema": 3}
     encoded = urllib.parse.quote(ticker, safe="")
     values, errors = [{}, {}], []
     paths = [f"/api/analyst/{encoded}/earnings-date", f"/api/company/{encoded}/earnings-surprise"]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+    from calendar_bulk import history
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         revenue_future = pool.submit(revenue, ticker)
+        history_future = pool.submit(history, ticker)
         for index, future in enumerate([pool.submit(nasdaq, path) for path in paths]):
             try:
                 values[index] = future.result()
@@ -217,7 +235,12 @@ def earnings(ticker):
             matched = False
         if not matched:
             errors.append("Revenue figures are unavailable for the reported quarter.")
-    return {"symbol": ticker, **calendar, "notice": " ".join(errors), "earningsSchema": 2}
+        # Older quarters only extend long charts; without them the recent ones still stand.
+        try:
+            merge_history(calendar, history_future.result())
+        except Exception:
+            pass
+    return {"symbol": ticker, **calendar, "notice": " ".join(errors), "earningsSchema": 3}
 
 
 def moving_averages(points, dates, windows=(20, 50, 200)):

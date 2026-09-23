@@ -105,13 +105,16 @@ ColumnLayout {
         Layout.fillWidth: true
         ActionButton {
             objectName: "earningsCallsToggle"
+            implicitHeight: Style.space(28)
             text: (MarketStore.earningsCallsOpen ? "▾ " : "▸ ") + "Earnings calls"
             hint: "Recent earnings call transcripts"
             onClicked: MarketStore.toggleSection("calls")
         }
         Item { Layout.fillWidth: true }
+        // Same height as the toggle, so the row does not grow when this appears.
         ActionButton {
             visible: MarketStore.earningsCallsOpen
+            implicitHeight: Style.space(28)
             text: "↻"
             hint: MarketStore.earningsCalls.error || "Refresh earnings calls · Yahoo Finance"
             enabled: !MarketStore.callsRequest.busy

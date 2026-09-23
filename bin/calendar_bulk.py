@@ -56,24 +56,37 @@ def summarize(records, tickers, today):
     return rows
 
 
-def calendar(tickers, request=authenticated, today=None):
-    today = today or date.today()
-    start, end = today - timedelta(days=180), today + timedelta(days=365)
+def records(tickers, start, end, request=authenticated):
+    """Every earnings record for tickers between two dates, with bounded pagination."""
     body = {"sortType": "ASC", "entityIdType": "sp_earnings", "sortField": "startdatetime",
             "includeFields": FIELDS, "size": 100, "offset": 0,
             "query": query("AND", query("OR", *(query("EQ", "ticker", ticker) for ticker in tickers)),
                            query("GTE", "startdatetime", start.isoformat()), query("LTE", "startdatetime", end.isoformat()),
                            query("OR", query("EQ", "eventtype", "EAD"), query("EQ", "eventtype", "ERA")))}
-    records, expected = [], None
+    found, expected = [], None
     for _ in range(10):
         page, total = parse_page(request("/v1/finance/visualization", body=body, lang="en-US", region="US"))
         if expected is not None and expected != total:
             raise ValueError("Earnings calendar changed during pagination. Try refreshing.")
         expected = total
-        records.extend(page)
-        if len(records) == total:
-            return {"rows": summarize(records, tickers, today), "source": "Yahoo Finance", "through": end.isoformat()}
-        if not page or len(records) > total:
+        found.extend(page)
+        if len(found) == total:
+            return found
+        if not page or len(found) > total:
             break
-        body = {**body, "offset": len(records)}
+        body = {**body, "offset": len(found)}
     raise ValueError("Incomplete earnings calendar; saved data retained.")
+
+
+def calendar(tickers, request=authenticated, today=None):
+    today = today or date.today()
+    end = today + timedelta(days=365)
+    found = records(tickers, today - timedelta(days=180), end, request)
+    return {"rows": summarize(found, tickers, today), "source": "Yahoo Finance", "through": end.isoformat()}
+
+
+def history(ticker, years=5, request=authenticated, today=None):
+    """Reported earnings for one ticker over the past years, oldest first."""
+    today = today or date.today()
+    found = records([ticker], today - timedelta(days=366 * years + 31), today, request)
+    return summarize(found, [ticker], today)[ticker]["events"]

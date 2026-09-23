@@ -13,8 +13,8 @@ ColumnLayout {
     objectName: "marketSentiment"
     property var report: ({})
     readonly property bool known: Number.isFinite(report.score)
-    readonly property var history: [["Prev close", report.previousClose], ["1 week ago", report.previousWeek],
-        ["1 month ago", report.previousMonth], ["1 year ago", report.previousYear]]
+    readonly property var history: [["Prev close", report.previousClose], ["1 week", report.previousWeek],
+        ["1 month", report.previousMonth], ["1 year", report.previousYear]]
     // The needle and score sweep up to each new reading rather than jumping.
     property real shown: 0
     Behavior on shown { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
@@ -38,17 +38,21 @@ ColumnLayout {
 
     Caption { text: "SENTIMENT" }
     GridLayout {
+        id: sentimentGrid
+        // Columns follow what actually fits: gauge, history and a readable VIX
+        // chart side by side; else the VIX chart moves below; else one column.
+        readonly property real vixMinimum: Style.space(200)
+        readonly property real pairWidth: gaugeBlock.implicitWidth + historyGrid.implicitWidth + columnSpacing
         Layout.fillWidth: true
-        columns: width >= Style.space(820) ? 3 : 1
-        columnSpacing: Style.space(40)
+        columns: width >= pairWidth + columnSpacing + vixMinimum ? 3 : width >= pairWidth ? 2 : 1
+        columnSpacing: Style.space(32)
         rowSpacing: Style.space(20)
 
-        // Gauge, score and rating.
-        // Fixed column proportions, so nothing shifts sideways as data arrives.
+        // Gauge, score and rating, at their natural (fixed) width; the VIX
+        // chart takes the remaining space.
         RowLayout {
+            id: gaugeBlock
             Layout.alignment: Qt.AlignTop
-            Layout.fillWidth: true
-            Layout.preferredWidth: 1
             Layout.minimumWidth: implicitWidth
             spacing: Style.space(18)
             Canvas {
@@ -82,8 +86,16 @@ ColumnLayout {
                 }
             }
             ColumnLayout {
+                id: scoreColumn
+                // Fixed to the widest rating, so the column count above never
+                // changes as the score and rating arrive.
+                readonly property real fixedWidth: Math.max(ratingMetrics.boundingRect("Extreme greed").width, sourceMetrics.boundingRect("Fear & Greed · CNN").width) + Style.space(4)
                 Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: fixedWidth
+                Layout.minimumWidth: fixedWidth
                 spacing: Style.space(2)
+                FontMetrics { id: ratingMetrics; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
+                FontMetrics { id: sourceMetrics; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
                 Label { text: root.known ? Math.round(root.shown) : "—"; font.pixelSize: Style.space(34); font.bold: true }
                 Label {
                     text: root.known ? root.zoneName(root.report.score) : root.report.error ? "Unavailable" : ""
@@ -110,21 +122,21 @@ ColumnLayout {
 
         // Recent history, each reading coloured by its zone.
         GridLayout {
-            Layout.alignment: Qt.AlignTop
-            Layout.fillWidth: true
-            Layout.preferredWidth: 1
-            Layout.topMargin: Style.space(6)
-            columns: 2
-            columnSpacing: Style.space(24)
-            rowSpacing: Style.space(8)
+            id: historyGrid
+            // A compact single column, about as tall as the gauge.
+            Layout.alignment: Qt.AlignVCenter
+            Layout.minimumWidth: implicitWidth
+            columns: 1
+            rowSpacing: Style.space(5)
             Repeater {
                 model: root.history
                 RowLayout {
                     required property var modelData
                     spacing: Style.space(8)
-                    Caption { text: modelData[0]; Layout.preferredWidth: Style.space(92) }
+                    Caption { text: modelData[0]; Layout.preferredWidth: Style.space(76) }
                     Label {
                         readonly property bool known: Number.isFinite(modelData[1])
+                        Layout.preferredWidth: Style.space(26)
                         text: known ? Math.round(modelData[1]) : "—"
                         color: known ? root.zoneColor(modelData[1]) : Color.muted
                         font.bold: true
@@ -139,6 +151,8 @@ ColumnLayout {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.preferredWidth: 1.2
+            Layout.minimumWidth: sentimentGrid.columns === 3 ? sentimentGrid.vixMinimum : 0
+            Layout.columnSpan: sentimentGrid.columns === 2 ? 2 : 1
             Layout.alignment: Qt.AlignTop
             Layout.topMargin: Style.space(4)
             spacing: Style.space(6)

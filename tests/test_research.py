@@ -11,6 +11,16 @@ import research
 
 
 class ResearchTests(unittest.TestCase):
+    def test_earnings_history_extends_nasdaq_without_duplicates(self):
+        calendar = {"events": [{"type": "earnings", "date": "2026-08-27", "estimated": False, "eps": 4.97, "forecast": 0.85, "revenue": 1.0}]}
+        older = [{"date": "2025-11-06", "eps": 0.61, "forecast": 0.62}, {"date": "2026-08-26", "eps": 5.0, "forecast": 0.9},
+                 {"date": "2021-09-09", "eps": -0.47, "forecast": -0.24}]
+        events = research.merge_history(calendar, older)["events"]
+        self.assertEqual([event["date"] for event in events], ["2021-09-09", "2025-11-06", "2026-08-27"])
+        # Nasdaq's entry wins over Yahoo's same report a day apart, keeping its revenue.
+        self.assertEqual((events[-1]["eps"], events[-1]["revenue"]), (4.97, 1.0))
+        self.assertEqual(events[0], {"type": "earnings", "date": "2021-09-09", "estimated": False, "eps": -0.47, "forecast": -0.24})
+
     def test_analysts_keep_current_and_historical_cohorts_separate(self):
         document = {"symbol": "aapl", "consensusOverview": {"buy": 16, "hold": 10, "sell": 4,
                     "lowPriceTarget": 245, "highPriceTarget": 400, "priceTarget": 336.71},
@@ -182,12 +192,15 @@ class ResearchTests(unittest.TestCase):
 
     def test_revenue_failure_does_not_discard_eps(self):
         history = {"earningsSurpriseTable": {"rows": [{"dateReported": "7/30/2026", "eps": 1.91, "consensusForecast": "1.88"}]}}
-        with patch.object(research, "nasdaq", return_value=history), patch.object(research, "revenue", side_effect=ValueError("offline")):
+        # The Yahoo history is stubbed to fail: tests stay offline and its failure keeps Nasdaq's quarters.
+        with patch.object(research, "nasdaq", return_value=history), patch.object(research, "revenue", side_effect=ValueError("offline")), \
+                patch("calendar_bulk.history", side_effect=ValueError("offline")):
             result = research.earnings("AAPL")
         self.assertEqual(result["events"][0]["eps"], 1.91)
+        self.assertEqual(len(result["events"]), 1)
         self.assertNotIn("revenue", result["events"][0])
         self.assertIn("Revenue", result["notice"])
-        self.assertEqual(result["earningsSchema"], 2)
+        self.assertEqual(result["earningsSchema"], 3)
 
     def test_revenue_uses_provider_share_class_symbol(self):
         document = {"data": [{"s": "NYSE:BRK.B", "d": [100, 90, 1785443580, "USD", "stock"]}]}

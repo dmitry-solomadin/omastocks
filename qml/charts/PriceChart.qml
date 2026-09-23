@@ -19,6 +19,9 @@ Item {
     property bool showVolume: false
     property var averages: []
     property var events: []
+    // Keep the event lane even before markers load, so the plot does not
+    // shrink when earnings arrive after the price data.
+    property bool reserveEvents: false
     property var sessions: []
     property bool compareMode: false
     property var comparisons: []
@@ -45,7 +48,7 @@ Item {
     }
     readonly property bool hasVolume: volumes.some(value => value !== null && value !== undefined && value > 0)
     readonly property real volumeHeight: !miniature && !comparing && showVolume && hasVolume ? Style.space(52) : 0
-    readonly property real eventHeight: !miniature && eventMarkers.length ? Style.space(25) : 0
+    readonly property real eventHeight: !miniature && (eventMarkers.length || (reserveEvents && !comparing)) ? Style.space(25) : 0
     readonly property real volumeTop: topInset + plotHeight + Style.space(8)
     readonly property real eventTop: height - bottomInset - eventHeight
     readonly property real maxVolume: Math.max(1, ...volumes.map(value => value || 0))

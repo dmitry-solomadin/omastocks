@@ -8,6 +8,14 @@ import "."
 
 FloatingWindow {
     id: window
+    // Divides the Stock page's sections; the column adds its spacing on both sides.
+    component SectionDivider: Rectangle {
+        Layout.fillWidth: true
+        Layout.topMargin: Style.space(6)
+        Layout.bottomMargin: Style.space(2)
+        height: 1
+        color: Util.alpha(Color.foreground, .1)
+    }
     property var shell: null
     title: "Stocks"
     visible: false
@@ -465,6 +473,8 @@ FloatingWindow {
                             id: detailChart
                             objectName: "detailChart"
                             anchors.fill: parent
+                            // Earnings load after prices; reserve their lane where they are expected.
+                            reserveEvents: MarketStore.showEvents && !StockStore.selectedIsIndex && StockStore.period !== "1D"
                             points: window.points
                             symbol: StockStore.selected
                             dates: window.series.dates || []
@@ -504,7 +514,7 @@ FloatingWindow {
                         visible: !MarketStore.compareMode
                         Layout.fillWidth: true
                         spacing: Style.space(10)
-                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        SectionDivider {}
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.bottomMargin: Style.space(8)
@@ -547,15 +557,15 @@ FloatingWindow {
                                 }
                             }
                         }
-                        Rectangle { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        SectionDivider { visible: !StockStore.selectedIsNonCompany }
                         EarningsPanel { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true }
-                        Rectangle { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        SectionDivider { visible: !StockStore.selectedIsNonCompany }
                         FinancialsPanel { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; verticalFlickable: detailScroll.contentItem }
-                        Rectangle { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        SectionDivider { visible: !StockStore.selectedIsNonCompany }
                         AnalystsPanel { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true }
-                        Rectangle { visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        SectionDivider { visible: !StockStore.selectedIsNonCompany }
                         CompanyActivity { id: companyActivity; visible: !StockStore.selectedIsNonCompany; Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth: true; Layout.topMargin: Style.space(18); Layout.bottomMargin: Style.space(8); height: 1; color: Util.alpha(Color.foreground, .1) }
+                        SectionDivider {}
                         RowLayout {
                             id: feedTabs
                             Layout.fillWidth: true
