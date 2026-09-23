@@ -3,7 +3,7 @@ const fs = require("node:fs")
 const vm = require("node:vm")
 const path = require("node:path")
 const order = vm.createContext({})
-vm.runInContext(fs.readFileSync(path.join(__dirname, "../WatchlistOrder.js"), "utf8"), order)
+vm.runInContext(fs.readFileSync(path.join(__dirname, "../qml/watchlist/WatchlistOrder.js"), "utf8"), order)
 const rows = [
     {symbol:"CCC",name:"alpha",change:3,percent:9},
     {symbol:"AAA",name:"Zulu",change:2,percent:4},

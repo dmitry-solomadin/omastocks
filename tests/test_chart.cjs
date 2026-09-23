@@ -3,7 +3,7 @@ const fs = require("node:fs")
 const vm = require("node:vm")
 const path = require("node:path")
 const chart = vm.createContext({})
-vm.runInContext(fs.readFileSync(path.join(__dirname, "../ChartMath.js"), "utf8"), chart)
+vm.runInContext(fs.readFileSync(path.join(__dirname, "../qml/charts/ChartMath.js"), "utf8"), chart)
 const plain = value => JSON.parse(JSON.stringify(value))
 const points = [[1000, 100], [1300, 105], [2200, 90]]
 

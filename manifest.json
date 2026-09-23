@@ -7,7 +7,7 @@
   "license": "MIT",
   "description": "A tileable stock watchlist with comparison charts, financial statements, earnings, news and an optional favorites ticker.",
   "kinds": ["service", "bar-widget"],
-  "entryPoints": {"service": "Service.qml", "barWidget": "BarWidget.qml"},
+  "entryPoints": {"service": "qml/Service.qml", "barWidget": "qml/BarWidget.qml"},
   "barWidget": {
     "displayName": "Omastocks",
     "description": "Favorite stocks. Click to open Omastocks.",

@@ -3,7 +3,7 @@ const fs = require("node:fs")
 const vm = require("node:vm")
 const path = require("node:path")
 const tree = vm.createContext({})
-vm.runInContext(fs.readFileSync(path.join(__dirname, "../Treemap.js"), "utf8"), tree)
+vm.runInContext(fs.readFileSync(path.join(__dirname, "../qml/market/Treemap.js"), "utf8"), tree)
 const rows = Array.from({length: 50}, (_, i) => ({symbol: `S${i}`, marketCap: 1e12 / (i + 1) ** 2}))
 for (const [width, height] of [[534, 450], [1000, 720], [200, 900], [900, 200]]) {
     const cells = tree.layout(rows, width, height)

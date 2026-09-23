@@ -3,8 +3,8 @@ const fs = require("node:fs")
 const vm = require("node:vm")
 const path = require("node:path")
 const load = file => { const context = vm.createContext({}); vm.runInContext(fs.readFileSync(path.join(__dirname, "..", file), "utf8"), context); return context }
-const clock = load("MarketClock.js")
-const sprites = load("PixelSprites.js")
+const clock = load("qml/market/MarketClock.js")
+const sprites = load("qml/art/PixelSprites.js")
 
 // New York wall time → UTC, across both DST regimes.
 const et = (y, m, d, h, min, offset) => Date.UTC(y, m - 1, d, h - offset, min)

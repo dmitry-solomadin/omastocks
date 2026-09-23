@@ -1,0 +1,61 @@
+# One module keeps shared stores unique across all feature folders.
+singleton StockStore 1.0 stores/StockStore.qml
+singleton MarketStore 1.0 stores/MarketStore.qml
+
+Service 1.0 Service.qml
+SettingsMenu 1.0 SettingsMenu.qml
+StocksWindow 1.0 StocksWindow.qml
+BarWidget 1.0 BarWidget.qml
+
+DataRequest 1.0 data/DataRequest.qml
+BulkRequest 1.0 data/BulkRequest.qml
+WatchlistBatch 1.0 data/WatchlistBatch.qml
+
+ActionButton 1.0 components/ActionButton.qml
+Label 1.0 components/Label.qml
+FastWheel 1.0 components/FastWheel.qml
+FeatureTable 1.0 components/FeatureTable.qml
+RangeGauge 1.0 components/RangeGauge.qml
+MarketLoading 1.0 components/MarketLoading.qml
+SessionHeader 1.0 components/SessionHeader.qml
+
+PriceChart 1.0 charts/PriceChart.qml
+ChartTools 1.0 charts/ChartTools.qml
+MetricChart 1.0 charts/MetricChart.qml
+
+CompanyNews 1.0 stock/CompanyNews.qml
+SocialPanel 1.0 stock/SocialPanel.qml
+EarningsPanel 1.0 stock/EarningsPanel.qml
+FinancialsPanel 1.0 stock/FinancialsPanel.qml
+FundamentalComparison 1.0 stock/FundamentalComparison.qml
+ExtendedQuote 1.0 stock/ExtendedQuote.qml
+AnalystsPanel 1.0 stock/AnalystsPanel.qml
+AnalystTargetGauge 1.0 stock/AnalystTargetGauge.qml
+CompanyActivity 1.0 stock/CompanyActivity.qml
+
+WatchlistSelector 1.0 watchlist/WatchlistSelector.qml
+WatchlistMenu 1.0 watchlist/WatchlistMenu.qml
+WatchlistWorkspace 1.0 watchlist/WatchlistWorkspace.qml
+WatchlistOverview 1.0 watchlist/WatchlistOverview.qml
+WatchlistDashboard 1.0 watchlist/WatchlistDashboard.qml
+WatchlistSortMenu 1.0 watchlist/WatchlistSortMenu.qml
+WatchlistEmpty 1.0 watchlist/WatchlistEmpty.qml
+EarningsCalendar 1.0 watchlist/EarningsCalendar.qml
+
+MarketOverview 1.0 market/MarketOverview.qml
+SectorHeatmap 1.0 market/SectorHeatmap.qml
+DenseHeatmap 1.0 market/DenseHeatmap.qml
+MarketIndexes 1.0 market/MarketIndexes.qml
+CrossAssets 1.0 market/CrossAssets.qml
+MarketSentiment 1.0 market/MarketSentiment.qml
+SectorLeaders 1.0 market/SectorLeaders.qml
+EconomicCalendar 1.0 market/EconomicCalendar.qml
+MarketSession 1.0 market/MarketSession.qml
+MarketStatus 1.0 market/MarketStatus.qml
+
+PixelArt 1.0 art/PixelArt.qml
+CandleMark 1.0 art/CandleMark.qml
+StocksLogo 1.0 art/StocksLogo.qml
+MarketSky 1.0 art/MarketSky.qml
+MarketMood 1.0 art/MarketMood.qml
+StocksIntro 1.0 art/StocksIntro.qml
