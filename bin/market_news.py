@@ -3,7 +3,7 @@ from email.utils import parsedate_to_datetime
 from datetime import datetime
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as ET
+from rss_feed import parse_xml
 import re
 import time
 
@@ -30,7 +30,7 @@ def relevant(title):
 
 def parse(raw, now=None):
     now = time.time() if now is None else now
-    channel = ET.fromstring(raw).find("channel")
+    channel = parse_xml(raw).find("channel")
     if channel is None:
         raise ValueError("Market news feed is unavailable.")
     articles, seen = [], set()

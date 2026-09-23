@@ -5,9 +5,8 @@ import "MarketClock.js" as Clock
 
 // US session state shared by MarketStatus and MarketSky. The provider's
 // marketState decides the session; the clock only positions and counts down.
-Item {
+QtObject {
     id: root
-    visible: false
     property bool active: false
     property double now: Date.now()
     readonly property var report: StockStore.marketQuotesRequest.data
@@ -38,5 +37,5 @@ Item {
         if (previousState && previousState !== "REGULAR" && opened) opening()
         previousState = state
     }
-    Timer { interval: 30000; running: root.active; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() }
+    property Timer clockTimer: Timer { interval: 30000; running: root.active; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() }
 }

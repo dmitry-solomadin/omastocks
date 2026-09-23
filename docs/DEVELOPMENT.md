@@ -1,5 +1,19 @@
 # Development
 
+## Development checkout
+
+For an editable checkout linked into your local Omarchy installation:
+
+```sh
+git clone https://github.com/dmitry-solomadin/omastocks
+cd omastocks
+./install
+```
+
+`./install` validates and symlinks this checkout into the user plugin directory,
+then enables it. It refuses to replace a different existing installation.
+No compilation is required.
+
 ## Layout
 
 The plugin manifest points to `qml/Service.qml` and `qml/BarWidget.qml`.
@@ -34,8 +48,8 @@ around the native removal command.
 
 ### QML imports
 
-`qml/qmldir` registers the entire UI as one directory module, including the two
-singletons. Feature components import `".."`; top-level components import `"."`.
+`qml/qmldir` registers the entire UI as one directory module, including the shared
+state and theme singletons. Feature components import `".."`; top-level components import `"."`.
 Keep registrations here so every feature shares the same stores. JavaScript
 imports are relative to the component using them. The helper paths in
 `qml/data/DataRequest.qml` and `qml/stores/StockStore.qml` resolve back to `bin/`.
@@ -83,11 +97,12 @@ node tests/test_watchlist_order.cjs
 node tests/test_pixel_art.cjs
 node tests/test_market_assets.cjs
 bash -n install install-launcher uninstall
+shellcheck install install-launcher uninstall
 omarchy plugin validate .
 git diff --check
 ```
 
-Node.js is a test dependency only. For helper/UI experiments, set
+Node.js and ShellCheck are development dependencies only. For helper/UI experiments, set
 `STOCKS_STATE_DIR` to an isolated test directory. Keep test state separate from
 your live watchlists.
 

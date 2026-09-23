@@ -239,7 +239,7 @@ def earnings(ticker):
         try:
             merge_history(calendar, history_future.result())
         except Exception:
-            pass
+            errors.append("Older earnings history unavailable.")
     return {"symbol": ticker, **calendar, "notice": " ".join(errors), "earningsSchema": 3}
 
 

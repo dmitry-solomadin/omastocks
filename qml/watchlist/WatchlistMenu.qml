@@ -118,7 +118,7 @@ Controls.Popup {
                 onClicked: menu.close()
             }
         }
-        Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
         Controls.ScrollView {
             id: listScroll
             objectName: "watchlistRows"
@@ -203,7 +203,7 @@ Controls.Popup {
                 }
             }
         }
-        Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
         RowLayout {
             id: createRow
             Layout.fillWidth: true

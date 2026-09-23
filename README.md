@@ -9,6 +9,8 @@ theme, fonts and scaling. No API keys or Python dependencies.
 ## Install
 
 Requires **Omarchy's Quickshell-based shell**, Python **3.10+**, and `tzdata`.
+The launcher helpers use Bash, coreutils, diffutils (`cmp`) and util-linux
+(`flock`), supplied by Omarchy. Git is required by the plugin manager.
 
 Install and enable the plugin:
 
@@ -107,12 +109,6 @@ when unloaded; your watchlists and caches are preserved.
 
 ## Development
 
-```sh
-git clone https://github.com/dmitry-solomadin/omastocks
-cd omastocks
-./install
-```
-
 ```text
 qml/        UI, shared stores and JavaScript, organized by feature
 bin/        Python data helpers and provider integrations
@@ -122,8 +118,8 @@ tests/      Python and JavaScript regression tests
 docs/       Contributor guide and screenshot gallery
 ```
 
-`./install` symlinks your checkout into Omarchy. See the
-[contributor guide](docs/DEVELOPMENT.md) for architecture, checks and reload commands.
+See the [contributor guide](docs/DEVELOPMENT.md) for setting up a development
+checkout, architecture, checks and reload commands.
 The experimental **Brief me** AI feature lives on [`feature/brief-me`](https://github.com/dmitry-solomadin/omastocks/tree/feature/brief-me).
 
 ## License

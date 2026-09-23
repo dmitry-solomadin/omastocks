@@ -1,4 +1,5 @@
 import os
+import io
 from pathlib import Path
 import sys
 import tempfile
@@ -11,6 +12,22 @@ import social
 
 
 class SocialTests(unittest.TestCase):
+    def test_json_response_has_a_bounded_read(self):
+        class Response(io.BytesIO):
+            def read(self, size=-1):
+                self.requested_size = size
+                return super().read(size)
+
+        for payload, valid in [(b'{"messages": []}', True), (b" " * (social.MAX_RESPONSE_BYTES + 1), False)]:
+            response = Response(payload)
+            with patch.object(social.urllib.request, "urlopen", return_value=response):
+                if valid:
+                    self.assertEqual(social.get_json("https://api.stocktwits.com/test", "Stocktwits"), {"messages": []})
+                else:
+                    with self.assertRaises(ValueError):
+                        social.get_json("https://api.stocktwits.com/test", "Stocktwits")
+            self.assertEqual(response.requested_size, social.MAX_RESPONSE_BYTES + 1)
+
     def test_posts_deduplicate_sort_and_keep_only_author_sentiment(self):
         base = {"id": 1, "body": "$ACME earnings &amp; outlook", "created_at": "2026-09-21T12:00:00Z",
                 "user": {"username": "trader"}, "likes": {"total": 0}, "entities": {"sentiment": {"basic": "Bullish"}}}

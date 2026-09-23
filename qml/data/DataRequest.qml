@@ -44,7 +44,7 @@ QtObject {
         activeRevision = task.revision
         captured = ""
         exited = collected = false
-        helper.command = ["python3", Qt.resolvedUrl(task.script).toString().replace(/^file:\/\//, "")]
+        helper.command = ["python3", decodeURIComponent(Qt.resolvedUrl(task.script).toString().replace(/^file:\/\//, ""))]
             .concat(task.args).concat(task.force ? ["--force"] : [])
         helper.running = true
         watchdog.restart()

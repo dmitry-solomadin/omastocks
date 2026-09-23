@@ -17,7 +17,7 @@ Item {
     readonly property color muted: Tone.muted
     readonly property string family: Style.font.family
     readonly property real fontSize: Style.font.bodySmall
-    readonly property real scale: Style.space(1)
+    readonly property real uiScale: Style.space(1)
     function change(entry) { return period === "YTD" ? entry.ytd : entry.percent }
     function hit(x, y) {
         for (let i = 0; i < cells.length; i++) {
@@ -34,7 +34,7 @@ Item {
     onMutedChanged: canvas.requestPaint()
     onFamilyChanged: canvas.requestPaint()
     onFontSizeChanged: canvas.requestPaint()
-    onScaleChanged: canvas.requestPaint()
+    onUiScaleChanged: canvas.requestPaint()
     Canvas {
         id: canvas
         anchors.fill: parent

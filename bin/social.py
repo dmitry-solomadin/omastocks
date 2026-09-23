@@ -9,12 +9,17 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+
 
 def get_json(url, provider):
     request = urllib.request.Request(url, headers={"User-Agent": "Omastocks/0.1", "Accept": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=6) as response:
-            return json.load(response)
+            raw = response.read(MAX_RESPONSE_BYTES + 1)
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise ValueError("Social feed response is too large.")
+        return json.loads(raw)
     except urllib.error.HTTPError as error:
         if error.code == 429:
             raise ValueError(f"{provider} is rate limiting requests. Try again later.") from error

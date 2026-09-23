@@ -200,6 +200,7 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(len(result["events"]), 1)
         self.assertNotIn("revenue", result["events"][0])
         self.assertIn("Revenue", result["notice"])
+        self.assertIn("Older earnings history unavailable", result["notice"])
         self.assertEqual(result["earningsSchema"], 3)
 
     def test_revenue_uses_provider_share_class_symbol(self):

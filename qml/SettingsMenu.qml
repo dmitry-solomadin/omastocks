@@ -72,7 +72,7 @@ Controls.Popup {
                 onClicked: menu.close()
             }
         }
-        Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
         Label { text: "CHART"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
         RowLayout {
             Layout.fillWidth: true
@@ -97,7 +97,7 @@ Controls.Popup {
                 onToggled: menu.saveSetting("showEvents", !checked)
             }
         }
-        Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
         RowLayout {
             Layout.fillWidth: true
             spacing: Style.space(16)
@@ -151,7 +151,7 @@ Controls.Popup {
                 onClicked: menu.saveSetting("maxWidth", Math.min(800, menu.stripWidth + 40))
             }
         }
-        Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground, .1) }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
         Label { text: "WATCHLIST"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
         Repeater {
             model: [{value:"percent",label:"Display percentage change"}, {value:"change",label:"Display price change"}, {value:"marketCap",label:"Display market cap"}]

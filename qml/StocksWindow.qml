@@ -174,7 +174,7 @@ FloatingWindow {
                     keyNavigationEnabled: false
                     property string dragSymbol: ""
                     property string dragName: ""
-                    property bool dragging: false
+                    property bool reordering: false
                     property real pressX: 0
                     property real pressY: 0
                     property real dragX: 0
@@ -197,20 +197,20 @@ FloatingWindow {
                         if (!dragSymbol) return
                         dragX = point.x
                         dragY = point.y
-                        if (Math.abs(dragY - pressY) > Style.space(6) || Math.abs(dragX - pressX) > Style.space(6)) dragging = true
+                        if (Math.abs(dragY - pressY) > Style.space(6) || Math.abs(dragX - pressX) > Style.space(6)) reordering = true
                     }
-                    function cancelDrag() { dragging = false; dragSymbol = ""; dragName = "" }
+                    function cancelDrag() { reordering = false; dragSymbol = ""; dragName = "" }
                     function finishDrag() {
                         const ticker = dragSymbol
                         const before = insertionIndex < rows.length ? rows[insertionIndex].symbol : ""
-                        const accepted = dragging && dropInside
+                        const accepted = reordering && dropInside
                         cancelDrag()
                         if (accepted) StockStore.move(ticker, before)
                     }
                     Timer {
                         interval: 30
                         repeat: true
-                        running: list.dragging && list.dropInside
+                        running: list.reordering && list.dropInside
                         onTriggered: {
                             const edge = Style.space(32)
                             const direction = list.dragY < edge ? -1 : list.dragY > list.height - edge ? 1 : 0
@@ -237,7 +237,7 @@ FloatingWindow {
                         required property int index
                         width: list.width
                         height: Style.space(64)
-                        opacity: list.dragging && list.dragSymbol === modelData.symbol ? .35 : 1
+                        opacity: list.reordering && list.dragSymbol === modelData.symbol ? .35 : 1
                         readonly property bool hasQuote: modelData.price !== undefined
                         readonly property bool tracked: StockStore.entries.some(entry => entry.symbol === modelData.symbol)
                         Rectangle {
@@ -251,7 +251,7 @@ FloatingWindow {
                             hoverEnabled: true
                             property bool wasDragged: false
                             preventStealing: !StockStore.searchQuery
-                            cursorShape: list.dragging ? Qt.ClosedHandCursor : StockStore.searchQuery || StockStore.sortMode !== "custom" ? Qt.PointingHandCursor : Qt.OpenHandCursor
+                            cursorShape: list.reordering ? Qt.ClosedHandCursor : StockStore.searchQuery || StockStore.sortMode !== "custom" ? Qt.PointingHandCursor : Qt.OpenHandCursor
                             onPressed: mouse => {
                                 wasDragged = false
                                 list.beginDrag(stockRow.modelData, mapToItem(list, mouse.x, mouse.y))
@@ -259,7 +259,7 @@ FloatingWindow {
                             onPositionChanged: mouse => {
                                 if (!pressed) return
                                 list.updateDrag(mapToItem(list, mouse.x, mouse.y))
-                                if (list.dragging) wasDragged = true
+                                if (list.reordering) wasDragged = true
                             }
                             onReleased: list.finishDrag()
                             onCanceled: list.cancelDrag()
@@ -318,7 +318,7 @@ FloatingWindow {
                     Rectangle {
                         parent: list
                         z: 3
-                        visible: list.dragging && list.dropInside
+                        visible: list.reordering && list.dropInside
                         x: Style.space(4)
                         y: Math.max(0, Math.min(list.height - height,
                             list.insertionIndex * list.rowStep - (list.contentY - list.originY) - list.spacing / 2))
@@ -329,7 +329,7 @@ FloatingWindow {
                     Rectangle {
                         parent: list
                         z: 2
-                        visible: list.dragging
+                        visible: list.reordering
                         x: Style.space(8)
                         y: Math.max(0, Math.min(list.height - height, list.dragY - height / 2))
                         width: list.width - Style.space(16)
@@ -474,7 +474,7 @@ FloatingWindow {
                             objectName: "detailChart"
                             anchors.fill: parent
                             // Earnings load after prices; reserve their lane where they are expected.
-                            reserveEvents: MarketStore.showEvents && !StockStore.selectedIsIndex && StockStore.period !== "1D"
+                            reserveEvents: MarketStore.showEvents && !StockStore.selectedIsNonCompany && StockStore.period !== "1D"
                             points: window.points
                             symbol: StockStore.selected
                             dates: window.series.dates || []

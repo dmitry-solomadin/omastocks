@@ -237,7 +237,7 @@ QtObject {
         captured = ""
         exited = false
         collected = false
-        helper.command = ["python3", Qt.resolvedUrl("../../bin/stocks.py").toString().replace(/^file:\/\//, "")].concat(active)
+        helper.command = ["python3", decodeURIComponent(Qt.resolvedUrl("../../bin/stocks.py").toString().replace(/^file:\/\//, ""))].concat(active)
         helper.running = true
         watchdog.restart()
     }

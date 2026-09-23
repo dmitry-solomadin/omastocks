@@ -481,7 +481,7 @@ Item {
                 RowLayout {
                     required property var modelData
                     spacing: Style.space(12)
-                    Rectangle { width: Style.space(8); height: width; color: modelData.color }
+                    Rectangle { implicitWidth: Style.space(8); implicitHeight: implicitWidth; color: modelData.color }
                     Label { text: modelData.symbol; Layout.fillWidth: true; font.pixelSize: Style.font.bodySmall }
                     Label { text: root.hoverPrice(modelData); font.pixelSize: Style.font.bodySmall }
                 }

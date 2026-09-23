@@ -92,7 +92,7 @@ ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true
                 spacing: Style.space(5)
-                Rectangle { Layout.fillWidth: true; height: 1; color: Util.alpha(Color.foreground,.09) }
+                Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground,.09) }
                 Label { text: record.modelData.date + " · " + record.modelData.type; Layout.fillWidth: true; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: Tone.muted }
                 Label {
                     text: record.modelData.name + (record.modelData.role ? " · " + record.modelData.role : "")

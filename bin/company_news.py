@@ -3,7 +3,7 @@ from email.utils import parsedate_to_datetime
 import time
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as ET
+from rss_feed import parse_xml
 
 
 def supplement(ticker, name=""):
@@ -22,10 +22,7 @@ def supplement(ticker, name=""):
 def parse(raw, now=None):
     now = time.time() if now is None else now
     rows = []
-    try:
-        document = ET.fromstring(raw)
-    except ET.ParseError as error:
-        raise ValueError("Company news feed is invalid.") from error
+    document = parse_xml(raw)
     for item in document.findall("channel/item"):
         title, source = (item.findtext("title") or "").strip(), (item.findtext("source") or "").strip()
         if source and title.endswith(" - " + source):
