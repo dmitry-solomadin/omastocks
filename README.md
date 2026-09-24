@@ -54,7 +54,7 @@ benchmark, instrument or tile to open its Stock view.
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl+K` | Focus search |
+| `Ctrl+S` | Focus search |
 | `↑` / `↓` | Select the previous/next stock |
 | `Ctrl+R` | Refresh the current view |
 | `Escape` | Clear a chart selection, exit Compare, or clear search |

@@ -57,7 +57,7 @@ FloatingWindow {
         id: content
         anchors.fill: parent
         focus: true
-        Shortcut { sequence: "Ctrl+K"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !watchlistMenu.opened; onActivated: { search.forceActiveFocus(); search.selectAll() } }
+        Shortcut { sequence: "Ctrl+S"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !watchlistMenu.opened; onActivated: { search.forceActiveFocus(); search.selectAll() } }
         Shortcut { sequence: "Ctrl+R"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.refresh() }
         Shortcut { sequence: "Ctrl+W"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.visible = false }
         Shortcut { sequence: "Escape"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !watchlistMenu.opened && !watchlistSelector.popupOpen; onActivated: {
@@ -117,7 +117,7 @@ FloatingWindow {
                     objectName: "stockSearch"
                     Layout.fillWidth: true
                     implicitHeight: Style.space(38)
-                    placeholderText: "Search stocks · Ctrl+K"
+                    placeholderText: "Search stocks · Ctrl+S"
                     color: Color.foreground
                     placeholderTextColor: Tone.muted
                     selectionColor: Util.alpha(Color.accent, .3)
