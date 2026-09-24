@@ -68,7 +68,7 @@ Item {
     readonly property color selectionColor: comparison ? StockStore.direction(comparison.change) : lineColor
     readonly property real leftInset: miniature ? 2 : Style.space(4)
     readonly property real rightInset: miniature ? 2 : Style.space(comparing ? 88 : 72)
-    readonly property real topInset: miniature ? 2 : comparing ? legend.implicitHeight + Style.space(16) : Style.space(52)
+    readonly property real topInset: miniature ? 2 : comparing ? legend.implicitHeight + Style.space(16) : Style.space(30)
     readonly property real bottomInset: miniature ? 2 : Style.space(30)
     readonly property real plotWidth: Math.max(1, width - leftInset - rightInset)
     readonly property real plotHeight: Math.max(1, height - topInset - bottomInset - eventHeight - (volumeHeight ? volumeHeight + Style.space(12) : 0))
@@ -94,6 +94,15 @@ Item {
         const point = row ? row.points.find(point => point[0] === hoveredIndex) : null
         return {symbol: entry.symbol, color: entry.color, currency: row ? row.currency : "", price: point ? point[2] : null, percent: point ? point[1] : null}
     })
+    // Rows of the hover box: every compared stock, or the price and volume.
+    readonly property var hoverLines: {
+        if (!hoveredPoint) return []
+        if (comparing) return hoverRows.map(row => ({label: row.symbol, color: row.color, value: hoverPrice(row)}))
+        const extended = sessions.some(session => session.kind !== "regular" && hoveredPoint[0] >= session.start && hoveredPoint[0] < session.end)
+        const volume = volumes[hoveredIndex]
+        return [{label: symbol, color: lineColor, value: hoverPrice({price: hoveredPoint[1], currency: currency})}]
+            .concat(showVolume && !extended && volume !== null && volume !== undefined ? [{label: "Volume", color: "transparent", value: StockStore.compact(volume)}] : [])
+    }
     function pointX(index) { return leftInset + ChartMath.pointFraction(points, index, period, timeDomain) * plotWidth }
     function axisValue(value) { return comparing && normalized ? (value / normalized.base - 1) * 100 : value }
     function axisY(value) { return topInset + (extent[1] - value) / (extent[1] - extent[0]) * plotHeight }
@@ -119,13 +128,6 @@ Item {
         const session = sessions.find(session => timestamp >= session.start && timestamp < session.end)
         return (session ? session.label + " · " : "")
             + Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" || period === "1W" ? "d MMM yyyy, hh:mm" : "d MMM yyyy")
-    }
-    function hoverText(index) {
-        const point = points[index]
-        if (!point) return ""
-        const extended = sessions.some(session => session.kind !== "regular" && point[0] >= session.start && point[0] < session.end)
-        return StockStore.price(point[1]) + "  ·  " + hoverTime(point[0])
-            + (showVolume && !extended ? "  ·  Vol " + StockStore.compact(volumes[index]) : "")
     }
     function timeLabel(timestamp) {
         return Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" ? "hh:mm" : period === "5Y" ? "MMM yyyy" : "d MMM")
@@ -352,33 +354,29 @@ Item {
         border.color: Color.background
         border.width: 2
     }
-    Label {
-        objectName: "chartHoverReadout"
-        visible: !root.miniature && !root.comparing && root.hoveredPoint !== null
-        x: root.leftInset; y: Style.space(23)
-        width: root.plotWidth
-        text: root.hoverText(root.hoveredIndex)
-        color: root.lineColor
-        font.pixelSize: Style.font.bodySmall
-    }
-    Label {
-        objectName: "chartReadout"
+    // One line above the plot: the period's change, or a dragged selection's
+    // change followed by its time range.
+    Row {
         visible: !root.miniature && !root.comparing
         x: root.leftInset; y: 0
         width: root.width - root.leftInset
-        text: root.readoutText
-        color: root.comparing && !root.hasSelection ? Color.foreground
-            : StockStore.direction(root.hasSelection ? root.comparison.change : root.periodComparison ? root.periodComparison.percent : null)
-        font.bold: true
-    }
-    Label {
-        visible: !root.miniature && root.hasSelection
-        x: root.leftInset; y: Style.space(23)
-        width: root.width - root.leftInset
-        text: root.comparison ? root.selectionTime(root.points[root.comparison.first][0]) + " → "
-            + root.selectionTime(root.points[root.comparison.last][0]) : ""
-        color: Tone.muted
-        font.pixelSize: Style.font.bodySmall
+        spacing: Style.space(12)
+        Label {
+            id: readout
+            objectName: "chartReadout"
+            text: root.readoutText
+            color: StockStore.direction(root.hasSelection ? root.comparison.change : root.periodComparison ? root.periodComparison.percent : null)
+            font.bold: true
+        }
+        Label {
+            objectName: "chartSelectionRange"
+            visible: root.hasSelection
+            anchors.baseline: readout.baseline
+            text: root.comparison ? root.selectionTime(root.points[root.comparison.first][0]) + " → "
+                + root.selectionTime(root.points[root.comparison.last][0]) : ""
+            color: Tone.muted
+            font.pixelSize: Style.font.bodySmall
+        }
     }
     MouseArea {
         id: pointer
@@ -463,7 +461,8 @@ Item {
         }
     }
     Rectangle {
-        visible: root.comparing && root.hoveredPoint !== null
+        objectName: "chartHoverBox"
+        visible: !root.miniature && root.hoveredPoint !== null
         x: Math.max(root.leftInset, Math.min(root.width - width, root.pointX(root.hoveredIndex) + Style.space(16)))
         y: Math.max(root.topInset, Math.min(root.topInset + root.plotHeight - height, pointer.mouseY - height - Style.space(12)))
         width: hoverContent.implicitWidth + Style.space(24)
@@ -477,13 +476,13 @@ Item {
             spacing: Style.space(5)
             Label { text: root.hoveredPoint ? root.hoverTime(root.hoveredPoint[0]) : ""; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
             Repeater {
-                model: root.hoverRows
+                model: root.hoverLines
                 RowLayout {
                     required property var modelData
                     spacing: Style.space(12)
                     Rectangle { implicitWidth: Style.space(8); implicitHeight: implicitWidth; color: modelData.color }
-                    Label { text: modelData.symbol; Layout.fillWidth: true; font.pixelSize: Style.font.bodySmall }
-                    Label { text: root.hoverPrice(modelData); font.pixelSize: Style.font.bodySmall }
+                    Label { text: modelData.label; Layout.fillWidth: true; font.pixelSize: Style.font.bodySmall }
+                    Label { text: modelData.value; font.pixelSize: Style.font.bodySmall }
                 }
             }
         }
