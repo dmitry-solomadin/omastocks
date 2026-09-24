@@ -51,6 +51,32 @@ class FinancialsTests(unittest.TestCase):
         self.assertEqual(metric(statements[0], "revenueGrowth")["values"], [50, None, None])
         self.assertNotIn("debtEquity", [row["key"] for row in statements[1]["rows"]])
 
+    def test_growth_falls_back_to_aligned_history(self):
+        def growth(revenue, history):
+            fields = {"TotalRevenue": [fact(day, value) for day, value in revenue]}
+            document = {"timeseries": {"result": [{"quarterly" + key: values} for key, values in fields.items()]}}
+            income = financials.parse_statements(document, "TEST", "quarterly", history)["statements"][0]
+            return next((row["values"] for row in income["rows"] if row["key"] == "revenueGrowth"), None)
+        quarters = [("2026-06-30", 150), ("2026-03-31", 130), ("2025-12-31", 120), ("2025-09-30", 110), ("2025-06-30", 100)]
+        # History runs one quarter newer than Yahoo and reaches back a year further.
+        history = [160, 150, 130, 120, 110, 100, 104, 96, 88]
+        self.assertEqual(growth(quarters, history), [50, 25, 25, 25, None])
+        # Values that don't line up, or line up twice, are not trusted.
+        self.assertEqual(growth(quarters, [150, 131, 120, 110, 100, 104]), [50, None, None, None, None])
+        self.assertIsNone(growth(quarters[:2], [150, 130, 150, 130, 104, 96, 110]))
+        # A gap in Yahoo's quarters can't be placed in an undated history.
+        self.assertEqual(growth([quarters[0], quarters[1], quarters[4]], history), [50, None, None])
+
+    def test_revenue_history_is_empty_when_unavailable(self):
+        with patch.object(financials, "request", side_effect=OSError("offline")):
+            self.assertEqual(financials.revenue_history("AMD", "quarterly"), [])
+        row = {"s": "NASDAQ:AMD", "d": [[3, None, 1]]}
+        with patch.object(financials, "request", return_value={"data": [row]}) as fetch:
+            self.assertEqual(financials.revenue_history("AMD", "annual"), [3, None, 1])
+        self.assertEqual(fetch.call_args.args[0]["columns"], ["total_revenue_fy_h"])
+        with patch.object(financials, "request", return_value={"data": [row, dict(row, s="NYSE:AMD")]}):
+            self.assertEqual(financials.revenue_history("AMD", "quarterly"), [])
+
     def test_annual_uses_only_full_year_and_no_statements_is_valid(self):
         income = parse({"TotalRevenue": [fact("2025-09-30", 400, period="12M"), fact("2026-06-30", 100)]}, "annual")[0]
         self.assertEqual(income["dates"], ["2025-09-30"])

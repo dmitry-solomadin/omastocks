@@ -36,6 +36,7 @@ CACHE_SCHEMAS = {
     "market-news": ("marketNewsSchema", 3), "quotes": ("quotesSchema", 3),
     "calendar-bulk": ("calendarSchema", 2), "news": ("newsSchema", 6),
     "insiders": ("insiderSchema", 2), "overview": ("overviewSchema", 2),
+    "financials": ("financialsSchema", 2),
 }
 
 

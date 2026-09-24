@@ -35,7 +35,23 @@ STATEMENTS = {
 }
 
 
-def parse_statements(document, ticker, frequency):
+# Yahoo sends only the latest five quarters (four years), so a period's
+# year-ago revenue is often missing. TradingView keeps a longer, undated
+# history, newest first; it is used only where it lines up with Yahoo's values.
+REVENUE_HISTORY = {"quarterly": "total_revenue_fq_h", "annual": "total_revenue_fy_h"}
+
+
+def history_offset(history, values):
+    """Index in `history` where `values` (consecutive periods, newest first) start, or None."""
+    if not values or any(value is None for value in values):
+        return None
+    close = lambda a, b: a is not None and abs(a - b) <= 1e-6 * max(abs(a), abs(b), 1)
+    matches = [start for start in range(len(history) - len(values) + 1)
+               if all(close(history[start + i], value) for i, value in enumerate(values))]
+    return matches[0] if len(matches) == 1 else None
+
+
+def parse_statements(document, ticker, frequency, history=()):
     if frequency not in ("annual", "quarterly"):
         raise ValueError("Choose annual or quarterly financials.")
     result = (document.get("timeseries") or {})
@@ -87,10 +103,14 @@ def parse_statements(document, ticker, frequency):
             ratio("operatingMargin", "Operating margin", "OperatingIncome", "TotalRevenue", True)
             ratio("netMargin", "Net margin", "NetIncome", "TotalRevenue", True)
             growth = []
-            for day in dates:
+            step = 4 if frequency == "quarterly" else 1
+            offset = history_offset(history, [records["TotalRevenue"].get(day, (None, ""))[0] for day in dates])
+            for index, day in enumerate(dates):
                 current, unit = records["TotalRevenue"].get(day, (None, ""))
                 previous = next((value for old, value in records["TotalRevenue"].items()
                                  if int(old[:4]) == int(day[:4]) - 1 and old[5:7] == day[5:7]), (None, ""))
+                if previous[0] is None and offset is not None and offset + index + step < len(history):
+                    previous = (history[offset + index + step], unit)
                 growth.append((current / previous[0] - 1) * 100 if current is not None and previous[0] is not None
                               and previous[0] > 0 and previous[1] == unit else None)
             if any(value is not None for value in growth):
@@ -101,7 +121,7 @@ def parse_statements(document, ticker, frequency):
         else:
             ratio("fcfMargin", "Free cash flow margin", "FreeCashFlow", "TotalRevenue", True)
         statements.append({"id": section, "title": title, "dates": dates, "rows": rows})
-    return {"symbol": ticker, "frequency": frequency, "statements": statements, "source": "Yahoo Finance"}
+    return {"symbol": ticker, "frequency": frequency, "statements": statements, "source": "Yahoo Finance", "financialsSchema": 2}
 
 
 def statements(ticker, frequency):
@@ -110,7 +130,23 @@ def statements(ticker, frequency):
     fields = [frequency + key for _, metrics in STATEMENTS.values() for key, _ in metrics]
     document = fetch("/ws/fundamentals-timeseries/v1/finance/timeseries/" + urllib.parse.quote(ticker, safe=""),
                      symbol=ticker, type=",".join(fields), period1=1483142400, period2=int(time.time()) + 86400)
-    return parse_statements(document, ticker, frequency)
+    return parse_statements(document, ticker, frequency, revenue_history(ticker, frequency))
+
+
+def revenue_history(ticker, frequency):
+    """TradingView's revenue history, newest first; empty when unavailable."""
+    if not re.fullmatch(r"[A-Z][A-Z0-9.-]*", ticker):
+        return []
+    try:
+        document = request({"symbols": {"tickers": listings(ticker), "query": {"types": []}},
+                            "columns": [REVENUE_HISTORY[frequency]]})
+    except (OSError, ValueError):
+        return []
+    matches = [row for row in document.get("data") or []
+               if row.get("s") in listings(ticker) and len(row.get("d") or []) == 1]
+    if len(matches) != 1 or not isinstance(matches[0]["d"][0], list):
+        return []
+    return [number(value) for value in matches[0]["d"][0]]
 
 
 VALUATION_FIELDS = ["market_cap_basic", "price_earnings_ttm", "price_sales_current", "price_book_fq",
