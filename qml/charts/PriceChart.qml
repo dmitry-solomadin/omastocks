@@ -130,7 +130,7 @@ Item {
             + Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" || period === "1W" ? "d MMM yyyy, hh:mm" : "d MMM yyyy")
     }
     function timeLabel(timestamp) {
-        return Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" ? "hh:mm" : period === "5Y" ? "MMM yyyy" : "d MMM")
+        return Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" ? "hh:mm" : period === "ALL" ? "yyyy" : period === "2Y" || period === "5Y" ? "MMM yyyy" : "d MMM")
     }
     function eventText(event) {
         const day = Qt.formatDate(new Date(event.date + "T12:00:00"), "d MMM yyyy")

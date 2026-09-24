@@ -69,7 +69,14 @@ function compareSeries(points, dates, other, otherDates, period) {
 }
 
 function dailyAveragesSupported(period) {
-    return ["1M", "3M", "1Y", "5Y"].indexOf(period) >= 0
+    return ["1M", "3M", "YTD", "1Y", "2Y", "5Y", "ALL"].indexOf(period) >= 0
+}
+
+// Ranges drawn with bars spanning several days, each dated by its first day:
+// weekly for 5Y, and for ALL monthly or, on long histories, quarterly (Yahoo
+// picks). A bar runs until the next one starts; the last runs until today.
+function coarse(period) {
+    return period === "5Y" || period === "ALL"
 }
 
 // All comparison lines share exactly the same observations and baseline date.
@@ -106,8 +113,8 @@ function projectAverage(points, dates, series, period) {
         const day = dates[index]
         if (!day) continue
         let cutoff = day
-        if (period === "5Y") {
-            // Weekly prices represent the last close of the week, not Monday's close.
+        if (coarse(period)) {
+            // A weekly or monthly price is the bar's last close, not its first day's.
             const next = dates[index + 1]
             cutoff = next ? new Date(Date.parse(next) - 86400000).toISOString().slice(0, 10) : days[days.length - 1]
         }
@@ -120,10 +127,7 @@ function projectAverage(points, dates, series, period) {
 function eventPositions(points, dates, events, period) {
     if (!points.length || !dates.length) return []
     let lastDate = dates[dates.length - 1]
-    if (period === "5Y") {
-        const weekEnd = new Date(Date.parse(lastDate) + 6 * 86400000).toISOString().slice(0, 10)
-        lastDate = weekEnd < new Date().toISOString().slice(0, 10) ? weekEnd : new Date().toISOString().slice(0, 10)
-    }
+    if (coarse(period)) lastDate = new Date().toISOString().slice(0, 10)
     const seen = new Set(), result = []
     for (const event of events) {
         if (!event.date || event.date < dates[0] || event.date > lastDate) continue
@@ -131,7 +135,7 @@ function eventPositions(points, dates, events, period) {
         if (seen.has(key)) continue
         seen.add(key)
         let index = dates.findIndex(day => day >= event.date)
-        if (period === "5Y" && (index < 0 || dates[index] > event.date)) index = index < 0 ? dates.length - 1 : Math.max(0, index - 1)
+        if (coarse(period) && (index < 0 || dates[index] > event.date)) index = index < 0 ? dates.length - 1 : Math.max(0, index - 1)
         if (index >= 0) result.push(Object.assign({}, event, {index: index}))
     }
     return result

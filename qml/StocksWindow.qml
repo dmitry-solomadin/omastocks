@@ -450,8 +450,8 @@ FloatingWindow {
                         Layout.fillWidth: true
                         spacing: Style.space(3)
                         Repeater {
-                            model: ["1D", "1W", "1M", "3M", "1Y", "5Y"]
-                            ActionButton { required property string modelData; text: modelData; selected: StockStore.period === modelData; onClicked: StockStore.range(modelData); Layout.fillWidth: true }
+                            model: ["1D", "1W", "1M", "3M", "YTD", "1Y", "2Y", "5Y", "ALL"]
+                            ActionButton { required property string modelData; objectName: "range_" + modelData; text: modelData; selected: StockStore.period === modelData; onClicked: StockStore.range(modelData); Layout.fillWidth: true }
                         }
                         ActionButton {
                             objectName: "extendedToggle"

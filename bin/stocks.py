@@ -22,8 +22,11 @@ import watchlists
 
 RANGES = {
     "1D": ("1d", "5m"), "1W": ("5d", "30m"),
-    "1M": ("1mo", "1d"), "3M": ("3mo", "1d"),
-    "1Y": ("1y", "1d"), "5Y": ("5y", "1wk"),
+    "1M": ("1mo", "1d"), "3M": ("3mo", "1d"), "YTD": ("ytd", "1d"),
+    "1Y": ("1y", "1d"), "2Y": ("2y", "1d"), "5Y": ("5y", "1wk"),
+    # Monthly bars keep decades of history small; Yahoo widens them to
+    # quarterly on long histories.
+    "ALL": ("max", "1mo"),
 }
 SEED = [("AAPL", "Apple Inc."), ("MSFT", "Microsoft Corporation"),
         ("NVDA", "NVIDIA Corporation"), ("GOOGL", "Alphabet Inc."),

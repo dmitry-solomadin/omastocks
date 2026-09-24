@@ -70,7 +70,13 @@ for (const period of ["1D", "1W"]) {
     assert.equal(chart.dailyAveragesSupported(period), false)
     assert.deepEqual(plain(chart.projectAverage(primary, days, average, period)), [])
 }
-for (const period of ["1M", "3M", "1Y", "5Y"]) assert.equal(chart.dailyAveragesSupported(period), true)
+for (const period of ["1M", "3M", "YTD", "1Y", "2Y", "5Y", "ALL"]) assert.equal(chart.dailyAveragesSupported(period), true)
+// ALL bars (monthly or quarterly) run until the next bar: events and averages land in the bar that covers them.
+const months = ["2026-03-01", "2026-06-01", "2026-07-01"], monthly = [[1, 10], [2, 11], [3, 12]]
+assert.deepEqual(plain(chart.eventPositions(monthly, months, [{type: "dividend", date: "2026-05-18"}, {type: "split", date: "2026-08-31"}], "ALL")),
+    [{type: "dividend", date: "2026-05-18", index: 0}, {type: "split", date: "2026-08-31", index: 2}])
+const daily = {points: [[0, 5], [1, 6], [2, 7]], dates: ["2026-05-29", "2026-06-30", "2026-08-03"]}
+assert.deepEqual(plain(chart.projectAverage(monthly, months, daily, "ALL")), [[0, 5], [1, 6], [2, 7]])
 assert.deepEqual(plain(chart.projectAverage(primary, days, average, "1M")), [[0, 10], [1, 20], [2, 30]])
 const events = [{type: "earnings", date: "2026-09-18"}, {type: "earnings", date: "2026-09-18"}, {type: "dividend", date: "2026-10-01"}]
 assert.deepEqual(plain(chart.eventPositions(primary, days, events, "1M")), [{type: "earnings", date: "2026-09-18", index: 1}])
