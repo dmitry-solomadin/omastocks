@@ -1,14 +1,23 @@
 // Text-only UI inspection for development: find items by objectName and read
 // the visible text beneath them, so a change can be checked without screenshots.
 
+// Prefers a shown match: reused components (a sparkline's chart) repeat names.
 function find(item, name) {
-    if (!item) return null
-    if (item.objectName === name) return item
-    for (const child of item.children || []) {
-        const found = find(child, name)
-        if (found) return found
+    let hidden = null
+    function walk(item, parentShown) {
+        if (!item) return null
+        const visible = parentShown && shown(item)
+        if (item.objectName === name) {
+            if (visible) return item
+            hidden = hidden || item
+        }
+        for (const child of item.children || []) {
+            const found = walk(child, visible)
+            if (found) return found
+        }
+        return null
     }
-    return null
+    return walk(item, true) || hidden
 }
 
 // Size is ignored: an item that just became visible has none until its layout
