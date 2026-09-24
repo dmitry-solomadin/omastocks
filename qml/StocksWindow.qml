@@ -349,16 +349,33 @@ FloatingWindow {
                     Keys.onReturnPressed: if (currentItem) StockStore.select(currentItem.modelData.symbol)
                     Keys.onDownPressed: moveSelection(1)
                     Keys.onUpPressed: moveSelection(-1)
-                    WatchlistEmpty {
-                        anchors.centerIn: parent
+                    // Search states sit directly below the search box, not centred
+                    // in a long list. An empty watchlist shows nothing here.
+                    MarketLoading {
+                        objectName: "searchLoading"
+                        anchors.top: parent.top
+                        anchors.topMargin: Style.space(16)
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: Style.space(10)
+                        active: StockStore.searching && list.count === 0
+                        text: "Searching markets…"
+                    }
+                    Label {
+                        objectName: "searchNoMatches"
+                        anchors.top: parent.top
+                        anchors.topMargin: Style.space(24)
+                        anchors.horizontalCenter: parent.horizontalCenter
                         width: parent.width - Style.space(20)
-                        visible: list.count === 0
-                        mode: !StockStore.searchQuery ? "empty" : StockStore.searching ? "searching" : "nomatch"
-                        query: StockStore.searchQuery
-                        error: StockStore.searchError
+                        visible: list.count === 0 && !!StockStore.searchQuery && !StockStore.searching
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
+                        color: Tone.muted
+                        font.pixelSize: Style.font.bodySmall
+                        text: StockStore.searchError || "No matches · try a company name"
                     }
                 }
-                Label { visible: !!StockStore.searchQuery; text: StockStore.searching ? "Searching markets…" : StockStore.searchError || list.count + " RESULTS"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                Label { visible: !!StockStore.searchQuery && !StockStore.searching; text: StockStore.searchError || list.count + " RESULTS"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
             }
         }
         Flow {
@@ -413,7 +430,7 @@ FloatingWindow {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Style.space(6)
-                        Label { text: StockStore.selected || "Your markets, at a glance"; font.pixelSize: Style.space(22); font.bold: true; Layout.fillWidth: true }
+                        Label { text: StockStore.selected; font.pixelSize: Style.space(22); font.bold: true; Layout.fillWidth: true }
                         MarketStatus { session: stockHeader.session }
                     }
                     ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Color.accent : Color.foreground; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
@@ -618,13 +635,13 @@ FloatingWindow {
                         }
                     }
                 }
-                Label {
+                // Centred in the panel below the header.
+                TickerDemo {
+                    id: tickerDemo
                     visible: !StockStore.selected
-                    Layout.fillWidth: true
-                    Layout.margins: Style.space(32)
-                    text: "Make it your watchlist.\n\nSearch for a company or ticker in the sidebar\nto explore."
-                    wrapMode: Text.WordWrap
-                    color: Tone.muted
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: Math.min(implicitWidth, detailScroll.availableWidth - Style.space(64))
+                    Layout.topMargin: Math.max(Style.space(32), (detailScroll.availableHeight - stockHeader.height - tickerDemo.implicitHeight) / 2)
                 }
             }
         }

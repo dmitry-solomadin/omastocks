@@ -40,7 +40,6 @@ WatchlistWorkspace 1.0 watchlist/WatchlistWorkspace.qml
 WatchlistOverview 1.0 watchlist/WatchlistOverview.qml
 WatchlistDashboard 1.0 watchlist/WatchlistDashboard.qml
 WatchlistSortMenu 1.0 watchlist/WatchlistSortMenu.qml
-WatchlistEmpty 1.0 watchlist/WatchlistEmpty.qml
 EarningsCalendar 1.0 watchlist/EarningsCalendar.qml
 
 MarketOverview 1.0 market/MarketOverview.qml
@@ -60,3 +59,4 @@ StocksLogo 1.0 art/StocksLogo.qml
 MarketSky 1.0 art/MarketSky.qml
 MarketMood 1.0 art/MarketMood.qml
 StocksIntro 1.0 art/StocksIntro.qml
+TickerDemo 1.0 art/TickerDemo.qml
