@@ -121,3 +121,34 @@ loads; keep the cover and gallery consistent with the current branch. Full-windo
 captures are **1850 × 1400**; gallery thumbnails in `docs/screenshots/thumbs/` are
 600 pixels wide and link to the originals. The cover shows AMD in the initial
 1D view after loading, with default chart controls and collapsed research sections.
+
+### Text UI inspection
+
+The app exposes text inspection over IPC for checking behavior after a shell
+reload:
+
+```sh
+C=io.github.dmitry-solomadin.omastocks
+omarchy-shell $C open
+omarchy-shell $C view market                        # stock, market or watchlist
+omarchy-shell $C dump crossAssets                   # visible text under an objectName; no name dumps the window
+omarchy-shell $C activate crossAssetsView_global    # click a named button or switch
+journalctl --user --since "-2 min" | grep -iE "omastocks.*(warn|error)"
+```
+
+`dump` prints one line per visual row. `*` marks bold (selected) text and `[name]`
+marks items that `activate` can reach. `no item <name>` means nothing has that
+objectName; empty output means it exists but is hidden (another view, a collapsed
+section). Dumping the window shows what is currently visible. QML runtime errors,
+such as JavaScript Qt's engine lacks (`flatMap`), appear in the journal and can
+leave a page blank even when the tests pass.
+
+Interactive elements have an `objectName`. Buttons activate through `clicked()`;
+anything else (a `TapHandler`, a clickable label) needs an `activate()` function.
+Everything clickable shows a pointing-hand cursor. `ActionButton` provides this
+itself; a `MouseArea`, `ItemDelegate` or menu item needs its own `cursorShape`
+(or a `HoverHandler` with one), and an inline link switches on `hoveredLink`.
+
+Text inspection covers behavioral checks. Screenshots cover layout, spacing,
+color, theming, clipping and elision; `grim` can capture the window at its
+`hyprctl clients` geometry.
