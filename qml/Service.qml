@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import "."
+import "Inspect.js" as Inspect
 
 Item {
     id: root
@@ -53,6 +54,20 @@ Item {
             return JSON.stringify({open: window.visible, selected: StockStore.selected, range: StockStore.period,
                 entries: StockStore.entries.length, favorites: StockStore.favorites.map(entry => entry.symbol),
                 busy: StockStore.busy, error: StockStore.error, chartPoints: (StockStore.visibleChart.points || []).length})
+        }
+        // Development: switch tabs and read or activate the UI as text.
+        function view(name: string): string {
+            if (!["stock", "market", "watchlist"].includes(name)) return "unknown view " + name
+            StockStore.view = name
+            return name
+        }
+        function dump(name: string): string {
+            const item = name ? Inspect.find(window.contentItem, name) : window.contentItem
+            try { return item ? Inspect.text(item) : "no item " + name } catch (error) { return "dump failed: " + error }
+        }
+        function activate(name: string): string {
+            const item = Inspect.find(window.contentItem, name)
+            return !item ? "no item " + name : Inspect.activate(item) ? "activated " + name : name + " is not activatable"
         }
     }
 }

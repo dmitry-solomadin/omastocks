@@ -17,7 +17,10 @@ journalctl --user --since "-2 min" | grep -iE "omastocks.*(warn|error)"
 ```
 
 `dump` prints one line per visual row. `*` marks bold (selected) text and `[name]`
-marks items that `activate` can reach. Always grep the journal: QML runtime errors,
+marks items that `activate` can reach. `no item <name>` means nothing has that
+objectName; empty output means it exists but is hidden (another view, a collapsed
+section). Don't mistake empty output for a rendering bug: `dump` the window to see
+what's actually shown. Always grep the journal: QML runtime errors,
 such as JavaScript Qt's engine lacks (`flatMap`), only show up there, and they can
 leave the page blank while every test passes.
 
