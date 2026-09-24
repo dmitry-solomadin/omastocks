@@ -38,7 +38,7 @@ Controls.ScrollView {
                 Label { text: "Market"; font.pixelSize: Style.space(22); font.bold: true }
                 MarketStatus { session: marketHeader.session }
             }
-            MarketIndexes { Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter }
+            MarketIndexes { session: marketHeader.session; Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter }
         }
         Label {
             visible: StockStore.view !== "market"

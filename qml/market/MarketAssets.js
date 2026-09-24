@@ -1,12 +1,17 @@
 // Benchmarks and cross-asset quotes for the Market tab. `format` picks how a
 // price reads: yields as a percentage, FX to four decimals, the rest as prices.
+// Outside the regular session a benchmark with `futures` shows that contract
+// instead, since the cash index is frozen at its last close.
 var benchmarks = [
-    {symbol: "^SPX", name: "S&P 500"}, {symbol: "^IXIC", name: "Nasdaq"},
-    {symbol: "^DJI", name: "Dow Jones"}, {symbol: "^VIX", name: "VIX"}
+    {symbol: "^SPX", name: "S&P 500", futures: {symbol: "ES=F", name: "S&P 500"}},
+    {symbol: "^IXIC", name: "Nasdaq", futures: {symbol: "NQ=F", name: "Nasdaq 100"}},
+    {symbol: "^DJI", name: "Dow Jones", futures: {symbol: "YM=F", name: "Dow Jones"}},
+    {symbol: "^VIX", name: "VIX"}
 ]
 var groups = [
-    {title: "Index futures", note: "Trade nearly around the clock; a read on the next open.", assets: [
-        {symbol: "ES=F", name: "S&P 500"}, {symbol: "NQ=F", name: "Nasdaq 100"}, {symbol: "YM=F", name: "Dow"}]},
+    {title: "Global", note: "Overseas benchmarks; Asia has usually closed by the US open.", assets: [
+        {symbol: "^FTSE", name: "FTSE 100"}, {symbol: "^GDAXI", name: "DAX"}, {symbol: "^STOXX50E", name: "Euro Stoxx 50"},
+        {symbol: "^N225", name: "Nikkei 225"}, {symbol: "^HSI", name: "Hang Seng"}]},
     {title: "Commodities", assets: [
         {symbol: "GC=F", name: "Gold"}, {symbol: "SI=F", name: "Silver"}, {symbol: "CL=F", name: "Crude oil"},
         {symbol: "NG=F", name: "Natural gas"}, {symbol: "HG=F", name: "Copper"}]},
@@ -37,8 +42,15 @@ var sectors = [
     {symbol: "XLU", name: "Utilities", sector: "utilities"}
 ]
 
+// The instrument a benchmark tile shows: its futures contract when the session
+// is known and not regular, else the index itself.
+function benchmark(asset, offHours) {
+    return offHours && asset.futures ? Object.assign({futures: true}, asset.futures) : asset
+}
+
 function symbols() {
-    return Array.from(new Set(benchmarks.concat(...groups.map(group => group.assets), volatility, sectors).map(asset => asset.symbol))).sort()
+    const futures = benchmarks.filter(asset => asset.futures).map(asset => asset.futures)
+    return Array.from(new Set(benchmarks.concat(futures, ...groups.map(group => group.assets), volatility, sectors).map(asset => asset.symbol))).sort()
 }
 
 // Sectors that have a daily change, best first.
