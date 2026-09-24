@@ -130,6 +130,9 @@ function eventPositions(points, dates, events, period) {
     if (coarse(period)) lastDate = new Date().toISOString().slice(0, 10)
     const seen = new Set(), result = []
     for (const event of events) {
+        // Decades wide, quarterly earnings and dividends would pile into the
+        // last few years; splits are the events that matter at that scale.
+        if (period === "ALL" && event.type !== "split") continue
         if (!event.date || event.date < dates[0] || event.date > lastDate) continue
         const key = event.type + ":" + event.date
         if (seen.has(key)) continue
