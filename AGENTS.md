@@ -24,6 +24,10 @@ what's actually shown. Always grep the journal: QML runtime errors,
 such as JavaScript Qt's engine lacks (`flatMap`), only show up there, and they can
 leave the page blank while every test passes.
 
+Everything clickable shows a pointing-hand cursor. `ActionButton` does this
+itself; a `MouseArea`, `ItemDelegate` or menu item needs its own `cursorShape`
+(or a `HoverHandler` with one), and an inline link switches on `hoveredLink`.
+
 Give new interactive elements an `objectName`. Buttons activate through `clicked()`;
 anything else (a `TapHandler`, a clickable label) needs an `activate()` function.
 

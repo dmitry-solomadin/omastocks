@@ -6,6 +6,7 @@ import ".."
 
 Controls.Button {
     id: root
+    HoverHandler { cursorShape: Qt.PointingHandCursor }
     property bool selected: false
     property string hint: ""
     property color ink: selected ? Color.accent : Color.foreground

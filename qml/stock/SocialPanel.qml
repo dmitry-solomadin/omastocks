@@ -91,6 +91,7 @@ ColumnLayout {
             Controls.ItemDelegate {
                 id: post
                 required property var modelData
+                HoverHandler { cursorShape: Qt.PointingHandCursor }
                 Layout.fillWidth: true
                 implicitHeight: contentItem.implicitHeight + padding * 2
                 padding: Style.space(10)

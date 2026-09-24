@@ -28,6 +28,7 @@ Controls.Menu {
             id: option
             required property var modelData
             objectName: "watchlistSort_" + modelData.value
+            HoverHandler { cursorShape: Qt.PointingHandCursor }
             text: modelData.label
             implicitHeight: Style.space(34)
             enabled: !StockStore.busy

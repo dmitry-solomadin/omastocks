@@ -19,6 +19,7 @@ RowLayout {
         Ui.Dropdown {
             id: dropdown
             objectName: "watchlistSelector"
+            HoverHandler { cursorShape: Qt.PointingHandCursor }
             anchors.fill: parent
             rowHeight: editButton.implicitHeight
             opacity: selector.revealed ? 1 : 0

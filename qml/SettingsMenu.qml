@@ -24,6 +24,7 @@ Controls.Popup {
             StockStore.barSettings = settings
     }
     component ThemedSwitch: Ui.ToggleSwitch {
+        HoverHandler { cursorShape: Qt.PointingHandCursor }
         rounded: false
         activeFocusOnTab: true
         hasCursor: activeFocus

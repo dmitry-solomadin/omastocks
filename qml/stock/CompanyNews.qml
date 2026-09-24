@@ -46,6 +46,7 @@ ColumnLayout {
         Controls.ItemDelegate {
             id: article
             required property var modelData
+            HoverHandler { cursorShape: Qt.PointingHandCursor }
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             Layout.preferredWidth: 1

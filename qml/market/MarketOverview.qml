@@ -49,6 +49,7 @@ ColumnLayout {
         Ui.Dropdown {
             id: selector
             objectName: "marketSectorSelector"
+            HoverHandler { cursorShape: Qt.PointingHandCursor }
             Layout.fillWidth: true
             Layout.minimumWidth: Style.space(135)
             Layout.preferredWidth: Style.space(220)

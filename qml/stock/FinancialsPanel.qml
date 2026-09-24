@@ -128,6 +128,7 @@ ColumnLayout {
                         id: row
                         required property var modelData
                         objectName: "financialMetric_" + modelData.key
+                        HoverHandler { cursorShape: Qt.PointingHandCursor }
                         width: table.width; height: Style.space(36)
                         padding: 0
                         hoverEnabled: true

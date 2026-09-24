@@ -104,6 +104,7 @@ ColumnLayout {
                 }
                 Caption {
                     id: source
+                    HoverHandler { cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor }
                     readonly property string url: "https://www.cnn.com/markets/fear-and-greed"
                     textFormat: Text.StyledText
                     linkColor: Color.foreground

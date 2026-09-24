@@ -71,6 +71,7 @@ ColumnLayout {
         spacing: 0
         Label {
             id: reportLabel
+            HoverHandler { cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor }
             Layout.alignment: Qt.AlignTop
             color: Tone.muted
             linkColor: Color.foreground
@@ -146,6 +147,7 @@ ColumnLayout {
             Controls.ItemDelegate {
                 id: callLink
                 required property var modelData
+                HoverHandler { cursorShape: Qt.PointingHandCursor }
                 Layout.fillWidth: true
                 implicitHeight: contentItem.implicitHeight + padding * 2
                 padding: Style.space(8)
