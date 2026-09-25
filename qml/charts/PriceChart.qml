@@ -489,19 +489,13 @@ Item {
     }
     Repeater {
         model: root.markerGroups
-        Rectangle {
+        EventBadge {
             id: marker
             required property var modelData
             x: Math.max(root.leftInset, Math.min(root.leftInset + root.plotWidth - width, root.pointX(modelData.index) - width / 2))
-            y: root.eventTop
-            width: Style.space(20); height: width
-            radius: Style.cornerRadius
-            color: Color.background
-            border.width: 1
-            border.color: Color.accent
-            Label { anchors.centerIn: parent; text: marker.modelData.events.length > 1 ? "+" : marker.modelData.events[0].type === "earnings" ? "E" : marker.modelData.events[0].type === "dividend" ? "D" : "S"; color: Color.accent; font.pixelSize: Style.font.bodySmall }
-            MouseArea { id: markerMouse; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
-            Ui.PanelToolTip { visible: markerMouse.containsMouse; text: marker.modelData.events.map(event => root.eventText(event)).join("\n\n") }
+            y: root.eventTop + Math.round((Style.space(20) - height) / 2)
+            text: modelData.events.length > 1 ? "+" : modelData.events[0].type === "earnings" ? "E" : modelData.events[0].type === "dividend" ? "D" : "S"
+            hint: modelData.events.map(event => root.eventText(event)).join("\n\n")
         }
     }
 }

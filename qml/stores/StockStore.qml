@@ -39,6 +39,25 @@ QtObject {
             ? ["quotes", Array.from(new Set(root.entries.map(row => row.symbol))).sort().join(",")] : []
         refreshInterval: 300000
     }
+    // Next reports for the active list, shared by the sidebar badges and the
+    // Watchlist earnings calendar.
+    property DataRequest watchlistEarningsRequest: DataRequest {
+        arguments: root.windowOpen && root.entries.length
+            ? ["calendar-bulk", Array.from(new Set(root.entries.map(row => row.symbol))).sort().join(",")] : []
+        refreshInterval: 21600000
+    }
+    property string today: Qt.formatDate(new Date(), "yyyy-MM-dd")
+    property Timer todayTimer: Timer {
+        interval: 60000; running: root.windowOpen; repeat: true; triggeredOnStart: true
+        onTriggered: root.today = Qt.formatDate(new Date(), "yyyy-MM-dd")
+    }
+    // A report within the next two weeks, with its distance in calendar days.
+    function upcomingEarnings(ticker) {
+        const next = ((watchlistEarningsRequest.data.rows || {})[ticker] || {}).next
+        if (!next || !next.date || next.date < today) return null
+        const days = Math.round((new Date(next.date + "T12:00:00") - new Date(today + "T12:00:00")) / 86400000)
+        return days <= 14 ? Object.assign({ days: days }, next) : null
+    }
     // Benchmarks, the US session and cross-asset quotes. Its arguments never
     // change once started, so switching watchlists cannot reset it, and a
     // reload keeps showing the previous result until the new one arrives.
@@ -198,11 +217,42 @@ QtObject {
         request(["add", ticker, name || (ticker === selected ? quote.name : "") || ticker])
         request(["refresh"])
     }
-    function remove() {
+    // Leaving the list keeps the selected stock's page showing its last quote.
+    function keepPreview(ticker) {
+        if (ticker !== selected) return
         const quotes = Object.assign({}, previewQuotes)
         quotes[selected] = quote
         previewQuotes = quotes
-        request(["remove", selected])
+    }
+    function remove(ticker) {
+        ticker = ticker || selected
+        const index = entries.findIndex(entry => entry.symbol === ticker)
+        if (index < 0) return
+        const entry = entries[index]
+        keepPreview(ticker)
+        // Undo restores the stock, its star and its place in the custom order.
+        lastRemoved = { symbol: ticker, name: entry.name || ticker, favorite: entry.favorite === true,
+            before: index + 1 < entries.length ? entries[index + 1].symbol : "", list: activeWatchlist }
+        undoTimer.restart()
+        request(["remove", ticker])
+    }
+    property var lastRemoved: null
+    property Timer undoTimer: Timer { interval: 8000; onTriggered: root.lastRemoved = null }
+    function undoRemove() {
+        const removed = lastRemoved
+        if (!removed) return
+        lastRemoved = null
+        undoTimer.stop()
+        request(["add", removed.symbol, removed.name, removed.favorite ? "true" : "", "--list", removed.list])
+        // Put it back before its old neighbour, when that stock is still listed.
+        if (removed.before && (removed.list !== activeWatchlist || entries.some(entry => entry.symbol === removed.before)))
+            request(["move", removed.symbol, removed.before, "--list", removed.list])
+        request(["refresh"])
+    }
+    function transfer(ticker, target) {
+        if (!entries.some(entry => entry.symbol === ticker) || target === activeWatchlist) return
+        keepPreview(ticker)
+        request(["transfer", ticker, target])
     }
     function movedEntries(rows, ticker, before) {
         const entry = rows.find(row => row.symbol === ticker)
@@ -220,7 +270,7 @@ QtObject {
         request(["move", ticker, before])
     }
     function request(args) {
-        if (["add", "remove", "favorite", "move"].indexOf(args[0]) >= 0)
+        if (["add", "remove", "favorite", "move", "transfer"].indexOf(args[0]) >= 0 && args.indexOf("--list") < 0)
             args = args.concat(["--list", activeWatchlist])
         // Supersede reads, but preserve every watchlist mutation in order.
         let pending = queue.slice()

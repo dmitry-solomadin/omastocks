@@ -17,6 +17,7 @@ Label 1.0 components/Label.qml
 FastWheel 1.0 components/FastWheel.qml
 FeatureTable 1.0 components/FeatureTable.qml
 RangeGauge 1.0 components/RangeGauge.qml
+EventBadge 1.0 components/EventBadge.qml
 MarketLoading 1.0 components/MarketLoading.qml
 SessionHeader 1.0 components/SessionHeader.qml
 
@@ -41,6 +42,7 @@ WatchlistOverview 1.0 watchlist/WatchlistOverview.qml
 WatchlistDashboard 1.0 watchlist/WatchlistDashboard.qml
 WatchlistSortMenu 1.0 watchlist/WatchlistSortMenu.qml
 EarningsCalendar 1.0 watchlist/EarningsCalendar.qml
+StockRowMenu 1.0 watchlist/StockRowMenu.qml
 
 MarketOverview 1.0 market/MarketOverview.qml
 SectorHeatmap 1.0 market/SectorHeatmap.qml

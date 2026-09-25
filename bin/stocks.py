@@ -244,6 +244,21 @@ class Repository:
         write_json(self.state_path, self.state)
         return self.snapshot()
 
+    def transfer(self, ticker, target, list_id=""):
+        """Move a stock to another watchlist in one write, so a full target never loses it."""
+        source = watchlists.selected(self.state, list_id)["entries"]
+        destination = watchlists.selected(self.state, target)["entries"]
+        moving = next((entry for entry in source if entry["symbol"] == ticker), None)
+        if moving is None or source is destination:
+            raise ValueError("The watchlist changed. Refresh and try again.")
+        if not any(entry["symbol"] == ticker for entry in destination):
+            if len(destination) >= 60:
+                raise ValueError("That watchlist already has 60 stocks.")
+            destination.append(moving)
+        source[:] = [entry for entry in source if entry["symbol"] != ticker]
+        write_json(self.state_path, self.state)
+        return self.snapshot()
+
     def move(self, ticker, before="", list_id=""):
         entries = watchlists.selected(self.state, list_id)["entries"]
         moving = next((entry for entry in entries if entry["symbol"] == ticker), None)
@@ -302,13 +317,15 @@ def main(arguments):
             result = search(arguments[1])
         elif action == "move":
             result = repository.move(symbol(arguments[1]), symbol(arguments[2]) if len(arguments) > 2 and arguments[2] else "", list_id)
+        elif action == "transfer":
+            result = repository.transfer(symbol(arguments[1]), arguments[2], list_id)
         elif action == "watchlist":
             result = repository.watchlist(arguments[1], arguments[2] if len(arguments) > 2 else "", arguments[3] if len(arguments) > 3 else "")
         elif action in ("add", "remove", "favorite"):
             result = repository.mutate(action, symbol(arguments[1]), arguments[2] if len(arguments) > 2 else "",
                                        len(arguments) > 3 and arguments[3] == "true", list_id)
         else:
-            raise ValueError("Use snapshot, refresh, chart, search, add, remove, favorite, move or watchlist.")
+            raise ValueError("Use snapshot, refresh, chart, search, add, remove, favorite, move, transfer or watchlist.")
         write_json(repository.cache_path, repository.cache)
         return result
 

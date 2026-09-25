@@ -93,6 +93,31 @@ class Watchlists(unittest.TestCase):
         with self.assertRaises(ValueError): reopened.watchlist("sort", "default", "invalid")
         self.assertEqual(repo.state_path.read_bytes(), before)
 
+    def test_transfer_moves_stock_with_its_favorite_between_lists(self):
+        repo = stocks.Repository(self.path)
+        other = repo.watchlist("create", name="Other")["activeWatchlist"]
+        repo.watchlist("select", "default")
+        if not next(entry for entry in repo.state["entries"] if entry["symbol"] == "AAPL").get("favorite"):
+            repo.mutate("favorite", "AAPL")
+        repo.transfer("AAPL", other)
+        reopened = stocks.Repository(self.path)
+        lists = {row["id"]: row["entries"] for row in reopened.state["watchlists"]}
+        self.assertNotIn("AAPL", [entry["symbol"] for entry in lists["default"]])
+        self.assertEqual([(entry["symbol"], entry["favorite"]) for entry in lists[other]], [("AAPL", True)])
+
+    def test_transfer_to_full_or_same_list_keeps_the_stock(self):
+        repo = stocks.Repository(self.path)
+        full = repo.watchlist("create", name="Full")["activeWatchlist"]
+        for index in range(60):
+            repo.mutate("add", "T%d" % index, "", False, full)
+        repo.watchlist("select", "default")
+        before = repo.state_path.read_bytes()
+        for target in (full, "default", "missing"):
+            with self.subTest(target=target):
+                with self.assertRaises(ValueError):
+                    repo.transfer("AAPL", target)
+                self.assertEqual(repo.state_path.read_bytes(), before)
+
 
 class ResearchFeatures(unittest.TestCase):
     def test_price_returns_use_preceding_close_and_require_sufficient_history(self):

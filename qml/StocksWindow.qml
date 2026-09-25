@@ -70,6 +70,8 @@ FloatingWindow {
         Keys.onUpPressed: list.moveSelection(-1)
         SettingsMenu { id: settingsMenu; parent: content; shell: window.shell }
         WatchlistMenu { id: watchlistMenu; parent: content }
+        StockRowMenu { id: rowMenu; parent: content }
+        Shortcut { sequence: "Ctrl+Z"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !!StockStore.lastRemoved && !search.activeFocus; onActivated: StockStore.undoRemove() }
         Connections { target: StockStore; function onActiveWatchlistChanged() { search.clear(); list.cancelDrag() } }
         Connections {
             target: StockStore
@@ -235,6 +237,8 @@ FloatingWindow {
                         id: stockRow
                         required property var modelData
                         required property int index
+                        objectName: "stockRow_" + modelData.symbol
+                        function activate() { list.selectIndex(index) }
                         width: list.width
                         height: Style.space(64)
                         opacity: list.reordering && list.dragSymbol === modelData.symbol ? .35 : 1
@@ -251,9 +255,11 @@ FloatingWindow {
                             hoverEnabled: true
                             property bool wasDragged: false
                             preventStealing: !StockStore.searchQuery
+                            acceptedButtons: stockRow.tracked ? Qt.LeftButton | Qt.RightButton : Qt.LeftButton
                             cursorShape: list.reordering ? Qt.ClosedHandCursor : StockStore.searchQuery || StockStore.sortMode !== "custom" ? Qt.PointingHandCursor : Qt.OpenHandCursor
                             onPressed: mouse => {
                                 wasDragged = false
+                                if (mouse.button === Qt.RightButton) return
                                 list.beginDrag(stockRow.modelData, mapToItem(list, mouse.x, mouse.y))
                             }
                             onPositionChanged: mouse => {
@@ -263,7 +269,10 @@ FloatingWindow {
                             }
                             onReleased: list.finishDrag()
                             onCanceled: list.cancelDrag()
-                            onClicked: if (!wasDragged) list.selectIndex(stockRow.index)
+                            onClicked: mouse => {
+                                if (mouse.button === Qt.RightButton) rowMenu.openFor(stockRow.modelData)
+                                else if (!wasDragged) list.selectIndex(stockRow.index)
+                            }
                         }
                         Column {
                             anchors.left: parent.left; anchors.leftMargin: Style.space(12)
@@ -274,7 +283,17 @@ FloatingWindow {
                                 width: parent.width
                                 spacing: Style.space(6)
                                 Label { text: "★"; visible: stockRow.modelData.favorite === true; color: Color.accent; font.pixelSize: Style.font.bodySmall }
-                                Label { text: stockRow.modelData.symbol; font.bold: true; Layout.fillWidth: true }
+                                Label { text: stockRow.modelData.symbol; font.bold: true }
+                                EventBadge {
+                                    objectName: "earnings_" + stockRow.modelData.symbol
+                                    readonly property var report: stockRow.tracked ? StockStore.upcomingEarnings(stockRow.modelData.symbol) : null
+                                    visible: !!report
+                                    text: "E"
+                                    strong: !!report && report.days <= 1
+                                    hint: !report ? "" : "Earnings " + (report.days === 0 ? "today" : report.days === 1 ? "tomorrow"
+                                        : Qt.formatDate(new Date(report.date + "T12:00:00"), "ddd, MMM d")) + (report.timing ? " · " + report.timing : "")
+                                }
+                                Item { Layout.fillWidth: true }
                                 Label { text: StockStore.price(stockRow.modelData.price); visible: stockRow.hasQuote; font.bold: true }
                                 Label { text: StockStore.watchlistMetricText(stockRow.modelData); color: StockStore.watchlistDisplay === "marketCap" ? Tone.muted : StockStore.direction(StockStore.watchlistMetric(stockRow.modelData)); font.pixelSize: Style.font.bodySmall; visible: stockRow.hasQuote }
                                 Label { text: stockRow.modelData.exchange || ""; color: Tone.muted; font.pixelSize: Style.font.bodySmall; visible: !stockRow.hasQuote }
@@ -313,7 +332,7 @@ FloatingWindow {
                         }
                         Accessible.role: Accessible.ListItem
                         Accessible.name: modelData.symbol + " " + modelData.name
-                        Accessible.description: StockStore.searchQuery ? "" : "Drag to reorder your watchlist"
+                        Accessible.description: StockStore.searchQuery ? "" : "Drag to reorder your watchlist · right-click for actions"
                     }
                     Rectangle {
                         parent: list
@@ -349,6 +368,7 @@ FloatingWindow {
                     Keys.onReturnPressed: if (currentItem) StockStore.select(currentItem.modelData.symbol)
                     Keys.onDownPressed: moveSelection(1)
                     Keys.onUpPressed: moveSelection(-1)
+                    Keys.onDeletePressed: if (StockStore.tracked && !StockStore.busy) StockStore.remove()
                     // Search states sit directly below the search box, not centred
                     // in a long list. An empty watchlist shows nothing here.
                     MarketLoading {
@@ -376,6 +396,34 @@ FloatingWindow {
                     }
                 }
                 Label { visible: !!StockStore.searchQuery && !StockStore.searching; text: StockStore.searchError || list.count + " RESULTS"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                Rectangle {
+                    objectName: "removedBar"
+                    visible: !!StockStore.lastRemoved
+                    Layout.fillWidth: true
+                    implicitHeight: Style.space(40)
+                    radius: Style.cornerRadius
+                    color: Util.alpha(Color.foreground, .06)
+                    border.width: 1
+                    border.color: Tone.border
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: Style.space(12)
+                        anchors.rightMargin: Style.space(4)
+                        Label {
+                            Layout.fillWidth: true
+                            text: StockStore.lastRemoved ? "Removed " + StockStore.lastRemoved.symbol : ""
+                            font.pixelSize: Style.font.bodySmall
+                        }
+                        ActionButton {
+                            objectName: "undoRemove"
+                            text: "Undo"
+                            ink: Color.accent
+                            hint: "Put it back · Ctrl+Z"
+                            enabled: !StockStore.busy
+                            onClicked: StockStore.undoRemove()
+                        }
+                    }
+                }
             }
         }
         Flow {

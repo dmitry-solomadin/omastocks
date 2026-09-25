@@ -7,9 +7,12 @@ ColumnLayout {
     id: root
     property var verticalFlickable
     property string horizon: "All upcoming"
-    property string today: Qt.formatDate(new Date(), "yyyy-MM-dd")
-    readonly property var available: StockStore.entries.map(entry => ({entry:entry, report:batch.rows[entry.symbol] || {}}))
-    readonly property var undatedSymbols: available.filter(row => !StockStore.isNonCompany(row.entry.symbol) && batch.rows[row.entry.symbol] && (!row.report.next || row.report.next.date < root.today)).map(row => row.entry.symbol)
+    readonly property string today: StockStore.today
+    readonly property var report: StockStore.watchlistEarningsRequest.data
+    readonly property var rows: report.rows || ({})
+    readonly property bool busy: StockStore.watchlistEarningsRequest.busy
+    readonly property var available: StockStore.entries.map(entry => ({entry:entry, report:root.rows[entry.symbol] || {}}))
+    readonly property var undatedSymbols: available.filter(row => !StockStore.isNonCompany(row.entry.symbol) && root.rows[row.entry.symbol] && (!row.report.next || row.report.next.date < root.today)).map(row => row.entry.symbol)
     readonly property var dated: available.filter(row => row.report.next && row.report.next.date >= today).sort((a,b)=>a.report.next.date.localeCompare(b.report.next.date) || a.entry.symbol.localeCompare(b.entry.symbol))
     readonly property var scheduled: dated.filter(row => {
         if (horizon === "All upcoming") return true
@@ -19,15 +22,14 @@ ColumnLayout {
         return horizon === "This week" ? offset < 7 : offset >= 7 && offset < 14
     })
     spacing: Style.space(12)
-    function refresh() { batch.reload(true) }
-    BulkRequest { id: batch; active: StockStore.windowOpen && root.visible; action: "calendar-bulk"; symbols: StockStore.entries.map(row=>row.symbol); refreshInterval: 21600000 }
+    function refresh() { StockStore.watchlistEarningsRequest.reload(true) }
     Flow {
         Layout.fillWidth: true; spacing: Style.space(4)
         Repeater { model: ["This week", "Next week", "All upcoming"]; ActionButton { required property string modelData; text: modelData; selected: root.horizon === modelData; onClicked: root.horizon = modelData } }
-        ActionButton { text: "↻"; enabled: !batch.busy; hint: "Refresh watchlist earnings"; onClicked: root.refresh() }
+        ActionButton { text: "↻"; enabled: !root.busy; hint: "Refresh watchlist earnings"; onClicked: root.refresh() }
     }
-    Label { visible: !!batch.report.error; text: batch.report.error || ""; color: Tone.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap }
-    Label { visible: !root.scheduled.length; text: !StockStore.entries.length ? "Add stocks to this watchlist to see their upcoming earnings." : batch.busy ? "" : "No upcoming reports in this period."; color: Tone.muted; Layout.fillWidth: true }
+    Label { visible: !!root.report.error; text: root.report.error || ""; color: Tone.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+    Label { visible: !root.scheduled.length; text: !StockStore.entries.length ? "Add stocks to this watchlist to see their upcoming earnings." : root.busy ? "" : "No upcoming reports in this period."; color: Tone.muted; Layout.fillWidth: true }
     FeatureTable {
         visible: StockStore.entries.length > 0
         verticalFlickable: root.verticalFlickable
@@ -39,11 +41,11 @@ ColumnLayout {
                     ? (last.eps - last.forecast) / Math.abs(last.forecast) * 100 : null,
                 revenueSurprise = Number.isFinite(last.revenue) && Number.isFinite(last.revenueForecast) && last.revenueForecast !== 0
                     ? (last.revenue - last.revenueForecast) / Math.abs(last.revenueForecast) * 100 : null,
-                revenueHint = batch.report.revenueNotice || ""
+                revenueHint = root.report.revenueNotice || ""
             return {label:row.entry.symbol,symbol:row.entry.symbol,hint:row.entry.name,cells:[
-                {text:next.date,subtext:next.timing || "",hint:batch.report.error || ""},
-                {text:StockStore.financial(next.forecast,"perShare",next.currency || ""),subtext:batch.report.stale ? "Saved" : ""},
-                {text:StockStore.revenue(next.revenueForecast,next.revenueCurrency),subtext:batch.report.stale ? "Saved" : "",hint:revenueHint},
+                {text:next.date,subtext:next.timing || "",hint:root.report.error || ""},
+                {text:StockStore.financial(next.forecast,"perShare",next.currency || ""),subtext:root.report.stale ? "Saved" : ""},
+                {text:StockStore.revenue(next.revenueForecast,next.revenueCurrency),subtext:root.report.stale ? "Saved" : "",hint:revenueHint},
                 {text:StockStore.percent(surprise),subtext:last.date || "",color:StockStore.direction(surprise),hint:Number.isFinite(last.eps) && Number.isFinite(last.forecast) ? "Actual " + StockStore.price(last.eps) + " · Estimate " + StockStore.price(last.forecast) : ""},
                 {text:StockStore.percent(revenueSurprise),subtext:last.date || "",color:StockStore.direction(revenueSurprise),hint:revenueHint || (Number.isFinite(last.revenue) && Number.isFinite(last.revenueForecast) ? "Actual " + StockStore.revenue(last.revenue,last.revenueCurrency) + " · Estimate " + StockStore.revenue(last.revenueForecast,last.revenueCurrency) : "")}
             ]}
@@ -55,5 +57,4 @@ ColumnLayout {
         font.pixelSize: Style.font.bodySmall; color: Tone.muted
         text: "Next report date unavailable: " + root.undatedSymbols.join(", ")
     }
-    Timer { interval: 60000; running: root.visible && StockStore.windowOpen; repeat: true; triggeredOnStart: true; onTriggered: root.today = Qt.formatDate(new Date(), "yyyy-MM-dd") }
 }
