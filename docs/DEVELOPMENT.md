@@ -73,7 +73,9 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   have four workers. Market pages stay mounted after the first visit and poll
   only while active.
 - `bin/yahoo_http.py` shares anonymous authentication, request pacing and HTTP 429
-  backoff across helper processes. Manual refresh bypasses ordinary caches and
+  backoff across helper processes. Transient network failures and HTTP 500/502/503/504
+  responses get two retries after 1 and 2 seconds, respecting shared pacing and
+  rate-limit cooldowns on each attempt. Manual refresh bypasses ordinary caches and
   failure cooldowns, while respecting that shared throttle and successful daily
   Overview baselines. `bin/tradingview.py` shares bounded scanner transport and
   share-class symbol mapping.

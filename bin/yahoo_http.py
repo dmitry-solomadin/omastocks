@@ -53,18 +53,26 @@ def throttled(headers):
 
 
 def read(request, opener=None):
-    reserve()
-    try:
-        with (opener.open if opener else urllib.request.urlopen)(request, timeout=10) as response:
-            raw = response.read(4 * 1024 * 1024 + 1)
-        if len(raw) > 4 * 1024 * 1024:
-            raise ValueError("Yahoo Finance returned an oversized response.")
-        return raw
-    except urllib.error.HTTPError as error:
-        if error.code == 429:
-            throttled(error.headers)
-            raise ValueError("Yahoo Finance is rate limiting requests. Please try again later.") from error
-        raise
+    # Recover from brief DNS/network outages before falling back to cached quotes.
+    # Reserve every attempt so retries still respect the shared provider cooldown.
+    for attempt in range(3):
+        reserve()
+        try:
+            with (opener.open if opener else urllib.request.urlopen)(request, timeout=10) as response:
+                raw = response.read(4 * 1024 * 1024 + 1)
+            if len(raw) > 4 * 1024 * 1024:
+                raise ValueError("Yahoo Finance returned an oversized response.")
+            return raw
+        except urllib.error.HTTPError as error:
+            if error.code == 429:
+                throttled(error.headers)
+                raise ValueError("Yahoo Finance is rate limiting requests. Please try again later.") from error
+            if error.code not in (500, 502, 503, 504) or attempt == 2:
+                raise
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            if attempt == 2:
+                raise
+        time.sleep(2 ** attempt)
 
 
 def authenticated(path, body=None, **parameters):
