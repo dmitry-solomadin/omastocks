@@ -19,6 +19,17 @@ assert.equal(assets.benchmark(spx, false).symbol, "^SPX")
 assert.equal(assets.benchmark(spx, true).symbol, "ES=F")
 assert.equal(assets.benchmark(spx, true).futures, true)
 assert.equal(assets.benchmark(vix, true).symbol, "^VIX")
+// Opening must clear the FUT badge/tooltip without losing the next overnight contract.
+for (const asset of assets.benchmarks) {
+    const contract = asset.futures
+    const open = assets.benchmark(asset, false)
+    assert.equal(open.symbol, asset.symbol)
+    assert.equal(open.futures, false)
+    const overnight = assets.benchmark(asset, true)
+    assert.equal(overnight.symbol, contract ? contract.symbol : asset.symbol)
+    assert.equal(overnight.futures, !!contract)
+    assert.equal(asset.futures, contract)
+}
 const ranked = Array.from(assets.rankedSectors({XLK: {percent: -.5}, XLE: {percent: 1.5}, XLU: {percent: -1.7}, XLF: {}}), row => row.symbol)
 assert.deepEqual(ranked, ["XLE", "XLK", "XLU"])
 console.log("market assets ok")

@@ -45,7 +45,7 @@ var sectors = [
 // The instrument a benchmark tile shows: its futures contract when the session
 // is known and not regular, else the index itself.
 function benchmark(asset, offHours) {
-    return offHours && asset.futures ? Object.assign({futures: true}, asset.futures) : asset
+    return offHours && asset.futures ? Object.assign({futures: true}, asset.futures) : Object.assign({}, asset, {futures: false})
 }
 
 function symbols() {
