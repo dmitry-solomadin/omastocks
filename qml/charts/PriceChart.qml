@@ -46,12 +46,13 @@ Item {
         }
         return groups
     }
-    readonly property bool hasVolume: volumes.some(value => value !== null && value !== undefined && value > 0)
+    readonly property var volumeSeries: ChartMath.volumeSeries(points, volumes, period)
+    readonly property bool hasVolume: volumeSeries.volumes.some(value => value !== null && value !== undefined && value > 0)
     readonly property real volumeHeight: !miniature && !comparing && showVolume && hasVolume ? Style.space(52) : 0
     readonly property real eventHeight: !miniature && (eventMarkers.length || (reserveEvents && !comparing)) ? Style.space(25) : 0
     readonly property real volumeTop: topInset + plotHeight + Style.space(8)
     readonly property real eventTop: height - bottomInset - eventHeight
-    readonly property real maxVolume: Math.max(1, ...volumes.map(value => value || 0))
+    readonly property real maxVolume: Math.max(1, ...volumeSeries.volumes.map(value => value || 0))
     property var sessionStart: null
     property var sessionEnd: null
     property double now: Date.now() / 1000
@@ -127,7 +128,7 @@ Item {
     function hoverTime(timestamp) {
         const session = sessions.find(session => timestamp >= session.start && timestamp < session.end)
         return (session ? session.label + " · " : "")
-            + Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" || period === "1W" ? "d MMM yyyy, hh:mm" : "d MMM yyyy")
+            + Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" || period === "1W" || period === "1M" ? "d MMM yyyy, hh:mm" : "d MMM yyyy")
     }
     function timeLabel(timestamp) {
         return Qt.formatDateTime(new Date(timestamp * 1000), period === "1D" ? "hh:mm" : period === "ALL" ? "yyyy" : period === "2Y" || period === "5Y" ? "MMM yyyy" : "d MMM")
@@ -163,6 +164,7 @@ Item {
     onAverageLinesChanged: canvas.requestPaint()
     onNormalizedChanged: { clearSelection(); canvas.requestPaint() }
     onVolumesChanged: canvas.requestPaint()
+    onVolumeSeriesChanged: canvas.requestPaint()
     onSessionsChanged: canvas.requestPaint()
     onPlotHeightChanged: canvas.requestPaint()
     onComparingChanged: { clearSelection(); canvas.requestPaint() }
@@ -262,13 +264,14 @@ Item {
             }
             ctx.restore()
             if (root.volumeHeight) {
-                root.points.forEach((point, index) => {
-                    const volume = root.volumes[index]
+                root.volumeSeries.points.forEach((point, index) => {
+                    const volume = root.volumeSeries.volumes[index]
                     if (volume === null || volume === undefined) return
-                    const barWidth = ChartMath.volumeBarWidth(root.points, index, root.period, root.timeDomain, root.plotWidth, Style.space(8))
+                    const barWidth = ChartMath.volumeBarWidth(root.volumeSeries.points, index, root.period, root.timeDomain, root.plotWidth, Style.space(8))
                     const height = volume / root.maxVolume * root.volumeHeight
-                    ctx.fillStyle = Util.alpha(index && point[1] < root.points[index - 1][1] ? StockStore.loss : StockStore.gain, .5)
-                    ctx.fillRect(root.pointX(index) - barWidth / 2, root.volumeTop + root.volumeHeight - height, barWidth, height)
+                    const x = root.leftInset + ChartMath.pointFraction(root.volumeSeries.points, index, root.period, root.timeDomain) * root.plotWidth
+                    ctx.fillStyle = Util.alpha(root.volumeSeries.falling[index] ? StockStore.loss : StockStore.gain, .5)
+                    ctx.fillRect(x - barWidth / 2, root.volumeTop + root.volumeHeight - height, barWidth, height)
                 })
             }
         }

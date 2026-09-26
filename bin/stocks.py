@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """JSON data helper for Omastocks. Python standard library only."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import fcntl
 import json
 import math
@@ -20,8 +20,8 @@ import watchlists
 
 
 RANGES = {
-    "1D": ("1d", "5m"), "1W": ("5d", "30m"),
-    "1M": ("1mo", "1d"), "3M": ("3mo", "1d"), "YTD": ("ytd", "1d"),
+    "1D": ("1d", "1m"), "1W": ("5d", "30m"),
+    "1M": ("1mo", "1h"), "3M": ("3mo", "1d"), "YTD": ("ytd", "1d"),
     "1Y": ("1y", "1d"), "2Y": ("2y", "1d"), "5Y": ("5y", "1wk"),
     # Monthly bars keep decades of history small; Yahoo widens them to
     # quarterly on long histories.
@@ -31,6 +31,7 @@ SEED = [("AAPL", "Apple Inc."), ("MSFT", "Microsoft Corporation"),
         ("NVDA", "NVIDIA Corporation"), ("GOOGL", "Alphabet Inc."),
         ("AMZN", "Amazon.com, Inc.")]
 BASE = "https://query1.finance.yahoo.com"
+CHART_SCHEMA = 4
 
 
 def number(value):
@@ -94,6 +95,50 @@ def fetch(path, **parameters):
         raise ValueError(f"Could not reach Yahoo Finance: {error}") from error
 
 
+def month_samples(points, volumes, meta, timezone):
+    """Three session-relative samples per day from Yahoo's hourly candles."""
+    sessions = []
+
+    def collect(value):
+        if isinstance(value, list):
+            for item in value:
+                collect(item)
+        elif isinstance(value, dict):
+            start, end = number(value.get("start")), number(value.get("end"))
+            if start is not None and end is not None and end > start:
+                sessions.append((start, end))
+
+    periods = meta.get("tradingPeriods") or []
+    collect(periods.get("regular", []) if isinstance(periods, dict) else periods)
+    regular = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
+    collect(regular)
+    current_start, current_end = number(regular.get("start")), number(regular.get("end"))
+    groups = {}
+    for point in points:
+        stamp = point[0]
+        session = next((bounds for bounds in sessions if bounds[0] <= stamp < bounds[1]), None)
+        if session is None:
+            # A trailing close quote belongs to the session that just ended.
+            session = next((bounds for bounds in sessions if stamp == bounds[1]), None)
+        if session is None:
+            day = datetime.fromtimestamp(stamp, timezone).replace(hour=0, minute=0, second=0, microsecond=0)
+            if current_start is not None and current_end is not None and current_end > current_start:
+                opening = datetime.fromtimestamp(current_start, timezone)
+                start = day.replace(hour=opening.hour, minute=opening.minute, second=opening.second).timestamp()
+                session = (start, start + current_end - current_start)
+            else:
+                session = (day.timestamp(), (day + timedelta(days=1)).timestamp())
+        start, end = session
+        slot = max(0, min(2, int((stamp - start) * 3 / (end - start))))
+        group = groups.setdefault((start, slot), {"point": point, "volumes": []})
+        group["point"] = point
+        group["volumes"].append(volumes.get(stamp))
+    rows = sorted(groups.values(), key=lambda row: row["point"][0])
+    sampled = [row["point"] for row in rows]
+    totals = {row["point"][0]: sum(row["volumes"]) if all(value is not None for value in row["volumes"]) else None for row in rows}
+    return sampled, totals
+
+
 def parse_chart(document, ticker, period):
     # Yahoo: {chart:{result:[{meta:{...},timestamp:[],indicators:{quote:[{close:[]}]}}]}}.
     results = document.get("chart", {}).get("result") or []
@@ -118,12 +163,14 @@ def parse_chart(document, ticker, period):
         timezone = ZoneInfo(meta.get("exchangeTimezoneName") or "UTC")
     except ZoneInfoNotFoundError:
         timezone = ZoneInfo("UTC")
-    dates = [datetime.fromtimestamp(stamp, timezone).date().isoformat() for stamp, _ in points]
     volumes = {}
     for stamp, volume in zip(result.get("timestamp") or [], quotes.get("volume") or []):
         stamp, volume = number(stamp), number(volume)
         if stamp is not None and volume is not None and volume >= 0:
             volumes[int(stamp)] = volume
+    if period == "1M":
+        points, volumes = month_samples(points, volumes, meta, timezone)
+    dates = [datetime.fromtimestamp(stamp, timezone).date().isoformat() for stamp, _ in points]
     events = []
     for category, kind in (("dividends", "dividend"), ("splits", "split")):
         for event in (result.get("events", {}).get(category) or {}).values():
@@ -146,6 +193,10 @@ def parse_chart(document, ticker, period):
     opens = [price(value) for value in quotes.get("open") or [] if price(value) is not None]
     regular = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
     session_start, session_end = number(regular.get("start")), number(regular.get("end"))
+    # Yahoo appends a closing-price marker at the regular-session boundary.
+    # Keep the price, but do not describe its placeholder zero as traded volume.
+    if period in ("1D", "1W") and points and points[-1][0] == session_end and volumes.get(points[-1][0]) == 0:
+        volumes[points[-1][0]] = None
     if period != "1D" or session_start is None or session_end is None or session_end <= session_start:
         session_start = session_end = None
     return {
@@ -161,7 +212,7 @@ def parse_chart(document, ticker, period):
         "volume": number(meta.get("regularMarketVolume")),
         "sessionStart": session_start, "sessionEnd": session_end,
         "points": points, "dates": dates, "volumes": [volumes.get(stamp) for stamp, _ in points],
-        "events": events, "timezone": str(timezone), "schema": 2,
+        "events": events, "timezone": str(timezone), "schema": CHART_SCHEMA,
         "range": period, "stale": False, "error": "",
     }
 
@@ -188,7 +239,7 @@ class Repository:
         cached = self.cache.get(key, {})
         now = time.time()
         ttl = 60 if period == "1D" else 3600
-        if cached.get("schema") == 2 and not cached.get("stale", False) and not force and now - cached.get("fetched", 0) < ttl:
+        if cached.get("schema") == CHART_SCHEMA and not cached.get("stale", False) and not force and now - cached.get("fetched", 0) < ttl:
             return cached
         if not force and now < cached.get("retryAfter", 0):
             return cached

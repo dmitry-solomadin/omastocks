@@ -31,6 +31,26 @@ assert.equal(chart.volumeBarWidth([], 0, "1D", [0, 1], 500, 8), 0)
 assert.equal(chart.volumeBarWidth(sparse, 2, "1M", [0, 8850], 500, 8), 8)
 console.log("PASS: volume widths follow neighboring intervals across sparse extended hours and dense samples")
 
+const minuteVolumes = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, null]
+const volumePrices = minuteVolumes.map((_, index) => [600 + index * 60, index < 5 ? 100 + index : 100 - index])
+const originalVolumes = minuteVolumes.slice()
+const groupedVolume = chart.volumeSeries(volumePrices, minuteVolumes, "1D")
+assert.deepEqual(plain(groupedVolume.volumes), [150, 400, null])
+assert.deepEqual(plain(groupedVolume.points), [[720, 104], [1020, 91], [1200, 90]])
+assert.deepEqual(plain(groupedVolume.falling), [false, true, true])
+assert.deepEqual(minuteVolumes, originalVolumes, "Grouping must not change one-minute hover volume")
+assert.equal(volumePrices.length, 11, "Price resolution remains one minute")
+const partialVolume = chart.volumeSeries(volumePrices.slice(0, 7), minuteVolumes.slice(0, 7), "1D")
+assert.deepEqual(plain(partialVolume.volumes), [150, 130], "The unfinished five-minute bar accumulates only available candles")
+assert.deepEqual(plain(chart.volumeSeries([[600, 1], [660, 2]], [10, null], "1D").volumes), [null], "Missing volume is not a zero or partial total")
+assert.deepEqual(plain(chart.volumeSeries([[600, 1], [3600, 2]], [0, 20], "1D").volumes), [0, 20], "Sparse timestamps cannot merge across intervals")
+assert.equal(chart.volumeSeries(volumePrices, minuteVolumes, "1W").volumes, minuteVolumes, "Other ranges keep native volume bars")
+assert.deepEqual(plain(chart.volumeSeries([], [], "1D").points), [])
+// A full session has enough samples to make the one-minute width noticeably smaller.
+assert.ok(chart.volumeBarWidth(volumePrices, 2, "1D", [600, 24000], 1000, 8)
+    < chart.volumeBarWidth(groupedVolume.points, 0, "1D", [600, 24000], 1000, 8))
+console.log("PASS: five-minute volume totals, partial bars, missing samples and unchanged one-minute hover data")
+
 for (const [period, start, end, now] of [
     ["1D", 1000, 4600, 999],
     ["1D", 1000, 4600, 4600],
@@ -83,6 +103,19 @@ assert.deepEqual(plain(chart.projectAverage(primary, days, average, "1M")), [[0,
 const events = [{type: "earnings", date: "2026-09-18"}, {type: "earnings", date: "2026-09-18"}, {type: "dividend", date: "2026-10-01"}]
 assert.deepEqual(plain(chart.eventPositions(primary, days, events, "1M")), [{type: "earnings", date: "2026-09-18", index: 1}])
 console.log("PASS: daily averages are excluded from intraday ranges; event markers are deduplicated and range-limited")
+
+const minuteSeries = [0, 60, 120, 180, 240].map((stamp, index) => [stamp, 10 + index])
+const minuteComparison = chart.compareMany([{points: minuteSeries}, {points: minuteSeries.map(([t, p]) => [t, p * 2])}], "1D")
+assert.equal(minuteComparison.series[0].points.length, 5, "Comparison preserves every one-minute candle")
+assert.deepEqual(plain(minuteComparison.series[0].points.map(point => point[2])), [10, 11, 12, 13, 14])
+const monthTimes = [36000, 43200, 50400, 122400, 129600, 136800]
+const monthDays = ["2026-09-24", "2026-09-24", "2026-09-24", "2026-09-25", "2026-09-25", "2026-09-25"]
+const denseMonth = monthTimes.map((stamp, index) => [stamp, 10 + index])
+const monthComparison = chart.compareMany([{points: denseMonth, dates: monthDays}, {points: denseMonth, dates: monthDays}], "1M")
+assert.deepEqual(plain(monthComparison.series[0].points.map(point => point[2])), [10, 11, 12, 13, 14, 15], "Same-day samples must not collapse to the daily close")
+const dailyMA = {points: [[0, 20], [1, 21], [2, 22]], dates: ["2026-09-23", "2026-09-24", "2026-09-25"]}
+assert.deepEqual(plain(chart.projectAverage(denseMonth, monthDays, dailyMA, "1M")), [[0, 20], [1, 20], [2, 21], [3, 21], [4, 21], [5, 22]])
+console.log("PASS: minute comparisons and intraday monthly samples preserve distinct prices without future daily averages")
 
 const basket = Array.from({length: 5}, (_, index) => ({symbol: "S" + index, currency: "USD", color: "c" + index,
     points: primary.map(([time, price]) => [time, price * (index + 1)]), dates: days}))

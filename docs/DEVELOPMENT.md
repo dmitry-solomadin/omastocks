@@ -72,6 +72,16 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   five-minute polling. Recovery requests include only failed/due quotes.
   Success resets the backoff, and Yahoo's shared rate-limit cooldown takes
   precedence. Charts are fetched separately only when needed by the stock view.
+- Chart sampling uses one-minute candles for 1D (including extended hours).
+  Its volume histogram groups those values into five-minute totals, while
+  price-hover tooltips retain each minute's original volume. A zero-volume
+  closing-price marker at the session boundary has no volume tooltip on 1D/1W.
+  1M requests hourly data and groups it into three exchange-session segments per
+  day, retaining each segment's last close and summed volume. Provider session
+  hours handle early closes; unfinished or sparse sessions can have fewer samples.
+  Other ranges retain their existing intervals. Comparison charts use the same
+  sampling; daily moving averages on 1M use completed-day values for earlier
+  intraday samples. Chart cache schemas prevent reuse of the previous intervals.
 - Watchlist live quotes and market-wide quotes have separate bulk requests.
   Market quotes persist across watchlist/tab changes. Historical Overview
   baselines refresh daily rather than with every live-price refresh.

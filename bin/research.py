@@ -14,7 +14,7 @@ import urllib.parse
 import urllib.request
 from zoneinfo import ZoneInfo
 
-from stocks import RANGES, fetch, number, parse_chart, read_json, state_directory, symbol, write_json
+from stocks import CHART_SCHEMA, RANGES, fetch, number, parse_chart, read_json, state_directory, symbol, write_json
 from financials import statements, valuation
 from extended import extended
 from earnings_calls import earnings_calls
@@ -32,6 +32,7 @@ CACHE_TTLS = {
     "release": 2592000,
 }
 CACHE_SCHEMAS = {
+    "compare": ("schema", CHART_SCHEMA), "extended": ("schema", CHART_SCHEMA),
     "events": ("earningsSchema", 3), "sectors": ("catalogSchema", 4),
     "market-news": ("marketNewsSchema", 3), "quotes": ("quotesSchema", 3),
     "calendar-bulk": ("calendarSchema", 2), "news": ("newsSchema", 6),

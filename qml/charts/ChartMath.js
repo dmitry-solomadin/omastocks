@@ -14,6 +14,31 @@ function pointFraction(points, index, period, domain) {
     return index / Math.max(1, points.length - 1)
 }
 
+// Aggregate only the drawn 1D histogram. Price points and their one-minute
+// volume values stay intact for hover, selection and comparison.
+function volumeSeries(points, volumes, period) {
+    if (period !== "1D") return {points: points, volumes: volumes,
+        falling: points.map((point, index) => index > 0 && point[1] < points[index - 1][1])}
+    const groups = []
+    points.forEach((point, index) => {
+        const bucket = Math.floor(point[0] / 300)
+        let group = groups[groups.length - 1]
+        if (!group || group.bucket !== bucket) {
+            group = {bucket: bucket, first: index, last: index, volume: 0, known: true}
+            groups.push(group)
+        }
+        group.last = index
+        const volume = volumes[index]
+        if (Number.isFinite(volume) && volume >= 0) group.volume += volume
+        else group.known = false
+    })
+    return {
+        points: groups.map(group => [(points[group.first][0] + points[group.last][0]) / 2, points[group.last][1]]),
+        volumes: groups.map(group => group.known ? group.volume : null),
+        falling: groups.map(group => points[group.last][1] < points[Math.max(0, group.first - 1)][1])
+    }
+}
+
 function volumeBarWidth(points, index, period, domain, plotWidth, maximum) {
     if (!points.length || index < 0 || index >= points.length) return 0
     const center = pointFraction(points, index, period, domain)
@@ -51,8 +76,8 @@ function comparison(points, anchor, cursor) {
 
 // Match trading intervals rather than stretching unrelated sample indices.
 function compareSeries(points, dates, other, otherDates, period) {
-    const intraday = period === "1D" || period === "1W"
-    const bucket = period === "1D" ? 300 : 1800
+    const intraday = period === "1D" || period === "1W" || period === "1M"
+    const bucket = period === "1W" ? 1800 : 60
     function key(point, day) { return intraday ? Math.floor(point[0] / bucket) : day || Math.floor(point[0] / 86400) }
     const lookup = new Map()
     other.forEach((point, index) => lookup.set(key(point, otherDates[index]), point[1]))
@@ -82,8 +107,8 @@ function coarse(period) {
 // All comparison lines share exactly the same observations and baseline date.
 function compareMany(series, period) {
     if (!series.length || !series[0].points.length) return null
-    const intraday = period === "1D" || period === "1W"
-    const bucket = period === "1D" ? 300 : 1800
+    const intraday = period === "1D" || period === "1W" || period === "1M"
+    const bucket = period === "1W" ? 1800 : 60
     function key(point, day) { return intraday ? Math.floor(point[0] / bucket) : day || Math.floor(point[0] / 86400) }
     const lookups = series.map(row => {
         const lookup = new Map()
@@ -113,6 +138,9 @@ function projectAverage(points, dates, series, period) {
         const day = dates[index]
         if (!day) continue
         let cutoff = day
+        // Earlier intraday samples must not use that day's eventual closing MA.
+        if (period === "1M" && dates[index + 1] === day)
+            cutoff = new Date(Date.parse(day) - 86400000).toISOString().slice(0, 10)
         if (coarse(period)) {
             // A weekly or monthly price is the bar's last close, not its first day's.
             const next = dates[index + 1]

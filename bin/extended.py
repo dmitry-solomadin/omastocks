@@ -3,7 +3,7 @@
 import time
 import urllib.parse
 
-from stocks import fetch, number, parse_chart
+from stocks import CHART_SCHEMA, fetch, number, parse_chart
 
 
 def parse_extended(document, ticker, now=None):
@@ -12,7 +12,7 @@ def parse_extended(document, ticker, now=None):
     if not results:
         raise ValueError(f"No extended-hours data for {ticker}.")
     meta = results[0].get("meta") or {}
-    empty = {"symbol": ticker, "supported": False, "points": [], "sessions": [], "quote": None}
+    empty = {"symbol": ticker, "supported": False, "points": [], "sessions": [], "quote": None, "schema": CHART_SCHEMA}
     if meta.get("hasPrePostMarketData") is not True:
         return empty
     periods = meta.get("currentTradingPeriod") or {}
@@ -46,7 +46,7 @@ def parse_extended(document, ticker, now=None):
         return chart
     regular_time = number(meta.get("regularMarketTime"))
     baseline = chart["price"] if number(meta.get("regularMarketPrice")) is not None else None
-    if regular_time is None or regular_time > stamp + 300 or (
+    if regular_time is None or regular_time > stamp + 60 or (
             session["kind"] == "pre" and regular_time >= regular["start"] or
             session["kind"] == "post" and regular_time < regular["start"]):
         baseline = None
@@ -59,4 +59,4 @@ def parse_extended(document, ticker, now=None):
 
 def extended(ticker):
     return parse_extended(fetch("/v8/finance/chart/" + urllib.parse.quote(ticker, safe=""),
-                                range="1d", interval="5m", includePrePost="true", events="div,splits"), ticker)
+                                range="1d", interval="1m", includePrePost="true", events="div,splits"), ticker)

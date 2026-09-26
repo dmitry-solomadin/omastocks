@@ -511,24 +511,43 @@ FloatingWindow {
                         ExtendedQuote { Layout.fillWidth: true }
                     }
                     ChartTools { Layout.fillWidth: true; chart: detailChart }
-                    RowLayout {
+                    Item {
                         Layout.fillWidth: true
-                        spacing: Style.space(3)
-                        Repeater {
-                            model: ["1D", "1W", "1M", "3M", "YTD", "1Y", "2Y", "5Y", "ALL"]
-                            ActionButton { required property string modelData; objectName: "range_" + modelData; text: modelData; selected: StockStore.period === modelData; onClicked: StockStore.range(modelData); Layout.fillWidth: true }
-                        }
-                        ActionButton {
-                            objectName: "extendedToggle"
-                            visible: StockStore.period === "1D" && !MarketStore.compareMode
-                            text: "Extended"
-                            font.pixelSize: Style.font.bodySmall
-                            selected: MarketStore.extendedChart
-                            enabled: MarketStore.extended.supported === true && (MarketStore.extended.points || []).length > 0
-                            hint: MarketStore.extendedRequest.busy ? "Loading extended hours…" : MarketStore.extended.error
-                                || (enabled ? "Include pre-market and after-hours in 1D · Shaded regions show extended sessions"
-                                    : "Extended hours unavailable for this symbol")
-                            onClicked: MarketStore.showExtended = !MarketStore.showExtended
+                        implicitHeight: Style.space(34)
+                        Row {
+                            id: rangeButtons
+                            anchors.fill: parent
+                            spacing: Style.space(3)
+                            readonly property real cellWidth: Math.max(0, Math.floor((width - spacing * 9) / 10))
+                            Repeater {
+                                model: ["1D", "1W", "1M", "3M", "YTD", "1Y", "2Y", "5Y", "ALL"]
+                                ActionButton {
+                                    required property string modelData
+                                    objectName: "range_" + modelData
+                                    text: modelData
+                                    width: rangeButtons.cellWidth
+                                    selected: StockStore.period === modelData
+                                    onClicked: StockStore.range(modelData)
+                                }
+                            }
+                            // Reserve this cell when Extended is hidden.
+                            Item {
+                                width: rangeButtons.cellWidth
+                                height: Style.space(34)
+                                ActionButton {
+                                    anchors.fill: parent
+                                    objectName: "extendedToggle"
+                                    visible: StockStore.period === "1D" && !MarketStore.compareMode
+                                    text: "Extended"
+                                    font.pixelSize: Style.font.bodySmall
+                                    selected: MarketStore.extendedChart
+                                    enabled: MarketStore.extended.supported === true && (MarketStore.extended.points || []).length > 0
+                                    hint: MarketStore.extendedRequest.busy ? "Loading extended hours…" : MarketStore.extended.error
+                                        || (enabled ? "Include pre-market and after-hours in 1D · Shaded regions show extended sessions"
+                                            : "Extended hours unavailable for this symbol")
+                                    onClicked: MarketStore.showExtended = !MarketStore.showExtended
+                                }
+                            }
                         }
                     }
                     Item {
