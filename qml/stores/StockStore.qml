@@ -18,7 +18,7 @@ QtObject {
     readonly property var activeList: watchlists.find(row => row.id === activeWatchlist) || ({})
     readonly property string watchlistName: activeList.name || "Watchlist"
     readonly property string sortMode: activeList.sort || "custom"
-    readonly property var watchlistQuotes: watchlistQuotesRequest.data.rows || ({})
+    readonly property var watchlistQuotes: entries.reduce((rows, entry) => { rows[entry.symbol] = entry; return rows }, {})
     readonly property var sortedEntries: Order.sorted(entries, watchlistQuotes, sortMode)
     readonly property string watchlistDisplay: ["percent", "change", "marketCap"].indexOf(barSettings.watchlistDisplay) >= 0 ? barSettings.watchlistDisplay : "percent"
     function watchlistMetric(entry) {
@@ -34,10 +34,13 @@ QtObject {
     function setSortMode(mode) {
         if (mode !== sortMode) request(["watchlist", "sort", activeWatchlist, mode])
     }
-    property DataRequest watchlistQuotesRequest: DataRequest {
-        arguments: root.windowOpen && root.entries.length
-            ? ["quotes", Array.from(new Set(root.entries.map(row => row.symbol))).sort().join(",")] : []
-        refreshInterval: 300000
+    // The sidebar, Overview and ticker share the same bulk quote refresh.
+    property QtObject watchlistQuotesRequest: QtObject {
+        readonly property bool busy: root.busy
+        readonly property var data: ({rows: root.watchlistQuotes,
+            stale: root.entries.some(row => row.stale),
+            error: root.error || (root.entries.find(row => row.error) || {}).error || ""})
+        function reload(force) { root.refresh(force) }
     }
     // Next reports for the active list, shared by the sidebar badges and the
     // Watchlist earnings calendar.
@@ -186,11 +189,10 @@ QtObject {
         view = "stock"
         selected = ticker
         if (!entries.some(entry => entry.symbol === ticker)) request(["quote", ticker])
-        request(["chart", ticker, period])
+        if (windowOpen) request(["chart", ticker, period])
     }
     function range(value) { period = value; if (selected) request(["chart", selected, value]) }
     function refresh(force) {
-        if (force && view !== "watchlist" && watchlistQuotesRequest.arguments.length) watchlistQuotesRequest.reload(true)
         if (force && windowOpen) MarketStore.refresh(true)
         request(force ? ["refresh", "--force"] : ["refresh"])
         if (selected && windowOpen && view === "stock" && !tracked) request(["quote", selected])
@@ -323,7 +325,7 @@ QtObject {
                     if (changedList) {
                         selected = entries.length ? entries[0].symbol : ""
                         search("")
-                        if (selected) request(["chart", selected, period])
+                        if (selected && windowOpen) request(["chart", selected, period])
                         request(["refresh"])
                     } else if (!selected && entries.length) select(entries[0].symbol)
                 }

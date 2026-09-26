@@ -65,6 +65,10 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
 - `bin/research.py` handles independent research requests, per-request locks,
   cache schemas and TTLs. A failed refresh preserves the last result and gets a
   short retry cooldown. `DataRequest.qml` rejects obsolete replies and owns polling.
+- The active watchlist and favorites across lists share bulk quote requests
+  (up to 70 symbols each), also used by the sidebar and Watchlist Overview.
+  Failed quotes retain saved values. Charts are fetched separately only when
+  needed by the stock view.
 - Watchlist live quotes and market-wide quotes have separate bulk requests.
   Market quotes persist across watchlist/tab changes. Historical Overview
   baselines refresh daily rather than with every live-price refresh.

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """JSON data helper for Omastocks. Python standard library only."""
 
-import concurrent.futures
 from datetime import datetime
 import fcntl
 import json
@@ -204,19 +203,51 @@ class Repository:
         self.cache[key] = row
         return row
 
+    def refresh_quotes(self, tickers, force=False):
+        from market_bulk import quotes
+        now = time.time()
+        due = []
+        for ticker in tickers:
+            cached = self.cache.get(ticker + ":quote", {})
+            if not force and (now < cached.get("retryAfter", 0) or
+                              (not cached.get("stale") and now - cached.get("fetched", 0) < 60)):
+                continue
+            due.append(ticker)
+        # Favorites can span several lists. Keep each request within the bulk
+        # provider's symbol limit, rather than downloading a chart per stock.
+        for offset in range(0, len(due), 70):
+            batch = due[offset:offset + 70]
+            try:
+                rows = quotes(batch)["rows"]
+                error = ""
+            except (ValueError, OSError, TypeError, KeyError, AttributeError, IndexError) as exception:
+                rows, error = {}, str(exception)
+            finished = time.time()
+            for ticker in batch:
+                key = ticker + ":quote"
+                row = rows.get(ticker, {})
+                if row.get("price") is not None and not row.get("error"):
+                    self.cache[key] = {**row, "fetched": finished, "stale": False, "error": ""}
+                    continue
+                # Preserve a saved quote (or the legacy chart quote) on failure.
+                cached = self.cache.get(key, self.cache.get(ticker + ":1D", {}))
+                self.cache[key] = {**cached, "symbol": ticker, "stale": True,
+                                   "error": error or row.get("error") or "Bulk quote unavailable",
+                                   "retryAfter": finished + 120}
+
     def snapshot(self, refresh=False, force=False):
         entries = self.state["entries"]
         favorites = [row for row in watchlists.all_entries(self.state) if row.get("favorite")]
         if refresh:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-                tickers = dict.fromkeys(row["symbol"] for row in entries + favorites)
-                list(pool.map(lambda ticker: self.chart(ticker, "1D", force), tickers))
+            tickers = dict.fromkeys(row["symbol"] for row in entries + favorites)
+            self.refresh_quotes(tickers, force)
         def quote(entry):
-            cached = self.cache.get(entry["symbol"] + ":1D", {})
+            cached = self.cache.get(entry["symbol"] + ":quote", self.cache.get(entry["symbol"] + ":1D", {}))
             row = {**entry, **cached, "favorite": entry.get("favorite", False)}
             row["stale"] = cached.get("stale", False) or time.time() - cached.get("fetched", 0) > 600
             return row
-        return {"entries": [quote(row) for row in entries], "favoriteEntries": [quote(row) for row in favorites],
+        quoted, starred = [quote(row) for row in entries], [quote(row) for row in favorites]
+        return {"entries": quoted, "favoriteEntries": starred,
                 "activeWatchlist": self.state["activeWatchlist"],
                 "watchlists": [{"id": row["id"], "name": row["name"], "count": len(row["entries"]), "sort": row.get("sort", "custom")} for row in self.state["watchlists"]]}
 

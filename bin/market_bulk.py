@@ -60,10 +60,19 @@ def parse_quotes(document, tickers):
         price = number(quote.get("regularMarketPrice"))
         change = number(quote.get("regularMarketChange"))
         rows[ticker] = {"symbol": ticker, "price": price * scale if price is not None else None,
+                        "name": quote.get("longName") or quote.get("shortName") or ticker,
+                        "instrumentType": str(quote.get("quoteType") or "").upper(),
+                        "exchange": quote.get("fullExchangeName") or quote.get("exchange", ""),
                         "change": change * scale if change is not None else None, "marketCap": number(quote.get("marketCap")),
                         "percent": number(quote.get("regularMarketChangePercent")),
                         "currency": currency, "updated": number(quote.get("regularMarketTime")),
                         "marketState": quote.get("marketState") if quote.get("marketState") in ("REGULAR", "PRE", "PREPRE", "POST", "POSTPOST", "CLOSED") else ""}
+        for field, source in (("previous", "regularMarketPreviousClose"), ("open", "regularMarketOpen"),
+                              ("high", "regularMarketDayHigh"), ("low", "regularMarketDayLow"),
+                              ("yearHigh", "fiftyTwoWeekHigh"), ("yearLow", "fiftyTwoWeekLow")):
+            value = number(quote.get(source))
+            rows[ticker][field] = value * scale if value is not None else None
+        rows[ticker]["volume"] = number(quote.get("regularMarketVolume"))
     if not rows:
         raise ValueError("Yahoo returned no quotes for the requested symbols.")
     for ticker in tickers:
