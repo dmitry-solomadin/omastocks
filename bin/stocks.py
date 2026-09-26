@@ -203,12 +203,14 @@ class Repository:
         self.cache[key] = row
         return row
 
-    def refresh_quotes(self, tickers, force=False):
+    def refresh_quotes(self, tickers, force=False, retry_only=False):
         from market_bulk import quotes
         now = time.time()
         due = []
         for ticker in tickers:
             cached = self.cache.get(ticker + ":quote", {})
+            if retry_only and cached and not cached.get("stale") and now - cached.get("fetched", 0) <= 600:
+                continue
             if not force and (now < cached.get("retryAfter", 0) or
                               (not cached.get("stale") and now - cached.get("fetched", 0) < 60)):
                 continue
@@ -223,6 +225,7 @@ class Repository:
             except (ValueError, OSError, TypeError, KeyError, AttributeError, IndexError) as exception:
                 rows, error = {}, str(exception)
             finished = time.time()
+            cooldown = read_json(self.directory / "yahoo/traffic.json", {}).get("retryAfter", 0)
             for ticker in batch:
                 key = ticker + ":quote"
                 row = rows.get(ticker, {})
@@ -231,23 +234,26 @@ class Repository:
                     continue
                 # Preserve a saved quote (or the legacy chart quote) on failure.
                 cached = self.cache.get(key, self.cache.get(ticker + ":1D", {}))
+                failures = min(self.cache.get(key, {}).get("failures", 0) + 1, 10)
                 self.cache[key] = {**cached, "symbol": ticker, "stale": True,
                                    "error": error or row.get("error") or "Bulk quote unavailable",
-                                   "retryAfter": finished + 120}
+                                   "failures": failures,
+                                   "retryAfter": max(finished + min(300, 2 ** (failures - 1)), cooldown)}
 
-    def snapshot(self, refresh=False, force=False):
+    def snapshot(self, refresh=False, force=False, retry_only=False):
         entries = self.state["entries"]
         favorites = [row for row in watchlists.all_entries(self.state) if row.get("favorite")]
         if refresh:
             tickers = dict.fromkeys(row["symbol"] for row in entries + favorites)
-            self.refresh_quotes(tickers, force)
+            self.refresh_quotes(tickers, force, retry_only)
         def quote(entry):
             cached = self.cache.get(entry["symbol"] + ":quote", self.cache.get(entry["symbol"] + ":1D", {}))
             row = {**entry, **cached, "favorite": entry.get("favorite", False)}
             row["stale"] = cached.get("stale", False) or time.time() - cached.get("fetched", 0) > 600
             return row
         quoted, starred = [quote(row) for row in entries], [quote(row) for row in favorites]
-        return {"entries": quoted, "favoriteEntries": starred,
+        retry = min((row.get("retryAfter", time.time() + 1) for row in quoted + starred if row["stale"]), default=0)
+        return {"entries": quoted, "favoriteEntries": starred, "quoteRetryAfter": retry,
                 "activeWatchlist": self.state["activeWatchlist"],
                 "watchlists": [{"id": row["id"], "name": row["name"], "count": len(row["entries"]), "sort": row.get("sort", "custom")} for row in self.state["watchlists"]]}
 
@@ -338,8 +344,9 @@ def main(arguments):
         fcntl.flock(lock, fcntl.LOCK_EX)
         repository = Repository(directory)
         action = arguments[0] if arguments else "snapshot"
-        if action in ("snapshot", "refresh"):
-            result = repository.snapshot(refresh=action == "refresh", force="--force" in arguments)
+        if action in ("snapshot", "refresh", "retry-quotes"):
+            result = repository.snapshot(refresh=action != "snapshot", force="--force" in arguments,
+                                         retry_only=action == "retry-quotes")
         elif action == "chart":
             result = {"chart": repository.chart(symbol(arguments[1]), arguments[2], "--force" in arguments)}
         elif action == "quote":
@@ -356,7 +363,7 @@ def main(arguments):
             result = repository.mutate(action, symbol(arguments[1]), arguments[2] if len(arguments) > 2 else "",
                                        len(arguments) > 3 and arguments[3] == "true", list_id)
         else:
-            raise ValueError("Use snapshot, refresh, chart, search, add, remove, favorite, move, transfer or watchlist.")
+            raise ValueError("Use snapshot, refresh, retry-quotes, chart, search, add, remove, favorite, move, transfer or watchlist.")
         write_json(repository.cache_path, repository.cache)
         return result
 

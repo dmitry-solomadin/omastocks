@@ -155,6 +155,7 @@ QtObject {
     }
     function stop() {
         running = false
+        quoteRetry.stop()
         windowOpen = false
         queue = []
         search("")
@@ -276,7 +277,7 @@ QtObject {
             args = args.concat(["--list", activeWatchlist])
         // Supersede reads, but preserve every watchlist mutation in order.
         let pending = queue.slice()
-        if (["chart", "quote", "search", "refresh"].indexOf(args[0]) >= 0)
+        if (["chart", "quote", "search", "refresh", "retry-quotes"].indexOf(args[0]) >= 0)
             pending = pending.filter(item => item[0] !== args[0])
         pending.push(args)
         queue = pending
@@ -296,9 +297,18 @@ QtObject {
     property string captured: ""
     property bool exited: false
     property bool collected: false
+    property int quoteTransportFailures: 0
+    function scheduleQuoteRetry(deadline) {
+        quoteRetry.stop()
+        if (deadline && running) {
+            quoteRetry.interval = Math.max(1000, Math.min(2147483647, deadline * 1000 - Date.now()))
+            quoteRetry.restart()
+        }
+    }
     function finish() {
         if (!exited || !collected || !active) return
         watchdog.stop()
+        let quoteReply = false
         try {
             const data = JSON.parse(captured)
             if (active[0] === "search") {
@@ -315,6 +325,9 @@ QtObject {
             else {
                 if (active[0] !== "snapshot") error = ""
                 if (data.entries) {
+                    quoteReply = true
+                    quoteTransportFailures = 0
+                    scheduleQuoteRetry(data.quoteRetryAfter)
                     const changedList = data.activeWatchlist && data.activeWatchlist !== activeWatchlist
                     if (data.watchlists) watchlists = data.watchlists
                     if (data.activeWatchlist) activeWatchlist = data.activeWatchlist
@@ -352,6 +365,12 @@ QtObject {
                 if (active[0] === "move") request(["snapshot"])
             }
         }
+        // A killed/timed-out helper has no backend deadline. Keep recovery
+        // alive even when it could not serialize its saved quote results.
+        if (!quoteReply && ["snapshot", "refresh", "retry-quotes"].indexOf(active[0]) >= 0) {
+            quoteTransportFailures = Math.min(quoteTransportFailures + 1, 10)
+            scheduleQuoteRetry(Date.now() / 1000 + Math.min(300, Math.pow(2, quoteTransportFailures - 1)))
+        }
         active = null
         Qt.callLater(pump)
     }
@@ -360,6 +379,7 @@ QtObject {
         onExited: { root.exited = true; root.finish() }
     }
     property Timer watchdog: Timer { interval: 60000; onTriggered: root.helper.running = false }
+    property Timer quoteRetry: Timer { onTriggered: root.request(["retry-quotes"]) }
     property Timer poll: Timer { interval: 300000; running: root.running; repeat: true; onTriggered: root.refresh(false) }
     property Timer searchTimer: Timer { interval: 300; onTriggered: root.request(["search", root.searchQuery]) }
     property FileView palette: FileView {

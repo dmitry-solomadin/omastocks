@@ -67,8 +67,11 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   short retry cooldown. `DataRequest.qml` rejects obsolete replies and owns polling.
 - The active watchlist and favorites across lists share bulk quote requests
   (up to 70 symbols each), also used by the sidebar and Watchlist Overview.
-  Failed quotes retain saved values. Charts are fetched separately only when
-  needed by the stock view.
+  Failed quotes retain saved values and retry after 1, 2, 4, 8… seconds, capped
+  at 300 seconds; the UI schedules these deadlines independently of normal
+  five-minute polling. Recovery requests include only failed/due quotes.
+  Success resets the backoff, and Yahoo's shared rate-limit cooldown takes
+  precedence. Charts are fetched separately only when needed by the stock view.
 - Watchlist live quotes and market-wide quotes have separate bulk requests.
   Market quotes persist across watchlist/tab changes. Historical Overview
   baselines refresh daily rather than with every live-price refresh.
@@ -100,6 +103,7 @@ python3 -m unittest discover -s tests -v
 node tests/test_chart.cjs
 node tests/test_treemap.cjs
 node tests/test_watchlist_order.cjs
+node tests/test_quote_retry.cjs
 node tests/test_pixel_art.cjs
 node tests/test_market_assets.cjs
 bash -n install install-launcher uninstall
