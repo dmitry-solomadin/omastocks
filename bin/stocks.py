@@ -217,6 +217,34 @@ def parse_chart(document, ticker, period):
     }
 
 
+def fetch_full_chart(ticker, period):
+    """One normal request, with one bounded last-trade fallback for empty 1D."""
+    span, interval = RANGES[period]
+    path = "/v8/finance/chart/" + urllib.parse.quote(ticker, safe="")
+    data = fetch(path, range=span, interval=interval, events="div,splits")
+    row = parse_chart(data, ticker, period)
+    if period == "1D" and not row["points"]:
+        last_trade = number(row.get("updated"))
+        if last_trade is not None and 0 < last_trade <= time.time():
+            # A trailing 24-hour window includes overnight sessions, unlike a
+            # calendar-day request. Do not recursively retry an empty fallback.
+            data = fetch(path, period1=int(last_trade) - 86400 + 1,
+                         period2=int(last_trade) + 1, interval=interval, events="div,splits")
+            fallback = parse_chart(data, ticker, period)
+            if fallback["points"]:
+                # Explicit windows can report a different chartPreviousClose.
+                # Keep the original daily quote baseline and current quote.
+                for key in ("price", "previous", "change", "percent", "updated"):
+                    fallback[key] = row[key]
+                fallback["sessionStart"] = fallback["points"][0][0]
+                fallback["sessionEnd"] = fallback["points"][-1][0] + 1
+                fallback["lastSessionFallback"] = True
+                row = fallback
+    if not row["points"]:
+        raise ValueError("No chart candles are available for this range.")
+    return row
+
+
 class Repository:
     def __init__(self, directory):
         self.directory = directory
@@ -244,9 +272,7 @@ class Repository:
         if not force and now < cached.get("retryAfter", 0):
             return cached
         try:
-            span, interval = RANGES[period]
-            data = fetch("/v8/finance/chart/" + urllib.parse.quote(ticker, safe=""), range=span, interval=interval, events="div,splits")
-            row = parse_chart(data, ticker, period)
+            row = fetch_full_chart(ticker, period)
             row["fetched"] = now
         except (ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
             row = dict(cached) if cached else {"symbol": ticker, "range": period, "points": [], "price": None}
