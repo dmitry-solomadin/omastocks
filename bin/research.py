@@ -14,7 +14,7 @@ import urllib.parse
 import urllib.request
 from zoneinfo import ZoneInfo
 
-from stocks import CHART_SCHEMA, RANGES, fetch, number, parse_chart, read_json, state_directory, symbol, write_json
+from stocks import RANGES, fetch, number, parse_chart, read_json, state_directory, symbol, write_json
 from financials import statements, valuation
 from extended import extended
 from earnings_calls import earnings_calls
@@ -24,7 +24,7 @@ from tradingview import listings, request as scan
 
 CACHE_TTLS = {
     "news": 600, "social": 300, "buzz": 1800, "events": 21600, "calls": 86400,
-    "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
+    "averages": 3600, "financials": 86400, "valuation": 3600, "analysts": 86400,
     "sectors": 86400, "sector": 900, "market-index": 900, "market-news": 600,
     "sentiment": 1800, "economic-calendar": 900, "quotes": 300, "calendar-bulk": 21600,
     "calendar": 21600, "overview": 86400, "fundamentals": 3600, "insiders": 3600,
@@ -33,9 +33,8 @@ CACHE_TTLS = {
     "release": 2592000,
 }
 # Chart lines refresh with the primary chart and are never saved.
-LIVE = {"compare"}
+LIVE = {"compare", "extended"}
 CACHE_SCHEMAS = {
-    "extended": ("schema", CHART_SCHEMA),
     "events": ("earningsSchema", 3), "sectors": ("catalogSchema", 4),
     "market-news": ("marketNewsSchema", 3), "quotes": ("quotesSchema", 3),
     "calendar-bulk": ("calendarSchema", 2), "news": ("newsSchema", 6),
@@ -368,7 +367,8 @@ def main(arguments):
         try:
             return {**load(action, ticker, period), "fetched": time.time(), "stale": False, "error": ""}
         except Exception as error:
-            return {"symbol": ticker, "error": str(error), "stale": True, "points": []}
+            failure = {"symbol": ticker, "error": str(error), "stale": True, "points": []}
+            return {**failure, "quote": None} if action == "extended" else failure
     directory = state_directory() / "research"
     directory.mkdir(parents=True, exist_ok=True)
     key = hashlib.sha256(f"{action}:{ticker}:{period}".encode()).hexdigest()

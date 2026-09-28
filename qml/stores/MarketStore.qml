@@ -45,8 +45,19 @@ QtObject {
     readonly property var ownership: ownershipRequest.data
     readonly property bool analystsOpen: sectionOpen("analysts")
     readonly property var analysts: analystsRequest.data
+    // The user's choice, kept across stocks. The extended chart is fetched only
+    // while it is shown, and never for a stock known to have no such data.
     property bool showExtended: false
     readonly property var extended: extendedRequest.data
+    property var noExtended: ({})
+    // The stock whose Extended button was just clicked, for its tooltip.
+    property string extendedClicked: ""
+    function extendedUnavailable(ticker) {
+        const quote = StockStore.watchlistQuotes[ticker] || StockStore.previewQuotes[ticker] || {}
+        return noExtended[ticker] === true || quote.extendedData === false
+    }
+    readonly property bool wantExtended: stockResearchActive && showExtended && StockStore.period === "1D"
+        && !extendedUnavailable(StockStore.selected)
     readonly property bool extendedChart: showExtended && StockStore.period === "1D" && !compareMode
         && extended.supported === true && (extended.points || []).length > 0
     readonly property var comparisonRequests: [compareOne, compareTwo, compareThree, compareFour]
@@ -117,7 +128,15 @@ QtObject {
     property DataRequest valuationRequest: DataRequest { arguments: root.companyResearchActive ? ["valuation", StockStore.selected] : [] }
     property DataRequest ownershipRequest: DataRequest { arguments: root.companyResearchActive ? ["ownership", StockStore.selected] : [] }
     property DataRequest analystsRequest: DataRequest { arguments: root.companyResearchActive && root.analystsOpen ? ["analysts", StockStore.selected] : []; refreshInterval: 3600000 }
-    property DataRequest extendedRequest: DataRequest { arguments: root.stockResearchActive ? ["extended", StockStore.selected] : []; refreshInterval: 60000 }
+    property DataRequest extendedRequest: DataRequest { arguments: root.wantExtended ? ["extended", StockStore.selected] : []; keepOnError: true }
+    property Connections extendedSupport: Connections {
+        target: root.extendedRequest
+        function onDataChanged() {
+            const data = root.extendedRequest.data
+            if (data.supported === false && data.symbol && root.noExtended[data.symbol] !== true)
+                root.noExtended = Object.assign({}, root.noExtended, {[data.symbol]: true})
+        }
+    }
     property DataRequest eventsRequest: DataRequest { arguments: root.companyResearchActive ? ["events", StockStore.selected] : []; refreshInterval: 300000 }
     property DataRequest callsRequest: DataRequest { arguments: root.companyResearchActive && root.earningsCallsOpen ? ["calls", StockStore.selected] : [] }
     property DataRequest averagesRequest: DataRequest { arguments: root.stockResearchActive && root.averagesAvailable && root.averageWindows.length ? ["averages", StockStore.selected] : []; refreshInterval: 300000 }
@@ -129,7 +148,8 @@ QtObject {
     property DataRequest compareFour: DataRequest { arguments: root.comparisonArguments(3); keepOnError: true }
     property Connections selection: Connections {
         target: StockStore
-        function onSelectedChanged() { root.removeComparison(StockStore.selected) }
-        function onChartRequested(force) { root.comparisonRequests.forEach(request => request.reload(force)) }
+        function onSelectedChanged() { root.removeComparison(StockStore.selected); root.extendedClicked = "" }
+        function onPeriodChanged() { root.extendedClicked = "" }
+        function onChartRequested(force) { root.comparisonRequests.concat([root.extendedRequest]).forEach(request => request.reload(force)) }
     }
 }

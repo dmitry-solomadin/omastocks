@@ -41,13 +41,19 @@ Row {
         objectName: "extendedToggle"
         visible: StockStore.period === "1D"
         text: "Extended"
-        selected: MarketStore.extendedChart
+        // On at once when clicked; the regular chart stays until extended data arrives.
+        enabled: !MarketStore.extendedUnavailable(StockStore.selected)
+        selected: MarketStore.showExtended && enabled
         ink: selected ? Color.accent : Tone.muted
-        enabled: MarketStore.extended.supported === true && (MarketStore.extended.points || []).length > 0
-        hint: MarketStore.extendedRequest.busy ? "Loading extended hours…" : MarketStore.extended.error
-            || (enabled ? "Include pre-market and after hours in 1D · Shaded regions show extended sessions"
-                : "Extended hours unavailable for this symbol")
-        onClicked: MarketStore.showExtended = !MarketStore.showExtended
+        // Only a click that found no data explains the greyed-out button.
+        hint: MarketStore.extendedRequest.busy ? "Loading extended hours…"
+            : MarketStore.noExtended[StockStore.selected] === true && MarketStore.extendedClicked === StockStore.selected
+                ? "No extended-hours data for " + StockStore.selected
+                : "Include pre-market and after hours in 1D · Shaded regions show extended sessions"
+        onClicked: {
+            MarketStore.showExtended = !MarketStore.showExtended
+            MarketStore.extendedClicked = StockStore.selected
+        }
     }
     SmallButton {
         objectName: "compareEnter"

@@ -6,17 +6,17 @@ import ".."
 
 // The pre-market or after-hours quote, set at the right edge of the price row:
 // a secondary figure beside the close, a step above body text. Its caption
-// lines up with the close's.
+// lines up with the close's. It comes with the regular quote, on the same poll.
 ColumnLayout {
     id: root
     objectName: "extendedQuote"
-    readonly property var quote: MarketStore.extended.quote || null
+    readonly property var quote: StockStore.extendedQuote(StockStore.quote)
     visible: !!quote
     spacing: Style.space(4)
     Label {
         objectName: "extendedLabel"
         Layout.alignment: Qt.AlignRight
-        text: root.quote ? root.quote.label.toUpperCase() + (MarketStore.extended.stale ? " · SAVED DATA" : "") : ""
+        text: root.quote ? root.quote.label.toUpperCase() + (StockStore.quote.stale ? " · SAVED DATA" : "") : ""
         color: Tone.muted
         font.pixelSize: Style.font.bodySmall
         font.letterSpacing: 1
@@ -40,9 +40,9 @@ ColumnLayout {
     HoverHandler { id: hover }
     Ui.PanelToolTip {
         visible: hover.hovered
-        text: "Yahoo Finance · Latest sampled extended-hours price · " + (MarketStore.extended.currency || "")
+        text: "Yahoo Finance · Latest extended-hours price · " + (StockStore.quote.currency || "")
             + (root.quote ? "\nAs of " + Qt.formatDateTime(new Date(root.quote.updated * 1000), "d MMM, hh:mm") + " local time" : "")
             + "\nChange versus the preceding regular-session close. Prices may be delayed."
-            + (MarketStore.extended.error ? "\n" + MarketStore.extended.error : "")
+            + (StockStore.quote.stale && StockStore.quote.error ? "\n" + StockStore.quote.error : "")
     }
 }

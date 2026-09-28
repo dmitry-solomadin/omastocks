@@ -54,6 +54,8 @@ context.comparisonRequests = [0, 1, 2, 3].map(index => ({
     // DataRequest.reload() skips a request without arguments.
     reload(force) { if (this.arguments.length) this.reloads.push(force) }
 }))
+// Extended hours off: its request has no arguments, so reloading it is a no-op.
+context.extendedRequest = {arguments: [], reloads: [], reload(force) { if (this.arguments.length) this.reloads.push(force) }}
 context.evaluate(context.source.match(/^ +(function onChartRequested\(force\) \{.*\})$/m)[1])
 context.onChartRequested(false)
 assert.deepEqual(context.comparisonRequests.map(row => row.reloads.length), [1, 1, 0, 0])
@@ -62,5 +64,6 @@ assert.deepEqual(plain(context.comparisonRequests[0].reloads), [false, true], "A
 context.compareMode = false
 context.onChartRequested(false)
 assert.deepEqual(context.comparisonRequests.map(row => row.reloads.length), [2, 2, 0, 0], "No comparisons outside compare mode")
+assert.deepEqual(context.extendedRequest.reloads, [])
 
 console.log("PASS: comparison lines reload with the chart and keep their line, marked stale, after a failure")

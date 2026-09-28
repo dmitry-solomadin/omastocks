@@ -57,6 +57,26 @@ class BulkData(unittest.TestCase):
         self.assertIsNone(rows["MISS"]["price"])
         self.assertNotIn("UNREQUESTED", rows)
 
+    def test_extended_hours_prices_use_quote_units_and_missing_fields_are_none(self):
+        rows = market_bulk.parse_quotes({"quoteResponse": {"result": [
+            {"symbol": "HSBA.L", "currency": "GBp", "regularMarketPrice": 1516.4, "regularMarketTime": 1000,
+             "hasPrePostMarketData": True, "preMarketPrice": 1520, "preMarketChange": 3.6,
+             "preMarketChangePercent": 0.2374, "preMarketTime": 900,
+             "postMarketPrice": 1510, "postMarketChange": -6.4, "postMarketChangePercent": -0.422, "postMarketTime": 1100},
+            {"symbol": "AAPL", "currency": "USD", "regularMarketPrice": 338.4, "hasPrePostMarketData": False}]}},
+            ["HSBA.L", "AAPL"])["rows"]
+        pence = rows["HSBA.L"]
+        expected = {"prePrice": 15.2, "preChange": .036, "prePercent": .2374, "preUpdated": 900,
+                    "postPrice": 15.1, "postChange": -.064, "postPercent": -.422, "postUpdated": 1100}
+        for field, value in expected.items():
+            self.assertAlmostEqual(pence[field], value, msg=field)
+        self.assertIs(pence["extendedData"], True)
+        self.assertIs(rows["AAPL"]["extendedData"], False)
+        for field in ("prePrice", "preChange", "prePercent", "preUpdated", "postPrice", "postChange", "postPercent", "postUpdated"):
+            self.assertIsNone(rows["AAPL"][field], field)
+        missing = market_bulk.parse_quotes({"quoteResponse": {"result": [{"symbol": "AAPL"}]}}, ["AAPL"])["rows"]["AAPL"]
+        self.assertIsNone(missing["extendedData"])
+
     def test_session_state_is_provider_supplied_and_unknown_is_not_closed(self):
         for state, expected in [("REGULAR", "REGULAR"), ("CLOSED", "CLOSED"), ("PRE", "PRE"), ("POST", "POST"), (None, ""), ("UNKNOWN", "")]:
             result = market_bulk.parse_quotes({"quoteResponse": {"result": [{"symbol": "^SPX", "marketState": state}]}}, ["^SPX"])

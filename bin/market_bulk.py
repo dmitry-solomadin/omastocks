@@ -73,6 +73,16 @@ def parse_quotes(document, tickers):
             value = number(quote.get(source))
             rows[ticker][field] = value * scale if value is not None else None
         rows[ticker]["volume"] = number(quote.get("regularMarketVolume"))
+        # Pre-market and after-hours trading, whose change is against the
+        # regular-session price. Yahoo sends each only around its session.
+        for prefix, source in (("pre", "preMarket"), ("post", "postMarket")):
+            for field in ("Price", "Change"):
+                value = number(quote.get(source + field))
+                rows[ticker][prefix + field] = value * scale if value is not None else None
+            rows[ticker][prefix + "Percent"] = number(quote.get(source + "ChangePercent"))
+            rows[ticker][prefix + "Updated"] = number(quote.get(source + "Time"))
+        extended = quote.get("hasPrePostMarketData")
+        rows[ticker]["extendedData"] = extended if isinstance(extended, bool) else None
     if not rows:
         raise ValueError("Yahoo returned no quotes for the requested symbols.")
     for ticker in tickers:

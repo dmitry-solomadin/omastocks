@@ -203,6 +203,17 @@ QtObject {
         const unit = currency === "USD" ? "$" : currency ? currency + " " : ""
         return unit + (kind === "perShare" ? price(value) : compact(value))
     }
+    // The quote's pre-market or after-hours price, once it is newer than the last
+    // regular-session trade: {label, price, change, percent, updated}, or null.
+    function extendedQuote(quote) {
+        const key = ["PRE", "PREPRE"].indexOf(quote.marketState) >= 0 ? "pre"
+            : ["POST", "POSTPOST", "CLOSED"].indexOf(quote.marketState) >= 0 ? "post" : ""
+        if (!key || !Number.isFinite(quote[key + "Price"]) || !Number.isFinite(quote.updated)
+            || !(quote[key + "Updated"] > quote.updated)) return null
+        const value = field => Number.isFinite(quote[key + field]) ? quote[key + field] : null
+        return {label: key === "pre" ? "Pre-market" : "After hours", price: quote[key + "Price"],
+            change: value("Change"), percent: value("Percent"), updated: quote[key + "Updated"]}
+    }
     // The stock first: showing the Stock view must not fetch the previous one's chart.
     function select(ticker) {
         selected = ticker

@@ -89,7 +89,7 @@ class ResearchTests(unittest.TestCase):
     def test_comparison_lines_are_downloaded_every_time_and_never_saved(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        line = {"symbol": "NVDA", "range": "3M", "points": [[1, 100], [2, 101]], "schema": research.CHART_SCHEMA}
+        line = {"symbol": "NVDA", "range": "3M", "points": [[1, 100], [2, 101]]}
         with patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}), \
                 patch.object(research, "fetch", return_value={}) as request, \
                 patch.object(research, "parse_chart", return_value=line):
@@ -104,6 +104,22 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(list(Path(temporary.name).rglob("*")), [])
         with self.assertRaisesRegex(ValueError, "Unknown research request"):
             research.main(["unknown", "NVDA"])
+
+    def test_extended_hours_are_downloaded_every_time_and_never_saved(self):
+        import extended
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        document = {"chart": {"result": [{"meta": {"hasPrePostMarketData": False}}]}}
+        with patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}), \
+                patch.object(extended, "fetch", return_value=document) as request:
+            first = research.main(["extended", "AAPL"])
+            research.main(["extended", "AAPL"])
+            self.assertEqual(request.call_count, 2)
+            self.assertEqual((first["supported"], first["stale"]), (False, False))
+            request.side_effect = ValueError("offline")
+            failed = research.main(["extended", "AAPL"])
+        self.assertEqual(failed, {"symbol": "AAPL", "error": "offline", "stale": True, "points": [], "quote": None})
+        self.assertEqual(list(Path(temporary.name).rglob("*")), [])
 
     def test_news_is_deduplicated_and_safe_to_open(self):
         row = {"uuid": "one", "title": "Apple earnings", "publisher": "Publisher",
