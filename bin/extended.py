@@ -17,7 +17,7 @@ def parse_extended(document, ticker, now=None):
         return empty
     periods = meta.get("currentTradingPeriod") or {}
     sessions = []
-    for kind, label in (("pre", "Pre-market"), ("regular", "Regular"), ("post", "After-hours")):
+    for kind, label in (("pre", "Pre-market"), ("regular", "Regular"), ("post", "After hours")):
         period = periods.get(kind) or {}
         start, end = number(period.get("start")), number(period.get("end"))
         if start is not None and end is not None and end > start:

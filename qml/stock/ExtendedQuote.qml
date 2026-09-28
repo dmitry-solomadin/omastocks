@@ -1,28 +1,42 @@
 import QtQuick
+import QtQuick.Layouts
 import qs.Commons
 import qs.Ui as Ui
 import ".."
-import "../market/MarketClock.js" as Clock
 
-Label {
+// The pre-market or after-hours quote, set at the right edge of the price row:
+// a secondary figure beside the close, a step above body text. Its caption
+// lines up with the close's.
+ColumnLayout {
     id: root
     objectName: "extendedQuote"
     readonly property var quote: MarketStore.extended.quote || null
-    // Outside regular hours the line usually appears once data loads; keep its
-    // height while loading so the page below does not jump.
-    // Until the provider's session is known, the New York schedule decides, so
-    // the line is not reserved (and then dropped) during regular hours.
-    readonly property string session: Clock.normalize((StockStore.marketQuotes["^SPX"] || {}).marketState) || Clock.scheduled(Date.now())
-    readonly property bool pending: MarketStore.stockResearchActive && MarketStore.extended.symbol !== StockStore.selected
-        && session !== "REGULAR"
-    visible: !!quote || pending
-    text: quote ? quote.label + "  " + StockStore.price(quote.price)
-        + (quote.change !== null ? "  " + (quote.change >= 0 ? "+" : "") + StockStore.price(quote.change)
-            + " (" + StockStore.percent(quote.percent) + ")" : "")
-        + (MarketStore.extended.stale ? " · Saved data" : "") : ""
-    font.pixelSize: Style.font.bodySmall
-    color: StockStore.direction(quote ? quote.change : null)
-    wrapMode: Text.WordWrap
+    visible: !!quote
+    spacing: Style.space(4)
+    Label {
+        objectName: "extendedLabel"
+        Layout.alignment: Qt.AlignRight
+        text: root.quote ? root.quote.label.toUpperCase() + (MarketStore.extended.stale ? " · SAVED DATA" : "") : ""
+        color: Tone.muted
+        font.pixelSize: Style.font.bodySmall
+        font.letterSpacing: 1
+    }
+    Label {
+        objectName: "extendedPrice"
+        Layout.alignment: Qt.AlignRight
+        text: root.quote ? StockStore.price(root.quote.price) : ""
+        font.pixelSize: Style.font.title
+        font.bold: true
+    }
+    Label {
+        objectName: "extendedChange"
+        Layout.alignment: Qt.AlignRight
+        visible: !!root.quote && root.quote.change !== null
+        text: root.quote && root.quote.change !== null ? (root.quote.change >= 0 ? "+" : "") + StockStore.price(root.quote.change)
+            + " (" + StockStore.percent(root.quote.percent) + ")" : ""
+        color: StockStore.direction(root.quote ? root.quote.change : null)
+        font.pixelSize: Style.font.bodySmall
+    }
     HoverHandler { id: hover }
     Ui.PanelToolTip {
         visible: hover.hovered

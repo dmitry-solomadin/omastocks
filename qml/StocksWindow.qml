@@ -31,6 +31,12 @@ FloatingWindow {
         if (!visible) { settingsMenu.close(); watchlistMenu.close(); watchlistSelector.close(); list.cancelDrag() }
     }
     readonly property var quote: StockStore.quote
+    // Whether the price is still moving in today's regular session. Watchlist
+    // quotes carry the exchange's state; other quotes have the session's hours.
+    // Either refreshes with the quote, so "At close" follows within minutes.
+    readonly property bool regularSession: quote.marketState ? quote.marketState === "REGULAR"
+        : Number.isFinite(quote.sessionStart) && Number.isFinite(quote.sessionEnd)
+            && Date.now() / 1000 >= quote.sessionStart && Date.now() / 1000 < quote.sessionEnd
     readonly property var series: MarketStore.extendedChart ? MarketStore.extended : StockStore.visibleChart
     readonly property var points: series.points || []
     readonly property var rangeChange: points.length > 1 && points[0][1] !== 0
@@ -541,20 +547,42 @@ FloatingWindow {
                         Layout.fillWidth: true
                         spacing: Style.space(10)
                         Label { text: window.quote.name || StockStore.selected; font.pixelSize: Style.space(18); color: Tone.muted; Layout.fillWidth: true }
+                        // The regular price and today's change, with any extended-hours
+                        // quote at the row's right edge rather than on a line of its own.
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.topMargin: Style.space(8)
-                            spacing: Style.space(12)
-                            Label { text: StockStore.price(window.quote.price); font.pixelSize: Style.space(48); font.bold: true }
-                            Label { text: window.quote.currency || ""; color: Tone.muted; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: Style.space(8) }
+                            spacing: Style.space(24)
+                            // Out of session the price is the close, captioned like the
+                            // extended quote so the two captions share a line.
+                            ColumnLayout {
+                                Layout.alignment: Qt.AlignTop
+                                spacing: Style.space(4)
+                                Label {
+                                    objectName: "closeLabel"
+                                    visible: !window.regularSession
+                                    text: "AT CLOSE"
+                                    color: Tone.muted
+                                    font.pixelSize: Style.font.bodySmall
+                                    font.letterSpacing: 1
+                                }
+                                RowLayout {
+                                    spacing: Style.space(12)
+                                    Label { text: StockStore.price(window.quote.price); font.pixelSize: Style.space(48); font.bold: true }
+                                    Label { text: window.quote.currency || ""; color: Tone.muted; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: Style.space(8) }
+                                }
+                                Label {
+                                    objectName: "dailyChange"
+                                    visible: window.regularSession
+                                    Layout.topMargin: Style.space(6)
+                                    text: window.quote.change === null || window.quote.change === undefined ? "Daily change unavailable"
+                                        : (window.quote.change >= 0 ? "+" : "") + StockStore.price(window.quote.change) + " (" + StockStore.percent(window.quote.percent) + ") today"
+                                    color: StockStore.direction(window.quote.percent)
+                                }
+                            }
                             Item { Layout.fillWidth: true }
+                            ExtendedQuote { Layout.alignment: Qt.AlignTop | Qt.AlignRight; Layout.fillHeight: false }
                         }
-                        Label {
-                            text: window.quote.change === null || window.quote.change === undefined ? "Daily change unavailable" : (window.quote.change >= 0 ? "+" : "") + StockStore.price(window.quote.change) + " (" + StockStore.percent(window.quote.percent) + ") today"
-                            color: StockStore.direction(window.quote.percent)
-                            Layout.fillWidth: true
-                        }
-                        ExtendedQuote { Layout.fillWidth: true }
                     }
                     ChartTools { Layout.fillWidth: true; chart: detailChart }
                     Item {
