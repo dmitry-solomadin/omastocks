@@ -59,19 +59,50 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
 
 ## Data flow
 
-- `bin/stocks.py` serializes watchlist mutations and chart/quote storage with a
+- `bin/stocks.py` serializes watchlist mutations and quote storage with a
   file lock and atomic writes. Named lists are normalized by `bin/watchlists.py`;
   `entries` remains the active-list mirror in `watchlist.json`.
 - `bin/research.py` handles independent research requests, per-request locks,
   cache schemas and TTLs. A failed refresh preserves the last result and gets a
-  short retry cooldown. `DataRequest.qml` rejects obsolete replies and owns polling.
+  short retry cooldown. Comparison lines (`compare`) and the extended-hours chart
+  (`extended`) are the exception: like the primary chart, they are downloaded on
+  every request and never saved. `DataRequest.qml` rejects obsolete replies and
+  owns polling.
 - The active watchlist and favorites across lists share bulk quote requests
   (up to 70 symbols each), also used by the sidebar and Watchlist Overview.
   Failed quotes retain saved values and retry after 1, 2, 4, 8… seconds, capped
-  at 300 seconds; the UI schedules these deadlines independently of normal
-  five-minute polling. Recovery requests include only failed/due quotes.
+  at 300 seconds; the UI schedules these deadlines independently of the regular
+  poll. Recovery requests include only failed/due quotes.
   Success resets the backoff, and Yahoo's shared rate-limit cooldown takes
-  precedence. Charts are fetched separately only when needed by the stock view.
+  precedence. A stock outside the watchlist gets its header quote from the same
+  bulk request, not from its chart.
+- Charts are live and never saved; `cache.json` holds only quotes and sparklines,
+  and chart entries left by earlier versions are dropped. A failed refresh keeps
+  only the chart already on screen, with "As of d MMM HH:mm · refresh failed" on
+  the chart's top line opposite the chart options (the date matters: it may be
+  an earlier day's). A chart not yet shown says "Chart unavailable · Refresh to
+  retry". The comparison legend's tooltips carry the same note.
+- One `StockStore` poll refreshes the quotes and the chart together, so the
+  header, sidebar, bar ticker and chart never disagree. It runs every 60 seconds
+  while a 1D chart is live and every five minutes otherwise, which also keeps the
+  bar's quotes current while the window is closed. Live means the window is open
+  and not minimized, the Stock view shows a stock, and that stock's quote does not
+  report its market `CLOSED`, `PREPRE` or `POSTPOST` (pre-market and after hours
+  count as open; a quote without a state counts as open). Only a live chart
+  refreshes on the poll; any chart also loads once when it appears (opening or
+  restoring the window, returning to the Stock view) and when its market reopens.
+  Quotes older than 30 seconds are refreshed, below the poll so none is skipped.
+  `StockStore.requestChart` is the one place that asks for the chart; it skips a
+  duplicate of the chart already running or waiting unless the user refreshes,
+  and emits `chartRequested`, on which comparison lines and the extended chart
+  reload. They therefore follow the chart's pace and are never older than it.
+- The header's pre-market or after-hours price comes from the bulk quote
+  (Yahoo's `preMarket*` and `postMarket*` fields), chosen by
+  `StockStore.extendedQuote` once it is newer than the last regular trade, and
+  refreshes with the poll at no extra cost. The Extended chart is fetched only
+  while it is shown on 1D. Symbols without extended-hours data, from the quote's
+  `hasPrePostMarketData` or a `supported: false` reply, are skipped for the
+  session and their Extended button is greyed out.
 - Sidebar sparklines and the bar's hover preview use Yahoo's bulk spark request
   (five-minute closes, up to 20 symbols each) with regular quote refreshes.
   Recovery retries skip it, and a failed request keeps each symbol's last line.
@@ -88,7 +119,8 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   hours handle early closes; unfinished or sparse sessions can have fewer samples.
   Other ranges retain their existing intervals. Comparison charts use the same
   sampling; daily moving averages on 1M use completed-day values for earlier
-  intraday samples. Chart cache schemas prevent reuse of the previous intervals.
+  intraday samples. Moving averages, computed from ten years of daily closes,
+  keep a one-hour cache.
 - Watchlist live quotes and market-wide quotes have separate bulk requests.
   Market quotes persist across watchlist/tab changes. Historical Overview
   baselines refresh daily rather than with every live-price refresh.
@@ -104,7 +136,13 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
 - `bin/yahoo_http.py` shares anonymous authentication, request pacing and HTTP 429
   backoff across helper processes. Transient network failures and HTTP 500/502/503/504
   responses get two retries after 1 and 2 seconds, respecting shared pacing and
-  rate-limit cooldowns on each attempt. Manual refresh bypasses ordinary caches and
+  rate-limit cooldowns on each attempt. When a request's last attempt fails on the
+  network or with a server error, `traffic.json` records `outage: {since, failures}`;
+  any other reply from Yahoo, even a 404, clears it, and a request held back by the
+  cooldown changes nothing. Normal operation writes nothing extra, and there are no
+  health-check requests. A banner above the right panel's tabs shows the cooldown
+  ("Retrying at HH:MM", which takes precedence) or an outage of at least three
+  failures over 15 seconds. Manual refresh bypasses ordinary caches and
   failure cooldowns, while respecting that shared throttle and successful daily
   Overview baselines. `bin/tradingview.py` shares bounded scanner transport and
   share-class symbol mapping.
