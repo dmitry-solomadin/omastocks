@@ -1,7 +1,6 @@
 from datetime import datetime
 from pathlib import Path
 import sys
-import tempfile
 import unittest
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
@@ -118,12 +117,11 @@ class ChartIntervals(unittest.TestCase):
         self.assertEqual(result["volumes"], [None, 20, 20, 30, 20, 20])
 
     def test_intervals_apply_to_charts_comparison_and_extended_hours(self):
-        with tempfile.TemporaryDirectory() as directory, patch.object(stocks, "fetch", return_value=document()) as request:
-            repo = stocks.Repository(Path(directory))
-            result = repo.chart("AMD", "1D")
+        with patch.object(stocks, "fetch", return_value=document()) as request:
+            result = stocks.chart("AMD", "1D")
             self.assertEqual(request.call_args.kwargs["interval"], "1m")
             self.assertEqual(result["schema"], stocks.CHART_SCHEMA)
-            repo.chart("AMD", "1M")
+            stocks.chart("AMD", "1M")
             self.assertEqual(request.call_args.kwargs["interval"], "1h")
         with patch.object(research, "fetch", return_value=document()) as request:
             result = research.load("compare", "AMD", "1M")

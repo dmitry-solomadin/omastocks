@@ -82,6 +82,18 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   the chart's top line opposite the chart options (the date matters: it may be
   an earlier day's). A chart not yet shown says "Chart unavailable · Refresh to
   retry". The comparison legend's tooltips carry the same note.
+- The Stock view's charts come from one long-lived helper, `bin/chart_server.py`
+  (a JSON line each way), which reuses Yahoo's HTTPS connection
+  (`yahoo_http.KeepAlive`): about 80 ms a chart instead of about 230 ms for a new
+  process. It takes no lock and saves nothing,
+  so a chart never waits behind the watchlist queue. One chart runs at a time; a newer request replaces one
+  waiting. If the helper dies, that chart is fetched by a one-shot
+  `stocks.py chart` and the next chart restarts it; if it hangs for 45 seconds it
+  is stopped and the chart fails like any refresh; after three failures in a row
+  it rests for ten minutes while one-shot helpers fetch the charts. Closing the
+  window stops it, and it exits by itself when its input closes. A connection
+  idle for over a minute is replaced rather than reused, since one dropped by a
+  suspend or network change would only fail after the timeout.
 - One `StockStore` poll refreshes the quotes and the chart together, so the
   header, sidebar, bar ticker and chart never disagree. It runs every 60 seconds
   while a 1D chart is live and every five minutes otherwise, which also keeps the

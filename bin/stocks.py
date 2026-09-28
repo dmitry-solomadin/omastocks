@@ -251,6 +251,18 @@ def fetch_full_chart(ticker, period):
     return row
 
 
+def chart(ticker, period):
+    """Always a fresh download, never saved. A failure says so and has no points."""
+    if period not in RANGES:
+        raise ValueError("Unknown chart range.")
+    try:
+        row = fetch_full_chart(ticker, period)
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
+        return {"symbol": ticker, "range": period, "points": [], "error": str(error), "stale": True}
+    row["fetched"] = time.time()
+    return row
+
+
 class Repository:
     def __init__(self, directory):
         self.directory = directory
@@ -268,17 +280,6 @@ class Repository:
         # Charts are never saved. Drop the ones earlier versions kept.
         for key in [key for key in self.cache if key.rpartition(":")[2] in RANGES]:
             del self.cache[key]
-
-    def chart(self, ticker, period):
-        """Always a fresh download. A failure says so and returns no points."""
-        if period not in RANGES:
-            raise ValueError("Unknown chart range.")
-        try:
-            row = fetch_full_chart(ticker, period)
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
-            return {"symbol": ticker, "range": period, "points": [], "error": str(error), "stale": True}
-        row["fetched"] = time.time()
-        return row
 
     def refresh_quotes(self, tickers, force=False, retry_only=False):
         from market_bulk import quotes
@@ -444,6 +445,9 @@ def main(arguments):
     if len(arguments) >= 2 and arguments[-2] == "--list":
         list_id = arguments[-1]
         arguments = arguments[:-2]
+    if arguments and arguments[0] == "chart":
+        # Charts touch no saved state, so they never wait for the watchlist lock.
+        return {"chart": chart(symbol(arguments[1]), arguments[2])}
     directory = state_directory()
     directory.mkdir(parents=True, exist_ok=True)
     with (directory / ".lock").open("w") as lock:
@@ -453,8 +457,6 @@ def main(arguments):
         if action in ("snapshot", "refresh", "retry-quotes"):
             result = repository.snapshot(refresh=action != "snapshot", force="--force" in arguments,
                                          retry_only=action == "retry-quotes")
-        elif action == "chart":
-            result = {"chart": repository.chart(symbol(arguments[1]), arguments[2])}
         elif action == "quote":
             # A stock outside the watchlist: the same bulk quote as a listed one.
             ticker = symbol(arguments[1])

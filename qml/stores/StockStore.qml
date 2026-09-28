@@ -79,6 +79,8 @@ QtObject {
         } else {
             marketRetries = 0
             marketRetryTimer.stop()
+            // The next chart starts the chart helper again.
+            stopChartServer()
         }
     }
     // Force a reload 5 s after each scheduled session change. If the provider
@@ -185,7 +187,7 @@ QtObject {
     onChartShownChanged: if (chartShown) requestChart(false)
     onChartLiveChanged: if (chartShown) requestChart(false)
     onExtendedLiveChanged: if (extendedLive) MarketStore.extendedRequest.reload(false)
-    readonly property bool chartBusy: busy && (!visibleChart.points || !visibleChart.points.length)
+    readonly property bool chartBusy: chartLoading && (!visibleChart.points || !visibleChart.points.length)
     property var chartColors: []
     // Financial direction must retain its meaning across all theme palettes.
     readonly property color gain: "#4caf50"
@@ -245,12 +247,14 @@ QtObject {
         return {label: key === "pre" ? "Pre-market" : "After hours", price: quote[key + "Price"],
             change: value("Change"), percent: value("Percent"), updated: quote[key + "Updated"]}
     }
-    // The stock first: showing the Stock view must not fetch the previous one's chart.
+    // Its chart downloads while the page rebinds to the stock, and before its
+    // quote. The stock is set before the view, whose change must not fetch the
+    // previous stock's chart.
     function select(ticker) {
+        if (windowOpen) requestChart(false, ticker)
         selected = ticker
         view = "stock"
         if (!entries.some(entry => entry.symbol === ticker)) request(["quote", ticker])
-        if (windowOpen) requestChart(false)
     }
     // Opens the window on a stock, e.g. from the bar's favorites ticker.
     function show(ticker) {
@@ -268,11 +272,84 @@ QtObject {
     }
     // The one place that asks for the chart. The same chart already running
     // or waiting is enough, unless the user asked to refresh.
-    function requestChart(force) {
-        if (!selected) return
-        if (!force && [active].concat(queue).some(args => !!args && args[0] === "chart" && args[1] === selected && args[2] === period)) return
-        request(["chart", selected, period])
+    function requestChart(force, ticker) {
+        ticker = ticker || selected
+        if (!ticker) return
+        const same = args => !!args && args[0] === "chart" && args[1] === ticker && args[2] === period
+        if (!force && [chartActive && chartActive.args, chartWaiting, active].concat(queue).some(same)) return
+        chartWaiting = ["chart", ticker, period]
+        pumpChart()
         chartRequested(!!force)
+    }
+    // Charts come from one long-lived helper, bin/chart_server.py, that keeps
+    // Yahoo's connection open: about 80 ms a chart instead of 230 for a new
+    // process, and never behind the watchlist queue. One runs at a time; a newer
+    // request waits, replacing any older one waiting.
+    // If the helper dies, that chart is fetched by a one-shot helper and the
+    // server restarts with the next chart. If it hangs, it is stopped and the
+    // chart fails like any refresh. After three failures in a row it rests for
+    // ten minutes while one-shot helpers fetch the charts.
+    property var chartActive: null
+    property var chartWaiting: null
+    property int chartSerial: 0
+    property int chartServerFailures: 0
+    property double chartServerRestUntil: 0
+    readonly property bool chartLoading: chartActive !== null || chartWaiting !== null || pending(["chart"])
+    function pumpChart() {
+        if (!running || chartActive || !chartWaiting) return
+        const args = chartWaiting
+        chartWaiting = null
+        if (Date.now() < chartServerRestUntil) {
+            request(args)
+            return
+        }
+        chartActive = {id: ++chartSerial, args: args}
+        chartWatchdog.restart()
+        if (chartServer.running) sendChart()
+        else chartServer.running = true
+    }
+    function sendChart() {
+        if (chartActive) chartServer.write(JSON.stringify({id: chartActive.id, symbol: chartActive.args[1], range: chartActive.args[2]}) + "\n")
+    }
+    function chartReply(line) {
+        let reply
+        try { reply = JSON.parse(line) } catch (_) { return }
+        if (!chartActive || !reply || reply.id !== chartActive.id) return
+        chartWatchdog.stop()
+        chartActive = null
+        chartServerFailures = 0
+        if (reply.chart) receiveChart(reply.chart)
+        pumpChart()
+    }
+    function chartServerExited() {
+        const lost = chartActive
+        chartActive = null
+        chartWatchdog.stop()
+        if (!lost) return
+        chartServerFailed()
+        request(lost.args)
+        pumpChart()
+    }
+    function chartServerHung() {
+        const lost = chartActive
+        chartActive = null
+        chartServerFailed()
+        chartServer.running = false
+        if (lost) receiveChart({symbol: lost.args[1], range: lost.args[2], points: [], stale: true,
+            error: "The chart took too long to load. Refresh to retry."})
+        pumpChart()
+    }
+    function chartServerFailed() {
+        if (++chartServerFailures < 3) return
+        chartServerFailures = 0
+        chartServerRestUntil = Date.now() + 600000
+    }
+    // Closing the window stops the helper, dropping its request without a retry.
+    function stopChartServer() {
+        chartActive = null
+        chartWaiting = null
+        chartWatchdog.stop()
+        chartServer.running = false
     }
     function search(value) {
         const query = value.trim()
@@ -468,6 +545,14 @@ QtObject {
         onExited: { root.exited = true; root.finish() }
     }
     property Timer watchdog: Timer { interval: 60000; onTriggered: root.helper.running = false }
+    property Process chartServer: Process {
+        command: ["python3", decodeURIComponent(Qt.resolvedUrl("../../bin/chart_server.py").toString().replace(/^file:\/\//, ""))]
+        stdinEnabled: true
+        stdout: SplitParser { onRead: data => root.chartReply(data) }
+        onStarted: root.sendChart()
+        onExited: root.chartServerExited()
+    }
+    property Timer chartWatchdog: Timer { interval: 45000; onTriggered: root.chartServerHung() }
     property Timer quoteRetry: Timer { onTriggered: root.request(["retry-quotes"]) }
     // Every minute while a 1D chart is live; otherwise five minutes, which also
     // keeps the bar's quotes current while the window is closed.

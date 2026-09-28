@@ -37,7 +37,11 @@ function functionSource(source, name) {
 function handlerSource(source, property) {
     const name = "on" + property[0].toUpperCase() + property.slice(1) + "Changed"
     const lines = source.split("\n")
-    return lines[memberLine(lines, new RegExp(`^    ${name}: `), `handler ${name}`)].replace(/^ *\w+: /, "")
+    const index = memberLine(lines, new RegExp(`^    ${name}: `), `handler ${name}`)
+    assert.equal(lines.filter(line => line.startsWith(`    ${name}: `)).length, 1, `${name} is set once`)
+    const code = lines[index].replace(/^ *\w+: /, "")
+    if (code.trim() !== "{") return code
+    return lines.slice(index, lines.indexOf("    }", index) + 1).join("\n").replace(/^ *\w+: /, "")
 }
 
 function load(file, {state = {}, bindings = [], functions = [], handlers = [], globals = {}}) {
@@ -68,4 +72,37 @@ function load(file, {state = {}, bindings = [], functions = [], handlers = [], g
 // Values built inside a context have its own prototypes.
 function plain(value) { return JSON.parse(JSON.stringify(value)) }
 
-module.exports = {load, plain, expression}
+// StockStore's long-lived chart helper as a fake Process: starting it runs
+// onStarted, stopping it runs onExited, and each request written to it is
+// logged in context.sent in order with the store's other requests.
+function chartServer(context) {
+    return {
+        writes: [], starts: 0, alive: false,
+        get running() { return this.alive },
+        set running(value) {
+            if (value === this.alive) return
+            this.alive = value
+            if (value) { this.starts++; context.sendChart() }
+            else context.chartServerExited()
+        },
+        write(line) {
+            const request = JSON.parse(line)
+            this.writes.push(request)
+            context.sent.push(["chart", request.symbol, request.range])
+        },
+        // The helper's reply to the running request.
+        answer(chart) {
+            const active = context.chartActive
+            context.chartReply(JSON.stringify({id: active.id, chart: chart || {symbol: active.args[1], range: active.args[2], points: [[1, 1], [2, 2]]}}))
+        }
+    }
+}
+// The state and handlers StockStore's chart lane needs.
+const chartLane = {
+    state: {chartActive: null, chartWaiting: null, chartSerial: 0, chartServerFailures: 0, chartServerRestUntil: 0},
+    functions: ["requestChart", "pumpChart", "sendChart", "chartReply", "chartServerExited", "chartServerHung",
+        "chartServerFailed", "stopChartServer", "receiveChart", "pending", "request"],
+    globals: () => ({chartWatchdog: {running: false, restart() { this.running = true }, stop() { this.running = false }}})
+}
+
+module.exports = {load, plain, expression, chartServer, chartLane}

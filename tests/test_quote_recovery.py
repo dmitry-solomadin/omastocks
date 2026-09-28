@@ -38,7 +38,7 @@ class QuoteRecovery(unittest.TestCase):
         self.repo.mutate("add", "AMD", favorite=True)
         self.repo.mutate("add", "AAPL", favorite=True)
         self.repo.watchlist("select", "default")
-        with patch.object(self.repo, "chart", side_effect=AssertionError("No chart downloads")):
+        with patch.object(stocks, "fetch", side_effect=AssertionError("No chart downloads")):
             result = self.repo.snapshot(refresh=True)
         self.request.assert_called_once()
         tickers = self.request.call_args.args[0]

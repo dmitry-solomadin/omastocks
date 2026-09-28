@@ -2,7 +2,7 @@ const assert = require("node:assert/strict")
 const fs = require("node:fs")
 const path = require("node:path")
 const vm = require("node:vm")
-const {load, plain} = require("./qml_harness.cjs")
+const {load, plain, chartServer, chartLane} = require("./qml_harness.cjs")
 
 const qml = name => path.join(__dirname, "../qml", name)
 
@@ -40,11 +40,12 @@ function nested(source, name) {
 function app({entries, marketState = "REGULAR", showExtended = false}) {
     const stock = load(qml("stores/StockStore.qml"), {
         state: {running: true, windowOpen: true, windowMinimized: false, view: "stock", selected: "AAPL", period: "1D",
-            entries: entries || [{symbol: "AAPL", marketState}], previewQuotes: {}, chart: {}, queue: [], active: null, activeWatchlist: "default"},
+            entries: entries || [{symbol: "AAPL", marketState}], previewQuotes: {}, chart: {}, queue: [], active: null, activeWatchlist: "default",
+            ...chartLane.state},
         bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive", "visibleChart", "watchlistQuotes"],
-        functions: ["select", "range", "refresh", "requestChart", "request"],
+        functions: ["select", "range", "refresh"].concat(chartLane.functions),
         handlers: ["chartShown", "chartLive", "extendedLive"],
-        globals: {pump() {}, MarketStore: {refresh() {}}, chartRequested: force => market.onChartRequested(force)}
+        globals: {...chartLane.globals(), pump() {}, MarketStore: {refresh() {}}, chartRequested: force => market.onChartRequested(force)}
     })
     const market = load(qml("stores/MarketStore.qml"), {
         state: {compareMode: false, compareSlots: ["", "", "", ""], compareValidation: "", showExtended, noExtended: {}, extendedClicked: ""},
@@ -73,6 +74,7 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
     const send = stock.request
     stock.sent = []
     stock.request = args => { stock.sent.push(plain(args)); send(args) }
+    stock.chartServer = chartServer(stock)
     market.extendedRequest = request(market.source.match(/extendedRequest: DataRequest \{ arguments: ([^;]+);/)[1])
     market.comparisonRequests = [0, 1, 2, 3].map(index => request(`root.comparisonArguments(${index})`))
     for (const name of ["onSelectedChanged", "onPeriodChanged", "onChartRequested", "onDataChanged"]) market.evaluate(nested(market.source, name))
@@ -101,7 +103,13 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
         select(ticker) { stock.select(ticker); market.onSelectedChanged(); settle() },
         // A minute of the shared poll; the chart request then completes.
         tick(times = 1) {
-            for (let i = 0; i < times; i++) { stock.refresh(false); stock.active = null; stock.queue = []; settle() }
+            for (let i = 0; i < times; i++) {
+                stock.refresh(false)
+                if (stock.chartActive) stock.chartServer.answer({})
+                stock.active = null
+                stock.queue = []
+                settle()
+            }
         },
         reply(data) { market.extendedRequest.data = data; market.onDataChanged(); settle() }
     }

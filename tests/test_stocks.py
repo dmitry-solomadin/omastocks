@@ -161,7 +161,7 @@ class StateTests(unittest.TestCase):
         self.assertEqual(request.call_count, 2)
         self.assertEqual(first["points"], [(10, 101), (30, 105)])
         self.assertIn("fetched", first)
-        self.assertNotIn("AAPL:1D", json.loads((self.path / "cache.json").read_text()))
+        self.assertEqual(list(self.path.iterdir()), [], "No lock, cache or state touched")
 
     @patch.object(stocks, "fetch", side_effect=ValueError("offline"))
     def test_failed_chart_says_so_and_saves_nothing(self, request):
@@ -171,7 +171,7 @@ class StateTests(unittest.TestCase):
         self.assertEqual(request.call_count, 2)
         self.assertEqual((failed["points"], failed["error"], failed["stale"]), ([], "offline", True))
         self.assertNotIn("retryAfter", failed)
-        self.assertNotIn("AAPL:1Y", json.loads((self.path / "cache.json").read_text()))
+        self.assertEqual(list(self.path.iterdir()), [])
 
     def test_charts_saved_by_earlier_versions_are_dropped(self):
         saved = {key: {"price": 1} for key in ("AAPL:1D", "AAPL:1Y", "AAPL:quote", "AAPL:spark")}
