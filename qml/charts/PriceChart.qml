@@ -26,6 +26,9 @@ Item {
     property bool compareMode: false
     property var comparisons: []
     property color primaryColor: "#4e9eff"
+    // How far past its sides the chart still takes the pointer, as into the
+    // page margin, so a sweep past either end holds that end's reading.
+    property real hoverReach: 0
     readonly property bool comparing: !miniature && compareMode
     readonly property var normalized: comparing ? ChartMath.compareMany(
         [{symbol: symbol, currency: currency, color: primaryColor, points: points, dates: dates}]
@@ -91,9 +94,10 @@ Item {
         const padding = Math.max((high - low) * .12, Math.abs(high) * .0005, .01)
         return [low - padding, high + padding]
     }
+    // Anywhere level with the plot, beside the line reads its nearest end.
     readonly property int hoveredIndex: !hasSelection && pointer.containsMouse && points.length
-        && inPlot(pointer.mouseX, pointer.mouseY) && pointer.mouseX <= pointX(points.length - 1)
-        ? indexAtX(pointer.mouseX) : -1
+        && pointer.mouseY >= topInset && pointer.mouseY <= topInset + plotHeight
+        ? indexAtX(pointer.chartX) : -1
     readonly property var hoveredPoint: hoveredIndex >= 0 ? points[hoveredIndex] : null
     readonly property var hoverRows: legendEntries.map(entry => {
         const row = compareLines.find(row => row.symbol === entry.symbol)
@@ -395,26 +399,29 @@ Item {
     MouseArea {
         id: pointer
         anchors.fill: parent
+        anchors.leftMargin: -root.hoverReach
+        anchors.rightMargin: -root.hoverReach
+        readonly property real chartX: x + mouseX
         hoverEnabled: !root.miniature
         enabled: !root.miniature
         acceptedButtons: Qt.LeftButton
         preventStealing: true
-        cursorShape: containsMouse && root.inPlot(mouseX, mouseY) ? Qt.CrossCursor : Qt.ArrowCursor
+        cursorShape: containsMouse && root.inPlot(chartX, mouseY) ? Qt.CrossCursor : Qt.ArrowCursor
         onPressed: mouse => {
             root.clearSelection()
             if (root.comparing) { mouse.accepted = false; return }
-            if (root.points.length < 2 || !root.inPlot(mouse.x, mouse.y)
-                || mouse.x > root.pointX(root.points.length - 1)) {
+            if (root.points.length < 2 || !root.inPlot(x + mouse.x, mouse.y)
+                || x + mouse.x > root.pointX(root.points.length - 1)) {
                 mouse.accepted = false
                 return
             }
-            root.anchorIndex = root.indexAtX(mouse.x)
+            root.anchorIndex = root.indexAtX(x + mouse.x)
             root.selectionIndex = root.anchorIndex
             root.dragging = true
         }
-        onPositionChanged: mouse => { if (pressed && root.dragging) root.selectionIndex = root.indexAtX(mouse.x) }
+        onPositionChanged: mouse => { if (pressed && root.dragging) root.selectionIndex = root.indexAtX(x + mouse.x) }
         onReleased: mouse => {
-            if (root.dragging) root.selectionIndex = root.indexAtX(mouse.x)
+            if (root.dragging) root.selectionIndex = root.indexAtX(x + mouse.x)
             root.dragging = false
         }
         onCanceled: root.clearSelection()

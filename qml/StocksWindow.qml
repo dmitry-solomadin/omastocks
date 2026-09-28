@@ -616,6 +616,7 @@ FloatingWindow {
                             id: detailChart
                             objectName: "detailChart"
                             anchors.fill: parent
+                            hoverReach: Style.space(28)
                             // Earnings load after prices; reserve their lane where a report is
                             // likely in range. ALL shows only splits, which come with the prices.
                             reserveEvents: MarketStore.showEvents && !StockStore.selectedIsNonCompany
