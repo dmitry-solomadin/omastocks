@@ -344,6 +344,14 @@ class Repository:
                 else:
                     self.cache[key] = {**self.cache.get(key, {}), "retryAfter": finished + 120}
 
+    def quote(self, entry):
+        cached = self.cache.get(entry["symbol"] + ":quote", self.cache.get(entry["symbol"] + ":1D", {}))
+        spark = self.cache.get(entry["symbol"] + ":spark", {})
+        row = {**entry, **cached, **{key: spark[key] for key in ("points", "sessionStart", "sessionEnd") if key in spark},
+               "favorite": entry.get("favorite", False)}
+        row["stale"] = cached.get("stale", False) or time.time() - cached.get("fetched", 0) > 600
+        return row
+
     def snapshot(self, refresh=False, force=False, retry_only=False):
         entries = self.state["entries"]
         favorites = [row for row in watchlists.all_entries(self.state) if row.get("favorite")]
@@ -353,14 +361,7 @@ class Repository:
             # Recovery retries only restore failed quotes.
             if not retry_only:
                 self.refresh_sparks(tickers, force)
-        def quote(entry):
-            cached = self.cache.get(entry["symbol"] + ":quote", self.cache.get(entry["symbol"] + ":1D", {}))
-            spark = self.cache.get(entry["symbol"] + ":spark", {})
-            row = {**entry, **cached, **{key: spark[key] for key in ("points", "sessionStart", "sessionEnd") if key in spark},
-                   "favorite": entry.get("favorite", False)}
-            row["stale"] = cached.get("stale", False) or time.time() - cached.get("fetched", 0) > 600
-            return row
-        quoted, starred = [quote(row) for row in entries], [quote(row) for row in favorites]
+        quoted, starred = [self.quote(row) for row in entries], [self.quote(row) for row in favorites]
         retry = min((row.get("retryAfter", time.time() + 1) for row in quoted + starred if row["stale"]), default=0)
         return {"entries": quoted, "favoriteEntries": starred, "quoteRetryAfter": retry,
                 "activeWatchlist": self.state["activeWatchlist"],
@@ -459,7 +460,10 @@ def main(arguments):
         elif action == "chart":
             result = {"chart": repository.chart(symbol(arguments[1]), arguments[2], "--force" in arguments)}
         elif action == "quote":
-            result = {"quote": repository.chart(symbol(arguments[1]), "1D")}
+            # A stock outside the watchlist: the same bulk quote as a listed one.
+            ticker = symbol(arguments[1])
+            repository.refresh_quotes([ticker])
+            result = {"quote": repository.quote({"symbol": ticker})}
         elif action == "search":
             result = search(arguments[1])
         elif action == "move":

@@ -1,5 +1,6 @@
 """Bulk quote recovery across offline startup, partial replies and rate limits."""
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -128,6 +129,44 @@ class QuoteRecovery(unittest.TestCase):
         self.assertEqual(self.sparks.call_count, calls)
         self.repo.snapshot(refresh=True, force=True)
         self.assertEqual(self.sparks.call_count, calls + 1)
+
+
+class QuoteAction(unittest.TestCase):
+    """The header quote for a stock outside the watchlist comes from the bulk quote."""
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.path = Path(temp.name)
+        (self.path / "watchlist.json").write_text(json.dumps({"entries": [{"symbol": "AAPL", "name": "Apple Inc."}]}))
+        for patcher in (patch.dict(os.environ, {"STOCKS_STATE_DIR": temp.name}),
+                        patch.object(stocks, "fetch", side_effect=AssertionError("No chart downloads"))):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        clock = patch.object(stocks.time, "time", return_value=1000)
+        self.clock = clock.start()
+        self.addCleanup(clock.stop)
+        self.row = {"symbol": "TSLA", "price": 250, "name": "Tesla, Inc.", "currency": "USD",
+                    "previous": 245, "marketState": "REGULAR", "updated": 999}
+
+    def test_quote_outside_watchlist_is_one_bulk_request_without_a_chart(self):
+        with patch.object(market_bulk, "quotes", return_value={"rows": {"TSLA": self.row}}) as request:
+            quote = stocks.main(["quote", "TSLA"])["quote"]
+        request.assert_called_once_with(["TSLA"])
+        self.assertEqual({key: quote[key] for key in ("price", "name", "currency", "previous", "marketState")},
+                         {"price": 250, "name": "Tesla, Inc.", "currency": "USD", "previous": 245, "marketState": "REGULAR"})
+        self.assertFalse(quote["stale"])
+
+    def test_failed_quote_keeps_the_saved_price_marked_stale(self):
+        with patch.object(market_bulk, "quotes", return_value={"rows": {"TSLA": self.row}}):
+            stocks.main(["quote", "TSLA"])
+        self.clock.return_value += 120
+        with patch.object(market_bulk, "quotes", side_effect=OSError("offline")) as request:
+            quote = stocks.main(["quote", "TSLA"])["quote"]
+        request.assert_called_once_with(["TSLA"])
+        self.assertEqual(quote["price"], 250)
+        self.assertTrue(quote["stale"])
+        self.assertEqual(quote["error"], "offline")
 
 
 if __name__ == "__main__":
