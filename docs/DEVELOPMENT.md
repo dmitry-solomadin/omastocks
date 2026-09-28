@@ -84,8 +84,9 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   retry". The comparison legend's tooltips carry the same note.
 - The Stock view's charts come from one long-lived helper, `bin/chart_server.py`
   (a JSON line each way), which reuses Yahoo's HTTPS connection
-  (`yahoo_http.KeepAlive`): about 80 ms a chart instead of about 230 ms for a new
-  process. It takes no lock and saves nothing,
+  (`yahoo_http.KeepAlive`), and whose requests take their turn at once: about
+  40–75 ms a chart when Yahoo's edge has it cached and about 150 ms when not,
+  instead of about 230 ms for a new process. It takes no lock and saves nothing,
   so a chart never waits behind the watchlist queue. One chart runs at a time; a newer request replaces one
   waiting. If the helper dies, that chart is fetched by a one-shot
   `stocks.py chart` and the next chart restarts it; if it hangs for 45 seconds it
@@ -149,7 +150,11 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   have four workers. Market pages stay mounted after the first visit and poll
   only while active.
 - `bin/yahoo_http.py` shares anonymous authentication, request pacing and HTTP 429
-  backoff across helper processes. Transient network failures and HTTP 500/502/503/504
+  backoff across helper processes. Requests ask for gzip, which makes replies a
+  quarter of the size and about twice as fast; unpacking is bounded by the same
+  4 MB limit. Each request claims a turn 0.25 seconds after the one before and
+  waits for it outside the lock, so the chart helper's requests, which take their
+  turn at once, never queue behind background requests. Transient network failures and HTTP 500/502/503/504
   responses get two retries after 1 and 2 seconds, respecting shared pacing and
   rate-limit cooldowns on each attempt. When a request's last attempt fails on the
   network or with a server error, `traffic.json` records `outage: {since, failures}`;

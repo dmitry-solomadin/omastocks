@@ -11,6 +11,11 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zlib
+
+LIMIT = 4 * 1024 * 1024
+# The chart on screen goes first; the chart helper sets this.
+priority = False
 
 
 @contextmanager
@@ -24,7 +29,9 @@ def locked(name):
 
 
 def reserve():
-    """Wait for this request's turn; returns the shared state it read."""
+    """Claim this request's turn, 0.25 s after the one before, and wait for it
+    outside the lock. With priority (the chart on screen) the turn is now, and
+    later requests keep their distance from it. Returns the shared state read."""
     from stocks import read_json, write_json
     with locked("traffic") as directory:
         path = directory / "traffic.json"
@@ -32,9 +39,10 @@ def reserve():
         now = time.time()
         if state.get("retryAfter", 0) > now:
             raise ValueError("Yahoo Finance is rate limiting requests. Please try again later.")
-        time.sleep(max(0, state.get("next", 0) - now))
-        write_json(path, {**state, "next": time.time() + .25})
-        return state
+        start = now if priority else max(now, state.get("next", 0))
+        write_json(path, {**state, "next": max(start, state.get("next", 0)) + .25})
+    time.sleep(start - now)
+    return state
 
 
 def outage(failed):
@@ -120,13 +128,22 @@ def read(request, opener=None):
     # Reserve every attempt so retries still respect the shared provider cooldown.
     # A request held back by the shared cooldown never reached Yahoo: not an outage.
     opener = opener or persistent
+    # Compressed replies are a quarter of the size and arrive in about half the time.
+    if isinstance(request, urllib.request.Request) and not request.has_header("Accept-encoding"):
+        request.add_header("Accept-Encoding", "gzip")
     for attempt in range(3):
         traffic = reserve()
         # Normal operation writes nothing extra; only an outage on record is cleared.
         recorded = isinstance(traffic, dict) and "outage" in traffic
         try:
             with (opener.open if opener else urllib.request.urlopen)(request, timeout=10) as response:
-                raw = response.read(4 * 1024 * 1024 + 1)
+                raw = response.read(LIMIT + 1)
+                if response.headers.get("Content-Encoding") == "gzip":
+                    # Bounded, so a small reply cannot expand without limit.
+                    try:
+                        raw = zlib.decompressobj(16 + zlib.MAX_WBITS).decompress(raw, LIMIT + 1)
+                    except zlib.error as error:
+                        raise ValueError("Yahoo Finance returned a damaged response.") from error
         except urllib.error.HTTPError as error:
             # Any reply but a server error proves Yahoo is reachable, even a 404.
             if error.code < 500 and recorded:
@@ -145,7 +162,7 @@ def read(request, opener=None):
         else:
             if recorded:
                 outage(False)
-            if len(raw) > 4 * 1024 * 1024:
+            if len(raw) > LIMIT:
                 raise ValueError("Yahoo Finance returned an oversized response.")
             return raw
         time.sleep(2 ** attempt)

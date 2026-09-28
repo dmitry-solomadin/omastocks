@@ -119,7 +119,9 @@ class KeepAliveTests(unittest.TestCase):
 
 class ServerTests(unittest.TestCase):
     def setUp(self):
+        # serve() sets both for the process; restore them for other tests.
         patch.object(yahoo_http, "persistent", None).start()
+        patch.object(yahoo_http, "priority", False).start()
         self.fetch = patch.object(stocks, "fetch", return_value=CHART).start()
         self.addCleanup(patch.stopall)
 
@@ -142,6 +144,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(replies[5]["chart"]["range"], "1W")
         self.assertEqual(self.fetch.call_count, 2)
         self.assertIsInstance(yahoo_http.persistent, yahoo_http.KeepAlive)
+        self.assertTrue(yahoo_http.priority)
 
     def test_failed_download_is_an_error_reply(self):
         self.fetch.side_effect = ValueError("offline")

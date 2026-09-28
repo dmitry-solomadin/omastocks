@@ -1,3 +1,4 @@
+import gzip
 import json
 import os
 import sys
@@ -61,6 +62,74 @@ class RetryTests(unittest.TestCase):
             yahoo_http.read("https://example.test", self.opener)
         self.assertEqual(self.opener.open.call_count, 1)
 
+
+
+class CompressionTests(unittest.TestCase):
+    def setUp(self):
+        patch("yahoo_http.reserve", return_value={}).start()
+        self.addCleanup(patch.stopall)
+        self.opener = MagicMock()
+
+    def reply(self, body, encoding="gzip"):
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = body
+        response.__enter__.return_value.headers = {"Content-Encoding": encoding} if encoding else {}
+        self.opener.open.return_value = response
+
+    def test_requests_ask_for_gzip_and_replies_are_unpacked(self):
+        request = urllib.request.Request("https://query1.finance.yahoo.com/v8/finance/chart/AAPL")
+        self.reply(gzip.compress(b'{"ok": true}'))
+        self.assertEqual(yahoo_http.read(request, self.opener), b'{"ok": true}')
+        self.assertEqual(request.get_header("Accept-encoding"), "gzip")
+        self.reply(b'{"plain": true}', encoding=None)
+        self.assertEqual(yahoo_http.read(request, self.opener), b'{"plain": true}')
+
+    def test_oversized_or_damaged_replies_are_errors(self):
+        request = urllib.request.Request("https://query1.finance.yahoo.com/v8/finance/chart/AAPL")
+        self.reply(gzip.compress(b" " * (yahoo_http.LIMIT + 10)))
+        with self.assertRaisesRegex(ValueError, "oversized"):
+            yahoo_http.read(request, self.opener)
+        self.reply(b"not gzip at all")
+        with self.assertRaisesRegex(ValueError, "damaged"):
+            yahoo_http.read(request, self.opener)
+
+
+class PacingTests(unittest.TestCase):
+    """Requests keep 0.25 s apart; the chart on screen goes first."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}).start()
+        patch("yahoo_http.time.time", return_value=1000).start()
+        self.sleep = patch("yahoo_http.time.sleep").start()
+        self.addCleanup(patch.stopall)
+        self.traffic = Path(temporary.name) / "yahoo/traffic.json"
+
+    def next_turn(self):
+        return json.loads(self.traffic.read_text())["next"]
+
+    def test_each_request_claims_the_turn_after_the_last(self):
+        for wait in (0, .25, .5):
+            yahoo_http.reserve()
+            self.assertAlmostEqual(self.sleep.call_args.args[0], wait)
+        self.assertAlmostEqual(self.next_turn(), 1000.75)
+
+    def test_the_chart_goes_at_once_and_later_requests_wait_after_it(self):
+        yahoo_http.reserve()
+        yahoo_http.reserve()
+        with patch.object(yahoo_http, "priority", True):
+            yahoo_http.reserve()
+        self.assertEqual(self.sleep.call_args.args[0], 0)
+        self.assertAlmostEqual(self.next_turn(), 1000.75)
+        yahoo_http.reserve()
+        self.assertAlmostEqual(self.sleep.call_args.args[0], .75)
+
+    def test_the_rate_limit_cooldown_holds_the_chart_too(self):
+        self.traffic.parent.mkdir(parents=True)
+        self.traffic.write_text(json.dumps({"retryAfter": 2000}))
+        with patch.object(yahoo_http, "priority", True), self.assertRaisesRegex(ValueError, "rate limiting"):
+            yahoo_http.reserve()
 
 
 class OutageTests(unittest.TestCase):

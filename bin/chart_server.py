@@ -28,6 +28,7 @@ def answer(line):
 
 def serve(lines, output):
     yahoo_http.persistent = yahoo_http.KeepAlive()
+    yahoo_http.priority = True
     # Ends when the window closes stdin, or when the shell that started it is gone.
     for line in iter(lines.readline, ""):
         if line.strip():
