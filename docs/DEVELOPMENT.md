@@ -95,9 +95,11 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   window stops it, and it exits by itself when its input closes. A connection
   idle for over a minute is replaced rather than reused, since one dropped by a
   suspend or network change would only fail after the timeout.
-- A range still loading keeps the chart last drawn on screen, dimmed, rather
-  than blanking; a new stock starts blank, since another stock's line would be
-  wrong.
+- Pausing 120 ms on a range button loads that range's chart for the stock on
+  screen while the chart helper is idle, so the click shows it at once. The
+  reply is kept in memory only and used if under ten seconds old; a click while
+  it downloads takes over that request. A range still loading keeps the chart
+  last drawn on screen, dimmed; a new stock starts blank.
 - One `StockStore` poll refreshes the quotes and the chart together, so the
   header, sidebar, bar ticker and chart never disagree. It runs every 60 seconds
   while a 1D chart is live and every five minutes otherwise, which also keeps the

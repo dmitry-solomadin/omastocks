@@ -273,4 +273,68 @@ assert.equal(context.chartWaiting, null)
 assert.equal(context.queue.length, 0)
 assert.equal(context.chartServerFailures, 0)
 
+// Pausing on a range button loads that range ahead of the click.
+const dwell = context => {
+    const trigger = context.source.match(/prefetchTimer: Timer \{ interval: \d+; onTriggered: ([^}]+) \}/)[1]
+    if (context.prefetchTimer.running) { context.prefetchTimer.running = false; context.evaluate(trigger) }
+}
+const year = () => ({symbol: "AAPL", range: "1Y", points: [[1, 80], [2, 90]], fetched: Date.now() / 1000})
+context = store({chart: shownChart})
+context.hoverRange("1Y", true)
+dwell(context)
+assert.deepEqual(charts(context), [["chart", "AAPL", "1Y"]])
+assert.deepEqual(plain(context.emitted), [], "Not announced: the lines that follow the chart are for the range shown")
+context.chartServer.answer(year())
+assert.equal(context.chart, shownChart, "The chart on screen stays until the click")
+context.range("1Y")
+assert.deepEqual(plain(context.chart.points), [[1, 80], [2, 90]], "Shown at once")
+assert.equal(charts(context).length, 1, "Without another request")
+assert.equal(context.prefetched, null)
+// A click while it downloads takes over that request.
+context = store({chart: shownChart})
+context.hoverRange("5Y", true)
+dwell(context)
+context.range("5Y")
+assert.equal(charts(context).length, 1)
+context.chartServer.answer({symbol: "AAPL", range: "5Y", points: [[1, 1], [2, 2]], fetched: Date.now() / 1000})
+assert.equal(context.chart.range, "5Y")
+// Over ten seconds old, it is fetched again.
+context = store({chart: shownChart})
+context.hoverRange("1Y", true)
+dwell(context)
+context.chartServer.answer(Object.assign(year(), {fetched: Date.now() / 1000 - 11}))
+context.range("1Y")
+assert.equal(charts(context).length, 2)
+assert.equal(context.chart, shownChart, "Until the new one arrives")
+// Nothing for the range shown, while a chart runs, or with the chart hidden.
+for (const [state, value, why] of [[{}, "1D", "the range shown"], [{windowMinimized: true}, "1Y", "minimized"], [{view: "market"}, "1Y", "Market view"]]) {
+    context = store(state)
+    context.hoverRange(value, true)
+    dwell(context)
+    assert.equal(charts(context).length, 0, why)
+}
+context = store({})
+context.requestChart(true)
+context.hoverRange("1Y", true)
+dwell(context)
+assert.equal(charts(context).length, 1, "Not while a chart runs")
+// Passing over a button fetches nothing; entering the next before leaving the last keeps it.
+context = store({})
+context.hoverRange("1W", true)
+context.hoverRange("1W", false)
+assert.equal(context.prefetchTimer.running, false)
+context.hoverRange("1M", true)
+context.hoverRange("1W", false)
+dwell(context)
+assert.deepEqual(charts(context), [["chart", "AAPL", "1M"]])
+// Another stock never gets the last one's range.
+context = store({entries: [regular, {symbol: "MSFT", marketState: "REGULAR"}]})
+context.hoverRange("1Y", true)
+dwell(context)
+context.chartServer.answer(year())
+context.select("MSFT")
+context.chartServer.answer({symbol: "MSFT", range: "1D", points: [[1, 1], [2, 2]], fetched: Date.now() / 1000})
+context.range("1Y")
+assert.deepEqual(charts(context).slice(-1), [["chart", "MSFT", "1Y"]])
+
 console.log("PASS: failed charts keep only the one on screen, marked stale; one poll refreshes quotes and the live chart")

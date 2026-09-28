@@ -261,7 +261,38 @@ QtObject {
         select(ticker)
         openRequested()
     }
-    function range(value) { period = value; if (selected) requestChart(false) }
+    function range(value) {
+        period = value
+        if (!selected) return
+        if (prefetchedFresh(selected, value)) {
+            chart = prefetched
+            prefetched = null
+        } else requestChart(false)
+    }
+    // Pausing on a range button starts that range's chart for the stock on
+    // screen, so a click shows it at once. Only the chart, only while the chart
+    // helper is idle, and only one kept, in memory, used if under ten seconds
+    // old. A click while it downloads takes over that request.
+    property string hoveredRange: ""
+    property var prefetched: null
+    function hoverRange(value, hovered) {
+        if (hovered) {
+            hoveredRange = value
+            prefetchTimer.restart()
+        } else if (hoveredRange === value) {
+            hoveredRange = ""
+            prefetchTimer.stop()
+        }
+    }
+    function prefetchChart(value) {
+        if (!value || value === period || !chartShown || chartActive || chartWaiting || prefetchedFresh(selected, value)) return
+        chartWaiting = ["chart", selected, value]
+        pumpChart()
+    }
+    function prefetchedFresh(ticker, value) {
+        return !!prefetched && prefetched.symbol === ticker && prefetched.range === value && Date.now() / 1000 - prefetched.fetched < 10
+    }
+    property Timer prefetchTimer: Timer { interval: 120; onTriggered: root.prefetchChart(root.hoveredRange) }
     // One poll refreshes the quotes and the chart together, so they agree.
     function refresh(force) {
         if (force && windowOpen) MarketStore.refresh(true)
@@ -460,6 +491,8 @@ QtObject {
     // Charts are never saved. A failed refresh keeps the chart already on
     // screen, marked stale so it can show its time; anything else is replaced.
     function receiveChart(reply) {
+        // Another range of this stock, loaded ahead of a click: kept for it.
+        if (reply.symbol === selected && reply.range !== period && (reply.points || []).length && !reply.error) prefetched = reply
         if (reply.symbol !== selected || reply.range !== period) return
         const shown = chart.symbol === reply.symbol && chart.range === reply.range && (chart.points || []).length > 0
         chart = reply.error && shown ? Object.assign({}, chart, {stale: true, error: reply.error}) : reply

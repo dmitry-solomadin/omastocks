@@ -99,10 +99,12 @@ function chartServer(context) {
 }
 // The state and handlers StockStore's chart lane needs.
 const chartLane = {
-    state: {chartActive: null, chartWaiting: null, chartSerial: 0, chartServerFailures: 0, chartServerRestUntil: 0},
+    state: {chartActive: null, chartWaiting: null, chartSerial: 0, chartServerFailures: 0, chartServerRestUntil: 0,
+        hoveredRange: "", prefetched: null},
     functions: ["requestChart", "pumpChart", "sendChart", "chartReply", "chartServerExited", "chartServerHung",
-        "chartServerFailed", "stopChartServer", "receiveChart", "pending", "request"],
-    globals: () => ({chartWatchdog: {running: false, restart() { this.running = true }, stop() { this.running = false }}})
+        "chartServerFailed", "stopChartServer", "receiveChart", "pending", "request", "hoverRange", "prefetchChart", "prefetchedFresh"],
+    globals: () => ({chartWatchdog: {running: false, restart() { this.running = true }, stop() { this.running = false }},
+        prefetchTimer: {running: false, restart() { this.running = true }, stop() { this.running = false }}})
 }
 
 module.exports = {load, plain, expression, chartServer, chartLane}

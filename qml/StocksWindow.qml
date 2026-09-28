@@ -636,6 +636,7 @@ FloatingWindow {
                                     text: modelData
                                     width: index === 8 ? rangeButtons.width - 8 * (rangeButtons.cellWidth + rangeButtons.spacing) : rangeButtons.cellWidth
                                     selected: StockStore.period === modelData
+                                    onHoveredChanged: StockStore.hoverRange(modelData, hovered)
                                     onClicked: StockStore.range(modelData)
                                 }
                             }
