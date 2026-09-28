@@ -87,9 +87,23 @@ QtObject {
     function comparisonArguments(index) {
         return active && compareMode && compareSlots[index] ? ["compare", compareSlots[index], StockStore.period] : []
     }
+    // Today's IPOs (New York date) hang as a banner on the exchange facade,
+    // rotating when there are several.
+    property int bannerIndex: 0
+    readonly property var listings: ipoRequest.data.listings || []
+    readonly property var banner: listings.length ? listings[bannerIndex % listings.length] : null
+    property DataRequest ipoRequest: DataRequest {
+        arguments: StockStore.running && StockStore.windowOpen ? ["ipos", StockStore.easternToday] : []
+        refreshInterval: 3600000
+    }
+    property Timer bannerRotation: Timer {
+        interval: 15000; repeat: true
+        running: root.listings.length > 1 && StockStore.windowOpen
+        onTriggered: root.bannerIndex++
+    }
     function refresh(force) {
         [newsRequest, socialRequest, buzzRequest, eventsRequest, callsRequest,
-            averagesRequest, financialsRequest, valuationRequest, ownershipRequest, extendedRequest, analystsRequest]
+            averagesRequest, financialsRequest, valuationRequest, ownershipRequest, extendedRequest, analystsRequest, ipoRequest]
             .concat(comparisonRequests).forEach(request => request.reload(force))
     }
     property DataRequest newsRequest: DataRequest { arguments: root.stockResearchActive && !root.socialOpen ? ["news", StockStore.selected] : []; refreshInterval: 600000 }

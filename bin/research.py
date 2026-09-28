@@ -28,7 +28,7 @@ CACHE_TTLS = {
     "sectors": 86400, "sector": 900, "market-index": 900, "market-news": 600,
     "sentiment": 1800, "economic-calendar": 900, "quotes": 300, "calendar-bulk": 21600,
     "calendar": 21600, "overview": 86400, "fundamentals": 3600, "insiders": 3600, "compare": 3600,
-    "ownership": 86400,
+    "ownership": 86400, "ipos": 3600,
     # A past quarter's release does not move.
     "release": 2592000,
 }
@@ -38,7 +38,7 @@ CACHE_SCHEMAS = {
     "market-news": ("marketNewsSchema", 3), "quotes": ("quotesSchema", 3),
     "calendar-bulk": ("calendarSchema", 2), "news": ("newsSchema", 6),
     "insiders": ("insiderSchema", 2), "overview": ("overviewSchema", 2),
-    "financials": ("financialsSchema", 2), "ownership": ("ownershipSchema", 2), "valuation": ("valuationSchema", 2),
+    "financials": ("financialsSchema", 2), "ownership": ("ownershipSchema", 2), "valuation": ("valuationSchema", 2), "ipos": ("ipoSchema", 1),
 }
 
 
@@ -302,6 +302,9 @@ def load(action, ticker, period):
     if action == "insiders":
         from company_activity import activity
         return activity(ticker, nasdaq, date_string)
+    if action == "ipos":
+        from ipos import listings
+        return listings(ticker, nasdaq)
     if action == "ownership":
         from ownership import ownership
         return ownership(ticker)

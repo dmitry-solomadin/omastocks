@@ -32,6 +32,8 @@ the optional favorites ticker running.
 | **Market** | Index benchmarks, futures, commodities, crypto, rates and currencies; Fear & Greed and VIX sentiment; sector/index heatmaps; US economic releases and market news. |
 | **Watchlist** | Performance from 1D through 1Y, a heatmap, and an earnings calendar with EPS/revenue estimates and the latest surprises. |
 
+On IPO days, the exchange in the page header hangs a banner for each new listing.
+
 Market maps cover the **S&P 500, Nasdaq 100, Dow Jones**, and **11 sectors**.
 Choose **1D / YTD** and **Top 50 / Top 100 / All** for larger indexes. Click a
 benchmark, instrument or tile to open its Stock view.
@@ -82,7 +84,7 @@ Click a thumbnail to view the full-size screenshot.
 
 ## Data and storage
 
-Public feeds from **Yahoo Finance, Nasdaq, TradingView, CNN, Google News,
+Public feeds from **Yahoo Finance, Nasdaq, NYSE, TradingView, CNN, Google News,
 Stocktwits and ApeWisdom** supply the data. Prices may be delayed, earnings dates
 may be estimates, and coverage varies. Missing values stay **—**; failed refreshes
 retain saved data. Manual refresh respects provider rate limits.

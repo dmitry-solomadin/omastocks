@@ -22,6 +22,10 @@ assert.equal(clock.scheduled(tuesday(9, 30)), "REGULAR")
 assert.equal(clock.scheduled(tuesday(16, 0)), "POST")
 assert.equal(clock.scheduled(tuesday(20, 0)), "CLOSED")
 assert.equal(clock.scheduled(et(2026, 9, 26, 12, 0, -4)), "CLOSED")
+// The New York date lags UTC in the evening, across both DST regimes.
+assert.equal(clock.easternDate(Date.UTC(2026, 8, 28, 3, 30)), "2026-09-27")
+assert.equal(clock.easternDate(Date.UTC(2026, 0, 15, 4, 59)), "2026-01-14")
+assert.equal(clock.easternDate(Date.UTC(2026, 0, 15, 5, 0)), "2026-01-15")
 
 assert.equal(clock.countdown("REGULAR", tuesday(13, 46)), "closes in 2h 14m")
 assert.equal(clock.countdown("PRE", tuesday(8, 52)), "opens in 38m")

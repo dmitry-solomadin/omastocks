@@ -22,6 +22,11 @@ function eastern(utcMs) {
 
 function weekday(day) { return day >= 1 && day <= 5 }
 
+// The New York calendar date, YYYY-MM-DD.
+function easternDate(utcMs) {
+    return new Date(utcMs + offsetHours(utcMs) * 3600000).toISOString().slice(0, 10)
+}
+
 // Session implied by the clock alone.
 function scheduled(utcMs) {
     const now = eastern(utcMs)

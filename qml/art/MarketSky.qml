@@ -3,6 +3,7 @@ import qs.Commons
 import ".."
 import "../market/MarketClock.js" as Clock
 import "PixelSprites.js" as Sprites
+import "Banner.js" as Banner
 
 // Pixel "Wall Street sky" drawn behind a header. The sun crosses the header on
 // the New York clock through the 04:00–20:00 trading day: dawn in pre-market,
@@ -65,6 +66,46 @@ Item {
     readonly property int facadeHeight: Math.max(12, Math.min(28, rows - 11))
     readonly property int facadeX: Math.round(cols * .6)
     readonly property int apexY: rows - facadeHeight
+    // A listing's banner hangs from the entablature over the hall.
+    readonly property var banner: MarketStore.banner
+    readonly property int bannerTop: apexY + 9
+    readonly property int bannerRows: Math.min(11, rows - 3 - bannerTop)
+    property var logo: null
+    // Finished pixel grids by logo and banner size, so a rotation reuses them.
+    property var logos: ({})
+    onBannerChanged: showLogo()
+    onBannerRowsChanged: showLogo()
+    function showLogo() {
+        logo = null
+        const url = banner ? banner.logo : ""
+        if (url && banners.available) {
+            if (banners.isImageLoaded(url)) sampleLogo(url)
+            else banners.loadImage(url)
+        }
+        banners.requestPaint()
+    }
+    // Qt decodes the logo; its pixels are averaged into half-size cells, fine
+    // enough for a wordmark to read. A wordmark spans the banner and stands in
+    // for the ticker; an emblem sits beside it.
+    function sampleLogo(url) {
+        const key = url + " " + bannerRows + " " + facadeWidth
+        if (key in logos) {
+            logo = logos[key]
+            banners.requestPaint()
+            return
+        }
+        try {
+            const image = banners.getContext("2d").createImageData(url)
+            const box = image && image.width ? Banner.bounds(image.width, image.height, image.data) : null
+            const wide = !!box && box.width >= box.height * 2.2
+            const across = wide ? facadeWidth - 10 : 14
+            logo = box ? Object.assign(Banner.pixelate(image.width, image.height, image.data, across * 2, Math.max(1, bannerRows - 2) * 2, box), {wide: wide}) : null
+        } catch (error) {
+            logo = null
+        }
+        if (logo) logos[key] = logo
+        banners.requestPaint()
+    }
 
     Canvas {
         id: still
@@ -160,6 +201,51 @@ Item {
         Connections {
             target: root
             function onStoneChanged() { still.requestPaint() }
+        }
+    }
+
+    Canvas {
+        id: banners
+        anchors.fill: parent
+        opacity: root.t * (root.scene === "night" ? .6 : .9)
+        renderStrategy: Canvas.Cooperative
+        onAvailableChanged: root.showLogo()
+        onImageLoaded: {
+            const url = root.banner ? root.banner.logo : ""
+            if (url && isImageLoaded(url)) root.sampleLogo(url)
+        }
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onPaint: {
+            const ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            const banner = root.banner, rows = root.bannerRows
+            if (!banner || rows < 7) return
+            const c = root.cell, top = root.bannerTop
+            const rect = (i, j, w, h, color) => { ctx.fillStyle = color; ctx.fillRect(i * c, j * c, w * c, h * c) }
+            // Logo cells are half size; a logo too thin to read falls back to the ticker.
+            const logo = root.logo && root.logo.height >= 4 ? root.logo : null
+            const glyphs = logo && logo.wide ? null : Sprites.text(banner.ticker)
+            const logoSpan = logo ? Math.ceil(logo.width / 2) : 0
+            const span = logoSpan + (logo && glyphs ? 2 : 0) + (glyphs ? glyphs[0].length : 0) + 4
+            const left = Math.round(root.facadeX + root.facadeWidth / 2 - span / 2)
+            const cloth = Banner.cloth(logo)
+            rect(left, top, span, rows, cloth.fill)
+            rect(left, top + rows - 1, span, 1, cloth.hem)
+            let x = left + 2
+            if (logo) {
+                const half = c / 2, originY = (top + 1) * c + Math.floor(((rows - 2) * 2 - logo.height) / 2) * half
+                logo.cells.forEach((cell, index) => {
+                    if (cell[3] < .12) return
+                    ctx.fillStyle = Qt.rgba(cell[0] / 255, cell[1] / 255, cell[2] / 255, cell[3])
+                    ctx.fillRect(x * c + index % logo.width * half, originY + Math.floor(index / logo.width) * half, half, half)
+                })
+                x += logoSpan + 2
+            }
+            if (glyphs) {
+                const y = top + 1 + Math.floor((rows - 7) / 2)
+                glyphs.forEach((line, j) => { for (let i = 0; i < line.length; i++) if (line[i] === "1") rect(x + i, y + j, 1, 1, cloth.ink) })
+            }
         }
     }
 

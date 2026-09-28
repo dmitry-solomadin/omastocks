@@ -88,6 +88,11 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
 - Watchlist live quotes and market-wide quotes have separate bulk requests.
   Market quotes persist across watchlist/tab changes. Historical Overview
   baselines refresh daily rather than with every live-price refresh.
+- The header's IPO banner comes from `bin/ipos.py`: NYSE listing ceremonies and
+  Nasdaq's IPO calendar for the New York date, without SPACs, refreshed hourly while
+  the window is open. Logos are NYSE's ceremony images or, for other IPOs, the
+  company site's icon via Google; `qml/art/Banner.js` trims and averages them into
+  half-size facade cells.
 - Market memberships are local snapshots. Index/sector maps use bulk requests;
   they never fan an entire membership into per-symbol charts. Research batches
   have four workers. Market pages stay mounted after the first visit and poll
@@ -101,9 +106,10 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   share-class symbol mapping.
 
 Network hosts: `query1.finance.yahoo.com`, `finance.yahoo.com`, `fc.yahoo.com`,
-`api.nasdaq.com`, `scanner.tradingview.com`, `economic-calendar.tradingview.com`,
+`api.nasdaq.com`, `www.nyse.com`, `scanner.tradingview.com`, `economic-calendar.tradingview.com`,
 `production.dataviz.cnn.io`, `news.google.com`, `www.google.com`,
-`api.stocktwits.com`, and `apewisdom.io`. Thumbnails use provider-supplied image URLs;
+`api.stocktwits.com`, and `apewisdom.io`; Google's site icons redirect to
+`*.gstatic.com`. Thumbnails use provider-supplied image URLs;
 source links open externally. The earnings-release helper resolves Google's
 redirect on demand. Yahoo's anonymous cookies and crumb stay in the local state directory.
 
@@ -119,6 +125,7 @@ node tests/test_watchlist_order.cjs
 node tests/test_quote_retry.cjs
 node tests/test_pixel_art.cjs
 node tests/test_market_assets.cjs
+node tests/test_banner.cjs
 bash -n install install-launcher uninstall
 shellcheck install install-launcher uninstall
 omarchy plugin validate .

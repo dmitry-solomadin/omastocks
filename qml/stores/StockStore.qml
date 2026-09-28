@@ -50,9 +50,10 @@ QtObject {
         refreshInterval: 21600000
     }
     property string today: Qt.formatDate(new Date(), "yyyy-MM-dd")
+    property string easternToday: Clock.easternDate(Date.now())
     property Timer todayTimer: Timer {
         interval: 60000; running: root.windowOpen; repeat: true; triggeredOnStart: true
-        onTriggered: root.today = Qt.formatDate(new Date(), "yyyy-MM-dd")
+        onTriggered: { root.today = Qt.formatDate(new Date(), "yyyy-MM-dd"); root.easternToday = Clock.easternDate(Date.now()) }
     }
     // A report within the next two weeks, with its distance in calendar days.
     function upcomingEarnings(ticker) {
