@@ -95,14 +95,15 @@ Item {
         const point = row ? row.points.find(point => point[0] === hoveredIndex) : null
         return {symbol: entry.symbol, color: entry.color, currency: row ? row.currency : "", price: point ? point[2] : null, percent: point ? point[1] : null}
     })
-    // Rows of the hover box: every compared stock, or the price and volume.
+    // Rows of the hover box: every compared stock, or the volume below the
+    // price. Yields and currencies report zero volume throughout, so none shows.
     readonly property var hoverLines: {
         if (!hoveredPoint) return []
         if (comparing) return hoverRows.map(row => ({label: row.symbol, color: row.color, value: hoverPrice(row)}))
         const extended = sessions.some(session => session.kind !== "regular" && hoveredPoint[0] >= session.start && hoveredPoint[0] < session.end)
         const volume = volumes[hoveredIndex]
-        return [{label: symbol, color: lineColor, value: hoverPrice({price: hoveredPoint[1], currency: currency})}]
-            .concat(showVolume && !extended && volume !== null && volume !== undefined ? [{label: "Volume", color: "transparent", value: StockStore.compact(volume)}] : [])
+        return showVolume && hasVolume && !extended && volume !== null && volume !== undefined
+            ? [{label: "Volume", color: "transparent", value: StockStore.compact(volume)}] : []
     }
     function pointX(index) { return leftInset + ChartMath.pointFraction(points, index, period, timeDomain) * plotWidth }
     function axisValue(value) { return comparing && normalized ? (value / normalized.base - 1) * 100 : value }
@@ -479,6 +480,13 @@ Item {
             id: hoverContent
             anchors.centerIn: parent
             spacing: Style.space(5)
+            Label {
+                objectName: "chartHoverPrice"
+                visible: !root.comparing
+                text: root.hoveredPoint ? root.hoverPrice({price: root.hoveredPoint[1], currency: root.currency}) : ""
+                font.bold: true
+                font.pixelSize: Style.font.heading
+            }
             Label { text: root.hoveredPoint ? root.hoverTime(root.hoveredPoint[0]) : ""; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
             Repeater {
                 model: root.hoverLines
@@ -487,7 +495,7 @@ Item {
                     spacing: Style.space(12)
                     Rectangle { implicitWidth: Style.space(8); implicitHeight: implicitWidth; color: modelData.color }
                     Label { text: modelData.label; Layout.fillWidth: true; font.pixelSize: Style.font.bodySmall }
-                    Label { text: modelData.value; font.pixelSize: Style.font.bodySmall }
+                    Label { text: modelData.value; font.pixelSize: Style.font.bodySmall; font.bold: root.comparing }
                 }
             }
         }
