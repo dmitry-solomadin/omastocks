@@ -317,15 +317,41 @@ class Repository:
                                    "failures": failures,
                                    "retryAfter": max(finished + min(300, 2 ** (failures - 1)), cooldown)}
 
+    def refresh_sparks(self, tickers, force=False):
+        """Sparkline closes in bulk. A failure keeps each symbol's previous line."""
+        from market_bulk import sparks
+        now = time.time()
+        due = [ticker for ticker in tickers if force or now >= max(
+            self.cache.get(ticker + ":spark", {}).get("fetched", 0) + 60,
+            self.cache.get(ticker + ":spark", {}).get("retryAfter", 0))]
+        for offset in range(0, len(due), 20):
+            batch = due[offset:offset + 20]
+            try:
+                rows = sparks(batch)
+            except (ValueError, OSError, TypeError, KeyError, AttributeError, IndexError):
+                rows = {}
+            finished = time.time()
+            for ticker in batch:
+                key = ticker + ":spark"
+                if ticker in rows:
+                    self.cache[key] = {**rows[ticker], "fetched": finished}
+                else:
+                    self.cache[key] = {**self.cache.get(key, {}), "retryAfter": finished + 120}
+
     def snapshot(self, refresh=False, force=False, retry_only=False):
         entries = self.state["entries"]
         favorites = [row for row in watchlists.all_entries(self.state) if row.get("favorite")]
         if refresh:
             tickers = dict.fromkeys(row["symbol"] for row in entries + favorites)
             self.refresh_quotes(tickers, force, retry_only)
+            # Recovery retries only restore failed quotes.
+            if not retry_only:
+                self.refresh_sparks(tickers, force)
         def quote(entry):
             cached = self.cache.get(entry["symbol"] + ":quote", self.cache.get(entry["symbol"] + ":1D", {}))
-            row = {**entry, **cached, "favorite": entry.get("favorite", False)}
+            spark = self.cache.get(entry["symbol"] + ":spark", {})
+            row = {**entry, **cached, **{key: spark[key] for key in ("points", "sessionStart", "sessionEnd") if key in spark},
+                   "favorite": entry.get("favorite", False)}
             row["stale"] = cached.get("stale", False) or time.time() - cached.get("fetched", 0) > 600
             return row
         quoted, starred = [quote(row) for row in entries], [quote(row) for row in favorites]

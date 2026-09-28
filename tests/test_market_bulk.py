@@ -67,6 +67,22 @@ class BulkData(unittest.TestCase):
             with self.subTest(rows=rows), self.assertRaises(ValueError):
                 market_bulk.parse_quotes({"quoteResponse": {"result": rows}}, ["AAA"])
 
+    def test_sparks_parse_intraday_closes_and_skip_missing_symbols(self):
+        response = [{"meta": {"currency": "GBp", "regularMarketPrice": 250, "chartPreviousClose": 240,
+                              "exchangeTimezoneName": "Europe/London",
+                              "currentTradingPeriod": {"regular": {"start": 100, "end": 400}}},
+                     "timestamp": [100, 200, 300], "indicators": {"quote": [{"close": [240, None, 250]}]}}]
+        request = Mock(return_value={"spark": {"result": [
+            {"symbol": "AAA.L", "response": response}, {"symbol": "EMPTY", "response": []},
+            {"symbol": "OTHER", "response": response}], "error": None}})
+        rows = market_bulk.sparks(["AAA.L", "EMPTY", "MISSING"], request)
+        self.assertEqual(request.call_args.kwargs["symbols"], "AAA.L,EMPTY,MISSING")
+        self.assertEqual(rows, {"AAA.L": {"points": [(100, 2.4), (300, 2.5)], "sessionStart": 100, "sessionEnd": 400}})
+        with self.assertRaises(ValueError):
+            market_bulk.sparks(["T%d" % index for index in range(21)], request)
+        with self.assertRaises(ValueError):
+            market_bulk.parse_sparks({"spark": {"result": None, "error": {"code": "Bad Request"}}}, ["AAA"])
+
     def test_calendar_paginates_and_keeps_eps_zeros_negative_values_and_timing(self):
         request = Mock(side_effect=[page([["AAA", "2026-08-01T20:00:00Z", "TAS", -.2, -.1]], 3),
                                    page([["AAA", "2026-11-01T20:00:00Z", "AMC", 0, None],

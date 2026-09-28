@@ -1,7 +1,7 @@
 """Bulk sector snapshots and quotes. Never expand sectors into chart requests."""
 import json
 from pathlib import Path
-from stocks import number, quote_units, symbol
+from stocks import number, parse_chart, quote_units, symbol
 from yahoo_http import authenticated
 
 
@@ -82,3 +82,29 @@ def parse_quotes(document, tickers):
 
 def quotes(tickers, request=authenticated):
     return parse_quotes(request("/v7/finance/quote", symbols=",".join(tickers)), tickers)
+
+
+def parse_sparks(document, tickers):
+    """Intraday closes for sparklines. Symbols without data are left out."""
+    response = document.get("spark") or {}
+    if response.get("error") or not isinstance(response.get("result"), list):
+        raise ValueError("Yahoo returned an invalid sparkline response.")
+    rows = {}
+    for row in response["result"]:
+        ticker = row.get("symbol") if isinstance(row, dict) else None
+        if ticker not in tickers or not row.get("response"):
+            continue
+        try:
+            chart = parse_chart({"chart": {"result": row["response"]}}, ticker, "1D")
+        except (ValueError, TypeError, KeyError, AttributeError, IndexError):
+            continue
+        if chart["points"]:
+            rows[ticker] = {key: chart[key] for key in ("points", "sessionStart", "sessionEnd")}
+    return rows
+
+
+def sparks(tickers, request=authenticated):
+    # Yahoo rejects spark requests for more than 20 symbols.
+    if len(tickers) > 20:
+        raise ValueError("Request sparklines for at most 20 symbols.")
+    return parse_sparks(request("/v7/finance/spark", symbols=",".join(tickers), range="1d", interval="5m"), tickers)

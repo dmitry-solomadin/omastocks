@@ -72,6 +72,9 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   five-minute polling. Recovery requests include only failed/due quotes.
   Success resets the backoff, and Yahoo's shared rate-limit cooldown takes
   precedence. Charts are fetched separately only when needed by the stock view.
+- Sidebar sparklines and the bar's hover preview use Yahoo's bulk spark request
+  (five-minute closes, up to 20 symbols each) with regular quote refreshes.
+  Recovery retries skip it, and a failed request keeps each symbol's last line.
 - Chart sampling uses one-minute candles for 1D (including extended hours).
   Its volume histogram groups those values into five-minute totals, while
   price-hover tooltips retain each minute's original volume. A zero-volume

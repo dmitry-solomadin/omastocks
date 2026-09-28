@@ -28,6 +28,9 @@ class QuoteRecovery(unittest.TestCase):
         request = patch.object(market_bulk, "quotes", side_effect=reply)
         self.request = request.start()
         self.addCleanup(request.stop)
+        sparks = patch.object(market_bulk, "sparks", side_effect=lambda tickers: {})
+        self.sparks = sparks.start()
+        self.addCleanup(sparks.stop)
 
     def test_refresh_combines_active_list_and_other_list_favorites_without_charts(self):
         self.repo.watchlist("create", name="Other")
@@ -99,6 +102,32 @@ class QuoteRecovery(unittest.TestCase):
         self.assertEqual([len(call.args[0]) for call in self.request.call_args_list], [70, 70, 5])
         self.repo.refresh_quotes(tickers)
         self.assertEqual(self.request.call_count, 3)
+
+    def test_sparklines_join_rows_in_chunks_and_failures_keep_the_previous_line(self):
+        line = {"points": [[900, 1], [960, 2]], "sessionStart": 800, "sessionEnd": 2000}
+        self.sparks.side_effect = lambda tickers: {ticker: line for ticker in tickers}
+        result = self.repo.snapshot(refresh=True)
+        self.assertTrue(all(row["points"] == line["points"] and row["sessionEnd"] == 2000 for row in result["entries"]))
+        self.repo.refresh_sparks(["T%d" % index for index in range(45)])
+        self.assertEqual([len(call.args[0]) for call in self.sparks.call_args_list[1:]], [20, 20, 5])
+        self.clock.return_value += 61
+        self.sparks.side_effect = OSError("offline")
+        result = self.repo.snapshot(refresh=True)
+        self.assertTrue(all(row["points"] == line["points"] for row in result["entries"]))
+        calls = self.sparks.call_count
+        self.clock.return_value += 60
+        self.repo.snapshot(refresh=True)
+        self.assertEqual(self.sparks.call_count, calls)
+
+    def test_quote_recovery_retries_do_not_download_sparklines(self):
+        self.repo.snapshot(refresh=True, retry_only=True)
+        self.sparks.assert_not_called()
+        self.repo.snapshot(refresh=True)
+        calls = self.sparks.call_count
+        self.repo.snapshot(refresh=True)
+        self.assertEqual(self.sparks.call_count, calls)
+        self.repo.snapshot(refresh=True, force=True)
+        self.assertEqual(self.sparks.call_count, calls + 1)
 
 
 if __name__ == "__main__":
