@@ -2,7 +2,7 @@ const assert = require("node:assert/strict")
 const fs = require("node:fs")
 const path = require("node:path")
 const vm = require("node:vm")
-const {load, plain, chartServer, chartLane} = require("./qml_harness.cjs")
+const {load, plain, dataServer, serverLane} = require("./qml_harness.cjs")
 
 const qml = name => path.join(__dirname, "../qml", name)
 
@@ -40,11 +40,11 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
     const stock = load(qml("stores/StockStore.qml"), {
         state: {running: true, windowOpen: true, windowMinimized: false, view: "stock", selected: "AAPL", period: "1D",
             entries: entries || [{symbol: "AAPL", marketState}], previewQuotes: {}, chart: {}, queue: [], active: null, activeWatchlist: "default",
-            ...chartLane.state},
+            ...serverLane.state},
         bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive", "visibleChart", "watchlistQuotes", "chartLoading"],
-        functions: ["select", "range", "refresh"].concat(chartLane.functions),
+        functions: ["select", "range", "refresh"].concat(serverLane.functions),
         handlers: ["chartShown", "chartLive", "extendedLive"],
-        globals: {...chartLane.globals(), pump() {}, MarketStore: {refresh() {}}, chartRequested: force => market.onChartRequested(force)}
+        globals: {...serverLane.globals(), pump() {}, MarketStore: {refresh() {}}, chartRequested: force => market.onChartRequested(force)}
     })
     const market = load(qml("stores/MarketStore.qml"), {
         state: {compareMode: false, compareSlots: ["", "", "", ""], compareValidation: "", showExtended, noExtended: {}, extendedClicked: ""},
@@ -73,7 +73,7 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
     const send = stock.request
     stock.sent = []
     stock.request = args => { stock.sent.push(plain(args)); send(args) }
-    stock.chartServer = chartServer(stock)
+    stock.dataServer = dataServer(stock)
     market.extendedRequest = request(market.source.match(/extendedRequest: DataRequest \{ arguments: ([^;]+);/)[1])
     market.comparisonRequests = [0, 1, 2, 3].map(index => request(`root.comparisonArguments(${index})`))
     for (const name of ["onSelectedChanged", "onPeriodChanged", "onChartRequested", "onDataChanged"]) market.evaluate(nested(market.source, name))
@@ -111,7 +111,7 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
         tick(times = 1) {
             for (let i = 0; i < times; i++) {
                 stock.refresh(false)
-                if (stock.chartActive) stock.chartServer.answer({})
+                if (stock.serverActive) stock.dataServer.answer({})
                 stock.active = null
                 stock.queue = []
                 settle()
@@ -216,12 +216,12 @@ assert.equal(world.series(), day)
 world.stock.range("1W")
 assert.equal(world.view.holdingChart, true)
 assert.equal(world.series(), day, "Held, dimmed, while 1W loads")
-world.stock.chartServer.answer({symbol: "AAPL", range: "1W", points: [[1, 90], [2, 91], [3, 92]]})
+world.stock.dataServer.answer({symbol: "AAPL", range: "1W", points: [[1, 90], [2, 91], [3, 92]]})
 assert.equal(world.view.holdingChart, false)
 assert.equal(world.series().range, "1W")
 world.stock.range("1Y")
 assert.equal(world.series().range, "1W")
-world.stock.chartServer.answer({symbol: "AAPL", range: "1Y", points: [], error: "offline", stale: true})
+world.stock.dataServer.answer({symbol: "AAPL", range: "1Y", points: [], error: "offline", stale: true})
 assert.equal(world.view.holdingChart, false)
 assert.equal(world.series().error, "offline", "The failure shows, not the held chart")
 world.select("MSFT")

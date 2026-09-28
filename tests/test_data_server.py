@@ -1,4 +1,4 @@
-"""The long-lived chart helper: a JSON line each way over one reused connection."""
+"""The long-lived data helper: a JSON line each way over one reused connection."""
 import http.client
 import io
 import json
@@ -13,7 +13,7 @@ import urllib.request
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "bin"))
-import chart_server
+import data_server
 import stocks
 import yahoo_http
 
@@ -127,18 +127,17 @@ class ServerTests(unittest.TestCase):
 
     def serve(self, *lines):
         output = io.StringIO()
-        chart_server.serve(io.StringIO("".join(line + "\n" for line in lines)), output)
+        data_server.serve(io.StringIO("".join(line + "\n" for line in lines)), output)
         return [json.loads(line) for line in output.getvalue().splitlines()]
 
     def test_each_request_gets_one_reply_with_its_id_and_bad_ones_never_end_it(self):
-        replies = self.serve(json.dumps({"id": 1, "symbol": "aapl", "range": "1D"}), "not json", "",
-                             json.dumps({"id": 3, "symbol": "BAD SYMBOL", "range": "1D"}),
-                             json.dumps({"id": 4, "symbol": "AAPL", "range": "9Y"}), json.dumps([1]),
-                             json.dumps({"id": 6, "symbol": "MSFT", "range": "1W"}))
+        chart = lambda identity, ticker, period: json.dumps({"id": identity, "action": "chart", "symbol": ticker, "range": period})
+        replies = self.serve(chart(1, "aapl", "1D"), "not json", "", chart(3, "BAD SYMBOL", "1D"),
+                             chart(4, "AAPL", "9Y"), json.dumps([1]), chart(6, "MSFT", "1W"))
         self.assertEqual([reply["id"] for reply in replies], [1, None, 3, 4, None, 6])
         self.assertEqual((replies[0]["chart"]["symbol"], replies[0]["chart"]["points"]), ("AAPL", [[10, 101], [30, 105]]))
         self.assertIn("fetched", replies[0]["chart"])
-        for reply, error in zip(replies[1:5], ["Expecting value", "valid stock symbol", "Unknown chart range", "has no attribute"]):
+        for reply, error in zip(replies[1:5], ["Expecting value", "valid stock symbol", "Unknown chart range", "JSON object"]):
             self.assertIn(error, reply["chart"]["error"])
             self.assertEqual(reply["chart"]["points"], [])
         self.assertEqual(replies[5]["chart"]["range"], "1W")
@@ -148,12 +147,31 @@ class ServerTests(unittest.TestCase):
 
     def test_failed_download_is_an_error_reply(self):
         self.fetch.side_effect = ValueError("offline")
-        reply = self.serve(json.dumps({"id": 7, "symbol": "AAPL", "range": "1D"}))[0]
+        reply = self.serve(json.dumps({"id": 7, "action": "chart", "symbol": "AAPL", "range": "1D"}))[0]
         self.assertEqual((reply["id"], reply["chart"]["error"], reply["chart"]["stale"]), (7, "offline", True))
 
+    def test_searches_share_the_helper_and_its_connection(self):
+        self.fetch.return_value = {"quotes": [{"symbol": "NVDA", "longname": "NVIDIA Corporation", "quoteType": "EQUITY", "exchDisp": "NASDAQ"}]}
+        replies = self.serve(json.dumps({"id": 1, "action": "search", "query": "nvidia"}),
+                             json.dumps({"id": 2, "action": "chart", "symbol": "NVDA", "range": "1D"}))
+        self.assertEqual(replies[0]["search"]["query"], "nvidia")
+        self.assertIn("NVDA", [row["symbol"] for row in replies[0]["search"]["results"]])
+        self.assertEqual(self.fetch.call_args_list[0].args[0], "/v1/finance/search")
+        self.assertEqual(replies[1]["id"], 2)
+
+    def test_failed_search_is_an_error_reply(self):
+        self.fetch.side_effect = ValueError("offline")
+        reply = self.serve(json.dumps({"id": 3, "action": "search", "query": "nvidia"}))[0]
+        self.assertEqual((reply["id"], reply["search"]["error"], reply["search"]["query"]), (3, "offline", "nvidia"))
+        with patch.object(data_server, "search", side_effect=RuntimeError("broken")):
+            reply = self.serve(json.dumps({"id": 4, "action": "search", "query": "x"}))[0]
+        self.assertEqual((reply["id"], reply["search"]["results"], reply["search"]["error"]), (4, [], "broken"))
+        reply = self.serve(json.dumps({"id": 5, "action": "delete"}))[0]
+        self.assertEqual(reply["chart"]["error"], "Unknown request.")
+
     def test_process_answers_line_by_line_and_exits_when_stdin_closes(self):
-        script = Path(__file__).parents[1] / "bin/chart_server.py"
-        result = subprocess.run([sys.executable, str(script)], input=json.dumps({"id": 1, "symbol": "BAD SYMBOL", "range": "1D"}) + "\n",
+        script = Path(__file__).parents[1] / "bin/data_server.py"
+        result = subprocess.run([sys.executable, str(script)], input=json.dumps({"id": 1, "action": "chart", "symbol": "BAD SYMBOL", "range": "1D"}) + "\n",
                                 capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0)
         self.assertEqual(json.loads(result.stdout)["id"], 1)

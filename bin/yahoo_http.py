@@ -14,7 +14,7 @@ import urllib.request
 import zlib
 
 LIMIT = 4 * 1024 * 1024
-# The chart on screen goes first; the chart helper sets this.
+# The chart on screen and the search box go first; the data helper sets this.
 priority = False
 
 
@@ -119,7 +119,7 @@ class KeepAlive:
             return response
 
 
-# The transport for requests without their own opener; the chart helper sets a KeepAlive.
+# The transport for requests without their own opener; the data helper sets a KeepAlive.
 persistent = None
 
 

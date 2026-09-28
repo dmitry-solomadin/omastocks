@@ -283,7 +283,16 @@ FloatingWindow {
                                 list.originY + Math.max(0, list.contentHeight - list.height), list.contentY + direction * Style.space(10)))
                         }
                     }
+                    // Arrow keys open the next stock at once. Presses repeating faster than
+                    // 150 ms, as when a key is held, only move the highlight, and the stock
+                    // opens where they stop: two stocks load, not every row passed.
+                    property string keyTarget: ""
+                    property Timer keyPause: Timer {
+                        interval: 150
+                        onTriggered: if (list.keyTarget) list.selectIndex(list.rows.findIndex(row => row.symbol === list.keyTarget))
+                    }
                     function selectIndex(index) {
+                        keyTarget = ""
                         if (index < 0 || index >= rows.length) return
                         currentIndex = index
                         forceActiveFocus()
@@ -291,8 +300,15 @@ FloatingWindow {
                         if (StockStore.selected !== rows[index].symbol || StockStore.view !== "stock") StockStore.select(rows[index].symbol)
                     }
                     function moveSelection(step) {
-                        const index = rows.findIndex(entry => entry.symbol === StockStore.selected)
-                        selectIndex(index < 0 ? (step > 0 ? 0 : rows.length - 1) : Math.max(0, Math.min(rows.length - 1, index + step)))
+                        const from = rows.findIndex(entry => entry.symbol === (keyTarget || StockStore.selected))
+                        const index = from < 0 ? (step > 0 ? 0 : rows.length - 1) : Math.max(0, Math.min(rows.length - 1, from + step))
+                        if (index < 0) return
+                        if (keyPause.running) {
+                            keyTarget = rows[index].symbol
+                            currentIndex = index
+                            positionViewAtIndex(index, ListView.Contain)
+                        } else selectIndex(index)
+                        keyPause.restart()
                     }
                     onModelChanged: currentIndex = rows.findIndex(entry => entry.symbol === StockStore.selected)
                     Controls.ScrollBar.vertical: Controls.ScrollBar { policy: Controls.ScrollBar.AsNeeded }
@@ -310,7 +326,7 @@ FloatingWindow {
                         Rectangle {
                             anchors.fill: parent
                             radius: Style.cornerRadius
-                            color: stockRow.modelData.symbol === StockStore.selected ? Util.alpha(Color.accent, .1) : rowMouse.containsMouse ? Util.alpha(Color.foreground, .05) : "transparent"
+                            color: stockRow.modelData.symbol === (list.keyTarget || StockStore.selected) ? Util.alpha(Color.accent, .1) : rowMouse.containsMouse ? Util.alpha(Color.foreground, .05) : "transparent"
                         }
                         MouseArea {
                             id: rowMouse

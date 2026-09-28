@@ -72,39 +72,42 @@ function load(file, {state = {}, bindings = [], functions = [], handlers = [], g
 // Values built inside a context have its own prototypes.
 function plain(value) { return JSON.parse(JSON.stringify(value)) }
 
-// StockStore's long-lived chart helper as a fake Process: starting it runs
+// StockStore's long-lived data helper as a fake Process: starting it runs
 // onStarted, stopping it runs onExited, and each request written to it is
 // logged in context.sent in order with the store's other requests.
-function chartServer(context) {
+function dataServer(context) {
     return {
         writes: [], starts: 0, alive: false,
         get running() { return this.alive },
         set running(value) {
             if (value === this.alive) return
             this.alive = value
-            if (value) { this.starts++; context.sendChart() }
-            else context.chartServerExited()
+            if (value) { this.starts++; context.sendRequest() }
+            else context.serverExited()
         },
         write(line) {
             const request = JSON.parse(line)
             this.writes.push(request)
-            context.sent.push(["chart", request.symbol, request.range])
+            context.sent.push(request.action === "search" ? ["search", request.query] : ["chart", request.symbol, request.range])
         },
         // The helper's reply to the running request.
-        answer(chart) {
-            const active = context.chartActive
-            context.chartReply(JSON.stringify({id: active.id, chart: chart || {symbol: active.args[1], range: active.args[2], points: [[1, 1], [2, 2]]}}))
+        answer(result) {
+            const active = context.serverActive
+            const reply = active.args[0] === "search" ? {search: result || {query: active.args[1], results: []}}
+                : {chart: result || {symbol: active.args[1], range: active.args[2], points: [[1, 1], [2, 2]]}}
+            context.serverReply(JSON.stringify(Object.assign({id: active.id}, reply)))
         }
     }
 }
-// The state and handlers StockStore's chart lane needs.
-const chartLane = {
-    state: {chartActive: null, chartWaiting: null, chartSerial: 0, chartServerFailures: 0, chartServerRestUntil: 0,
-        hoveredRange: "", prefetched: null},
-    functions: ["requestChart", "pumpChart", "sendChart", "chartReply", "chartServerExited", "chartServerHung",
-        "chartServerFailed", "stopChartServer", "receiveChart", "pending", "request", "hoverRange", "prefetchChart", "prefetchedFresh"],
-    globals: () => ({chartWatchdog: {running: false, restart() { this.running = true }, stop() { this.running = false }},
-        prefetchTimer: {running: false, restart() { this.running = true }, stop() { this.running = false }}})
+// The state and handlers StockStore's data helper lane needs.
+const serverLane = {
+    state: {serverActive: null, chartWaiting: null, searchWaiting: null, serverSerial: 0, serverFailures: 0, serverRestUntil: 0,
+        hoveredRange: "", prefetched: null, searchQuery: "", completedQuery: "", searchError: "", results: []},
+    functions: ["requestChart", "requestSearch", "pumpServer", "sendRequest", "serverReply", "serverExited", "serverHung",
+        "serverFailed", "stopServer", "receiveChart", "receiveSearch", "search", "pending", "request", "hoverRange", "prefetchChart", "prefetchedFresh"],
+    globals: () => ({serverWatchdog: {running: false, restart() { this.running = true }, stop() { this.running = false }},
+        prefetchTimer: {running: false, restart() { this.running = true }, stop() { this.running = false }},
+        searchTimer: {running: false, restart() { this.running = true }, stop() { this.running = false }}})
 }
 
-module.exports = {load, plain, expression, chartServer, chartLane}
+module.exports = {load, plain, expression, dataServer, serverLane}

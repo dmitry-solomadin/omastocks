@@ -67,7 +67,11 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   short retry cooldown. Comparison lines (`compare`) and the extended-hours chart
   (`extended`) are the exception: like the primary chart, they are downloaded on
   every request and never saved. `DataRequest.qml` rejects obsolete replies and
-  owns polling.
+  owns polling. It starts a request on the next pass of the event loop, so
+  changes made together are one load and a click is never held back. Held arrow
+  keys are paced in the watchlist instead: the first press opens the next stock
+  at once, presses repeating faster than 150 ms only move the highlight, and the
+  stock opens where they stop.
 - The active watchlist and favorites across lists share bulk quote requests
   (up to 70 symbols each), also used by the sidebar and Watchlist Overview.
   Failed quotes retain saved values and retry after 1, 2, 4, 8… seconds, capped
@@ -82,21 +86,23 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   the chart's top line opposite the chart options (the date matters: it may be
   an earlier day's). A chart not yet shown says "Chart unavailable · Refresh to
   retry". The comparison legend's tooltips carry the same note.
-- The Stock view's charts come from one long-lived helper, `bin/chart_server.py`
-  (a JSON line each way), which reuses Yahoo's HTTPS connection
-  (`yahoo_http.KeepAlive`), and whose requests take their turn at once: about
-  40–75 ms a chart when Yahoo's edge has it cached and about 150 ms when not,
-  instead of about 230 ms for a new process. It takes no lock and saves nothing,
-  so a chart never waits behind the watchlist queue. One chart runs at a time; a newer request replaces one
-  waiting. If the helper dies, that chart is fetched by a one-shot
-  `stocks.py chart` and the next chart restarts it; if it hangs for 45 seconds it
-  is stopped and the chart fails like any refresh; after three failures in a row
-  it rests for ten minutes while one-shot helpers fetch the charts. Closing the
-  window stops it, and it exits by itself when its input closes. A connection
+- The Stock view's charts and the search box come from one long-lived helper,
+  `bin/data_server.py` (a JSON line each way), which reuses Yahoo's HTTPS
+  connection (`yahoo_http.KeepAlive`), and whose requests take their turn at
+  once: about 40–75 ms a chart when Yahoo's edge has it cached and about 150 ms
+  when not, instead of about 230 ms for a new process. It takes no lock and
+  saves nothing, so neither waits behind the watchlist queue. One request runs
+  at a time, a chart before a search; a newer request of each kind replaces one
+  waiting. Search starts once typing pauses for 250 ms. If the helper dies, its
+  request goes to a one-shot `stocks.py` and the next request restarts it; if it
+  hangs for 45 seconds it is stopped and the request fails like any refresh;
+  after three failures in a row it rests for ten minutes while one-shot helpers
+  do its work. Closing the window stops it, and it exits by itself when its
+  input closes. A connection
   idle for over a minute is replaced rather than reused, since one dropped by a
   suspend or network change would only fail after the timeout.
 - Pausing 120 ms on a range button loads that range's chart for the stock on
-  screen while the chart helper is idle, so the click shows it at once. The
+  screen while the data helper is idle, so the click shows it at once. The
   reply is kept in memory only and used if under ten seconds old; a click while
   it downloads takes over that request. A range still loading keeps the chart
   last drawn on screen, dimmed; a new stock starts blank.
@@ -158,7 +164,7 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   backoff across helper processes. Requests ask for gzip, which makes replies a
   quarter of the size and about twice as fast; unpacking is bounded by the same
   4 MB limit. Each request claims a turn 0.25 seconds after the one before and
-  waits for it outside the lock, so the chart helper's requests, which take their
+  waits for it outside the lock, so the data helper's requests, which take their
   turn at once, never queue behind background requests. Transient network failures and HTTP 500/502/503/504
   responses get two retries after 1 and 2 seconds, respecting shared pacing and
   rate-limit cooldowns on each attempt. When a request's last attempt fails on the
@@ -197,6 +203,7 @@ node tests/test_chart_refresh.cjs
 node tests/test_research_refresh.cjs
 node tests/test_extended_hours.cjs
 node tests/test_yahoo_status.cjs
+node tests/test_watchlist_keys.cjs
 bash -n install install-launcher uninstall
 shellcheck install install-launcher uninstall
 omarchy plugin validate .

@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict")
 const path = require("node:path")
-const {load, plain, chartServer, chartLane} = require("./qml_harness.cjs")
+const {load, plain, dataServer, serverLane} = require("./qml_harness.cjs")
 
 // The real StockStore handlers with fake helper processes.
 const file = path.join(__dirname, "../qml/stores/StockStore.qml")
@@ -13,12 +13,12 @@ function store(state) {
             entries: [regular], previewQuotes: {}, chart: {}, queue: [], active: null, error: "",
             exited: true, collected: true, captured: "", quoteTransportFailures: 0, activeWatchlist: "default",
             marketStarted: true, marketRetries: 0
-        }, chartLane.state, state),
+        }, serverLane.state, state),
         bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive", "chartLoading"],
-        functions: ["staleNote", "scheduleQuoteRetry", "finish", "select", "show", "range", "refresh"].concat(chartLane.functions),
+        functions: ["staleNote", "scheduleQuoteRetry", "finish", "select", "show", "range", "refresh"].concat(serverLane.functions),
         handlers: ["chartShown", "chartLive", "extendedLive", "windowOpen"],
         globals: {
-            ...chartLane.globals(), Date, watchdog: {stop() {}}, quoteRetry: {stop() {}, restart() {}},
+            ...serverLane.globals(), Date, watchdog: {stop() {}}, quoteRetry: {stop() {}, restart() {}},
             marketQuotesRequest: {reload() {}}, marketRetryTimer: {stop() {}},
             MarketStore: {refresh() {}, wantExtended: false, extendedRequest: {reload() {}}},
             Qt: {callLater() {}, formatDateTime: (date, format) => date.toISOString() + " " + format},
@@ -31,7 +31,7 @@ function store(state) {
     const request = context.request
     context.sent = []
     context.request = args => { context.sent.push(plain(args)); request(args) }
-    context.chartServer = chartServer(context)
+    context.dataServer = dataServer(context)
     return context
 }
 const charts = context => context.sent.filter(args => args[0] === "chart")
@@ -117,11 +117,11 @@ context.range("1W")
 context.range("1M")
 assert.deepEqual(plain(context.chartWaiting), ["chart", "AAPL", "1M"], "A newer request replaces an older one waiting")
 context.requestChart(false)
-context.chartServer.answer()
+context.dataServer.answer()
 assert.deepEqual(charts(context).slice(1), [["chart", "AAPL", "1M"]], "Then it runs")
 context.requestChart(false)
 assert.equal(charts(context).length, 2, "Already running")
-context.chartServer.answer()
+context.dataServer.answer()
 context.refresh(false)
 assert.equal(charts(context).length, 3, "The next poll asks again")
 
@@ -132,10 +132,10 @@ context.refresh(false)
 assert.equal(charts(context).length, 0)
 context.entries = inState("REGULAR").entries
 assert.equal(charts(context).length, 1)
-context.chartServer.answer()
+context.dataServer.answer()
 context.entries = inState("POST").entries
 assert.equal(charts(context).length, 2, "The closing price")
-context.chartServer.answer()
+context.dataServer.answer()
 for (let tick = 0; tick < 3; tick++) context.refresh(false)
 assert.equal(charts(context).length, 2)
 
@@ -154,7 +154,7 @@ assert.equal(charts(context).length, 0, "Not the regular chart, which does not m
 context = store({windowOpen: false, entries: [Object.assign({}, regular, {marketState: "CLOSED"})]})
 context.openRequested()
 assert.deepEqual(charts(context), [["chart", "AAPL", "1D"]])
-context.chartServer.answer()
+context.dataServer.answer()
 for (let tick = 0; tick < 3; tick++) context.refresh(false)
 assert.equal(charts(context).length, 1, "No periodic chart refreshes while closed")
 
@@ -181,7 +181,7 @@ context.requestChart(false)
 context.refresh(true)
 assert.equal(charts(context).length, 1)
 assert.deepEqual(plain(context.chartWaiting), ["chart", "AAPL", "1D"])
-context.chartServer.answer()
+context.dataServer.answer()
 assert.equal(charts(context).length, 2)
 context = store({entries: [Object.assign({}, regular, {marketState: "CLOSED"})]})
 context.refresh(true)
@@ -203,75 +203,75 @@ assert.deepEqual(plain(context.emitted), [false, true])
 // and shows each chart it returns.
 context = store({})
 context.requestChart(false)
-assert.equal(context.chartServer.starts, 1)
+assert.equal(context.dataServer.starts, 1)
 assert.equal(context.chartLoading, true)
-context.chartReply("not json")
-context.chartReply(JSON.stringify({id: context.chartActive.id + 1, chart: {symbol: "AAPL", range: "1D", points: [[9, 9]]}}))
-assert.notEqual(context.chartActive, null, "Only the reply to the running request counts")
-context.chartServer.answer({symbol: "AAPL", range: "1D", points: [[1, 100], [2, 101]], fetched: 1790600000})
+context.serverReply("not json")
+context.serverReply(JSON.stringify({id: context.serverActive.id + 1, chart: {symbol: "AAPL", range: "1D", points: [[9, 9]]}}))
+assert.notEqual(context.serverActive, null, "Only the reply to the running request counts")
+context.dataServer.answer({symbol: "AAPL", range: "1D", points: [[1, 100], [2, 101]], fetched: 1790600000})
 assert.deepEqual(plain(context.chart.points), [[1, 100], [2, 101]])
 assert.equal(context.chartLoading, false)
 context.range("1W")
-context.chartServer.answer()
-assert.equal(context.chartServer.starts, 1, "One process for every chart")
-assert.deepEqual(plain(context.chartServer.writes.map(row => row.id)), [1, 2])
+context.dataServer.answer()
+assert.equal(context.dataServer.starts, 1, "One process for every chart")
+assert.deepEqual(plain(context.dataServer.writes.map(row => row.id)), [1, 2])
 
 // If it dies, that chart is fetched by a one-shot helper; the next chart
 // starts it again.
 context = store({})
 context.requestChart(false)
-context.chartServer.running = false
+context.dataServer.running = false
 assert.deepEqual(context.sent.slice(-1), [["chart", "AAPL", "1D"]])
 assert.deepEqual(plain(context.queue), [["chart", "AAPL", "1D"]], "Through the one-shot helper")
 assert.equal(context.chartLoading, true)
-assert.equal(context.chartServerFailures, 1)
+assert.equal(context.serverFailures, 1)
 context.queue = []
 context.range("1W")
-assert.equal(context.chartServer.starts, 2)
-context.chartServer.answer()
-assert.equal(context.chartServerFailures, 0, "A reply resets the count")
+assert.equal(context.dataServer.starts, 2)
+context.dataServer.answer()
+assert.equal(context.serverFailures, 0, "A reply resets the count")
 
 // If it hangs, it is stopped and the chart fails like any refresh.
 const shownChart = {symbol: "AAPL", range: "1D", points: [[1, 100], [2, 101]], fetched: 1790600000}
 context = store({chart: shownChart})
 context.requestChart(false)
-assert.equal(context.chartWatchdog.running, true)
-context.chartServerHung()
-assert.equal(context.chartServer.running, false)
+assert.equal(context.serverWatchdog.running, true)
+context.serverHung()
+assert.equal(context.dataServer.running, false)
 assert.deepEqual(plain(context.chart.points), shownChart.points)
 assert.match(context.chart.error, /took too long/)
 assert.equal(context.chart.stale, true)
 assert.equal(context.queue.length, 0, "No one-shot retry of a hung download")
 context.range("1W")
-assert.equal(context.chartServer.starts, 2)
+assert.equal(context.dataServer.starts, 2)
 
 // After three failures in a row it rests for ten minutes; one-shot helpers
 // fetch the charts meanwhile.
 context = store({})
 for (const range of ["1W", "1M", "3M"]) {
     context.range(range)
-    context.chartServer.running = false
+    context.dataServer.running = false
     context.queue = []
 }
-assert.ok(context.chartServerRestUntil > Date.now() + 590000)
+assert.ok(context.serverRestUntil > Date.now() + 590000)
 context.range("1Y")
-assert.equal(context.chartServer.starts, 3)
+assert.equal(context.dataServer.starts, 3)
 assert.deepEqual(plain(context.queue), [["chart", "AAPL", "1Y"]])
 context.queue = []
-context.chartServerRestUntil = Date.now() - 1
+context.serverRestUntil = Date.now() - 1
 context.range("2Y")
-assert.equal(context.chartServer.starts, 4, "Back once the rest is over")
+assert.equal(context.dataServer.starts, 4, "Back once the rest is over")
 
 // Closing the window stops it, without a one-shot retry of the chart it ran.
 context = store({})
 context.requestChart(false)
 context.range("1W")
 context.windowOpen = false
-assert.equal(context.chartServer.running, false)
-assert.equal(context.chartActive, null)
+assert.equal(context.dataServer.running, false)
+assert.equal(context.serverActive, null)
 assert.equal(context.chartWaiting, null)
 assert.equal(context.queue.length, 0)
-assert.equal(context.chartServerFailures, 0)
+assert.equal(context.serverFailures, 0)
 
 // Pausing on a range button loads that range ahead of the click.
 const dwell = context => {
@@ -284,7 +284,7 @@ context.hoverRange("1Y", true)
 dwell(context)
 assert.deepEqual(charts(context), [["chart", "AAPL", "1Y"]])
 assert.deepEqual(plain(context.emitted), [], "Not announced: the lines that follow the chart are for the range shown")
-context.chartServer.answer(year())
+context.dataServer.answer(year())
 assert.equal(context.chart, shownChart, "The chart on screen stays until the click")
 context.range("1Y")
 assert.deepEqual(plain(context.chart.points), [[1, 80], [2, 90]], "Shown at once")
@@ -296,13 +296,13 @@ context.hoverRange("5Y", true)
 dwell(context)
 context.range("5Y")
 assert.equal(charts(context).length, 1)
-context.chartServer.answer({symbol: "AAPL", range: "5Y", points: [[1, 1], [2, 2]], fetched: Date.now() / 1000})
+context.dataServer.answer({symbol: "AAPL", range: "5Y", points: [[1, 1], [2, 2]], fetched: Date.now() / 1000})
 assert.equal(context.chart.range, "5Y")
 // Over ten seconds old, it is fetched again.
 context = store({chart: shownChart})
 context.hoverRange("1Y", true)
 dwell(context)
-context.chartServer.answer(Object.assign(year(), {fetched: Date.now() / 1000 - 11}))
+context.dataServer.answer(Object.assign(year(), {fetched: Date.now() / 1000 - 11}))
 context.range("1Y")
 assert.equal(charts(context).length, 2)
 assert.equal(context.chart, shownChart, "Until the new one arrives")
@@ -331,10 +331,57 @@ assert.deepEqual(charts(context), [["chart", "AAPL", "1M"]])
 context = store({entries: [regular, {symbol: "MSFT", marketState: "REGULAR"}]})
 context.hoverRange("1Y", true)
 dwell(context)
-context.chartServer.answer(year())
+context.dataServer.answer(year())
 context.select("MSFT")
-context.chartServer.answer({symbol: "MSFT", range: "1D", points: [[1, 1], [2, 2]], fetched: Date.now() / 1000})
+context.dataServer.answer({symbol: "MSFT", range: "1D", points: [[1, 1], [2, 2]], fetched: Date.now() / 1000})
 context.range("1Y")
 assert.deepEqual(charts(context).slice(-1), [["chart", "MSFT", "1Y"]])
+
+// Search goes through the same helper once typing pauses for 250 ms.
+const searchDelay = Number(context.source.match(/property Timer searchTimer: Timer \{ interval: (\d+);/)[1])
+assert.equal(searchDelay, 250)
+const typed = (context, query) => {
+    context.search(query)
+    const trigger = context.source.match(/property Timer searchTimer: Timer \{ interval: \d+; onTriggered: ([^}]+) \}/)[1]
+    if (context.searchTimer.running) { context.searchTimer.running = false; context.evaluate(trigger) }
+}
+context = store({})
+typed(context, "nvid")
+assert.deepEqual(context.sent, [["search", "nvid"]], "Not through the watchlist queue")
+context.dataServer.answer({query: "nvid", results: [{symbol: "NVDA"}], error: ""})
+assert.deepEqual(plain(context.results), [{symbol: "NVDA"}])
+assert.equal(context.completedQuery, "nvid")
+// A chart waiting goes first; a reply for an older query never replaces the results.
+context = store({})
+context.requestChart(false)
+typed(context, "a")
+typed(context, "ap")
+assert.deepEqual(plain(context.searchWaiting), ["search", "ap"], "The newer search replaces the older one waiting")
+context.range("1W")
+context.dataServer.answer()
+assert.deepEqual(context.sent.slice(-1), [["chart", "AAPL", "1W"]], "The chart before the search")
+context.dataServer.answer()
+assert.deepEqual(context.sent.slice(-1), [["search", "ap"]])
+typed(context, "app")
+context.dataServer.answer({query: "ap", results: [{symbol: "AP"}], error: ""})
+assert.deepEqual(plain(context.results), [], "The query has moved on")
+context.dataServer.answer({query: "app", results: [{symbol: "APP"}], error: ""})
+assert.deepEqual(plain(context.results), [{symbol: "APP"}])
+// Clearing the box drops a search waiting.
+context = store({})
+context.requestChart(false)
+typed(context, "x")
+context.search("")
+assert.equal(context.searchWaiting, null)
+// If the helper dies, the search goes to a one-shot helper; if it hangs, it fails.
+context = store({})
+typed(context, "msft")
+context.dataServer.running = false
+assert.deepEqual(plain(context.queue), [["search", "msft"]])
+context.queue = []
+typed(context, "tsla")
+context.serverHung()
+assert.match(context.searchError, /took too long/)
+assert.equal(context.completedQuery, "tsla")
 
 console.log("PASS: failed charts keep only the one on screen, marked stale; one poll refreshes quotes and the live chart")

@@ -67,7 +67,10 @@ QtObject {
         activeRevision = -1
         Qt.callLater(pump)
     }
-    property Timer debounce: Timer { interval: 150; onTriggered: root.pump() }
+    // The next pass of the event loop, so changes made together (a stock and
+    // its view, a comparison's slot and mode) are one load. A click is never
+    // held back; held arrow keys are paced where they come from, the watchlist.
+    property Timer debounce: Timer { interval: 0; onTriggered: root.pump() }
     property Timer poll: Timer {
         interval: root.refreshInterval
         running: root.refreshInterval > 0 && root.arguments.length > 0
