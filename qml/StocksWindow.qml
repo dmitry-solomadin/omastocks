@@ -162,7 +162,7 @@ FloatingWindow {
                         // share their visual centre line.
                         StocksLogo { id: wordmark; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; anchors.verticalCenterOffset: -Style.space(1) }
                     }
-                    ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.busy; onClicked: window.refresh(); font.pixelSize: Style.space(18) }
+                    ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.refreshing; onClicked: window.refresh(); font.pixelSize: Style.space(18) }
                     ActionButton { text: "\uf013"; hint: "Settings"; font.pixelSize: Style.space(18); onClicked: settingsMenu.open() }
                 }
                 WatchlistSelector { id: watchlistSelector; Layout.fillWidth: true; onEditRequested: watchlistMenu.open() }
@@ -420,7 +420,7 @@ FloatingWindow {
                     Keys.onReturnPressed: if (currentItem) StockStore.select(currentItem.modelData.symbol)
                     Keys.onDownPressed: moveSelection(1)
                     Keys.onUpPressed: moveSelection(-1)
-                    Keys.onDeletePressed: if (StockStore.tracked && !StockStore.busy) StockStore.remove()
+                    Keys.onDeletePressed: if (StockStore.tracked && !StockStore.editing) StockStore.remove()
                     // Search states sit directly below the search box, not centred
                     // in a long list. An empty watchlist shows nothing here.
                     MarketLoading {
@@ -471,7 +471,7 @@ FloatingWindow {
                             text: "Undo"
                             ink: Color.accent
                             hint: "Put it back · Ctrl+Z"
-                            enabled: !StockStore.busy
+                            enabled: !StockStore.editing
                             onClicked: StockStore.undoRemove()
                         }
                     }
@@ -534,7 +534,7 @@ FloatingWindow {
                         MarketStatus { session: stockHeader.session }
                     }
                     ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Color.accent : Color.foreground; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
-                    ActionButton { text: StockStore.tracked ? "Remove" : "+ Watchlist"; hint: StockStore.tracked ? "Remove from watchlist" : "Add to watchlist"; visible: !!StockStore.selected; enabled: !StockStore.busy; onClicked: StockStore.tracked ? StockStore.remove() : StockStore.add() }
+                    ActionButton { text: StockStore.tracked ? "Remove" : "+ Watchlist"; hint: StockStore.tracked ? "Remove from watchlist" : "Add to watchlist"; visible: !!StockStore.selected; enabled: !StockStore.editing; onClicked: StockStore.tracked ? StockStore.remove() : StockStore.add() }
                 }
                 ColumnLayout {
                     visible: !!StockStore.selected

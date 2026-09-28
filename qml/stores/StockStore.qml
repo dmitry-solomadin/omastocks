@@ -121,6 +121,11 @@ QtObject {
     property var barSettings: ({})
     property bool running: false
     readonly property bool busy: active !== null || queue.length > 0
+    // Controls wait only on their own kind of request, so a chart or search
+    // passing through the queue doesn't dim them.
+    readonly property bool editing: pending(["add", "remove", "favorite", "move", "transfer", "watchlist"])
+    readonly property bool refreshing: pending(["refresh"])
+    function pending(kinds) { return [active].concat(queue).some(args => !!args && kinds.indexOf(args[0]) >= 0) }
     readonly property var favorites: favoriteEntries
     readonly property var quote: {
         const entry = entries.find(entry => entry.symbol === selected)

@@ -53,7 +53,7 @@ Item {
         function status(): string {
             return JSON.stringify({open: window.visible, selected: StockStore.selected, range: StockStore.period,
                 entries: StockStore.entries.length, favorites: StockStore.favorites.map(entry => entry.symbol),
-                busy: StockStore.busy, error: StockStore.error, chartPoints: (StockStore.visibleChart.points || []).length})
+                busy: StockStore.busy, editing: StockStore.editing, refreshing: StockStore.refreshing, error: StockStore.error, chartPoints: (StockStore.visibleChart.points || []).length})
         }
         // Development: switch tabs and read or activate the UI as text.
         function view(name: string): string {
