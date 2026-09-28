@@ -150,7 +150,19 @@ def revenue_history(ticker, frequency):
 
 
 VALUATION_FIELDS = ["market_cap_basic", "price_earnings_ttm", "price_sales_current", "price_book_fq",
-                    "enterprise_value_ebitda_ttm", "sector", "industry", "currency", "type"]
+                    "enterprise_value_ebitda_ttm", "sector", "industry", "currency", "type",
+                    "dividends_yield_current", "dividend_payout_ratio_ttm",
+                    "continuous_dividend_payout", "continuous_dividend_growth"]
+
+
+def dividend(values):
+    """Trailing-year yield; a zero yield means no dividend is paid."""
+    rate = number(values.get("dividends_yield_current"))
+    if rate is None or rate <= 0:
+        return None if rate is None else {"yield": 0}
+    years, growth = number(values.get("continuous_dividend_payout")), number(values.get("continuous_dividend_growth"))
+    return {"yield": rate, "payoutRatio": number(values.get("dividend_payout_ratio_ttm")),
+            "years": int(years) if years else 0, "growthYears": int(growth) if growth else 0}
 
 
 def parse_valuation(document, ticker):
@@ -169,12 +181,13 @@ def parse_valuation(document, ticker):
                               ("enterprise_value_ebitda_ttm", "EV / EBITDA", "ratio")]:
         value = number(values[key])
         metrics.append({"label": label, "value": value, "kind": kind, "currency": currency if kind == "money" else ""})
-    return {"symbol": ticker, "metrics": metrics, "sector": values.get("sector") or "", "industry": values.get("industry") or "", "source": "TradingView"}
+    return {"symbol": ticker, "metrics": metrics, "sector": values.get("sector") or "", "industry": values.get("industry") or "",
+            "dividend": dividend(values), "source": "TradingView"}
 
 
 def valuation(ticker):
     if not re.fullmatch(r"[A-Z][A-Z0-9.-]*", ticker):
-        return {"symbol": ticker, "metrics": [], "source": "TradingView"}
+        return {"symbol": ticker, "metrics": [], "source": "TradingView", "valuationSchema": 2}
     payload = {"symbols": {"tickers": listings(ticker), "query": {"types": []}},
                "columns": VALUATION_FIELDS}
-    return parse_valuation(request(payload), ticker)
+    return {**parse_valuation(request(payload), ticker), "valuationSchema": 2}

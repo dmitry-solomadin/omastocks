@@ -28,7 +28,7 @@ the optional favorites ticker running.
 
 | View | What's inside |
 |---|---|
-| **Stock** | Six chart ranges, extended hours, volume, moving averages, ownership and short interest, earnings, financial statements, analyst targets, insider activity, news and social feeds. **Compare** combines charts and fundamentals for up to five symbols. |
+| **Stock** | Six chart ranges, extended hours, volume, moving averages, dividends, ownership and short interest, earnings, financial statements, analyst targets, insider activity, news and social feeds. **Compare** combines charts and fundamentals for up to five symbols. |
 | **Market** | Index benchmarks, futures, commodities, crypto, rates and currencies; Fear & Greed and VIX sentiment; sector/index heatmaps; US economic releases and market news. |
 | **Watchlist** | Performance from 1D through 1Y, a heatmap, and an earnings calendar with EPS/revenue estimates and the latest surprises. |
 

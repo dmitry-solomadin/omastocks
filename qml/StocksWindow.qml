@@ -74,6 +74,19 @@ FloatingWindow {
             ].filter(line => !!line).join("\n")}
         ]
     }
+    // Dividends arrive with the valuation, so they hold a slot while it loads.
+    readonly property var dividendDetails: {
+        if (valuationPending) return [{name: "Dividend yield", value: "—"}]
+        const dividend = MarketStore.valuation.dividend
+        if (!dividend) return []
+        if (!dividend.yield) return [{name: "Dividend yield", value: "None"}]
+        return [
+            {name: "Dividend yield (TTM)", value: StockStore.financial(dividend.yield, "percent"), hint: [
+                Number.isFinite(dividend.payoutRatio) ? "Payout ratio " + StockStore.financial(dividend.payoutRatio, "percent") + " of earnings" : "",
+                dividend.years ? "Paid " + dividend.years + " years in a row" + (dividend.growthYears ? " · raised " + dividend.growthYears : "") : ""
+            ].filter(line => !!line).join("\n")}
+        ]
+    }
     readonly property string warning: StockStore.error || series.error || quote.error ||
         (quote.stale && quote.price !== undefined ? "Showing saved prices. Refresh to check for updates." : "")
     function refresh() {
@@ -652,7 +665,7 @@ FloatingWindow {
                                 ].concat((window.valuationPending ? window.valuationLabels.map(label => ({label: label})) : MarketStore.valuation.metrics || [])
                                     .map(metric => ({name: metric.label, value: StockStore.financial(metric.value, metric.kind, metric.currency)})))
                                 .concat([{name: "Volume", value: StockStore.compact(window.quote.volume)}])
-                                .concat(window.ownershipDetails)
+                                .concat(window.ownershipDetails).concat(window.dividendDetails)
                                 .concat([{name: "Exchange", value: window.quote.exchange || "—"}])
                                 .concat(MarketStore.valuation.sector || window.valuationPending ? [{name: "Sector", value: MarketStore.valuation.sector || "—"},
                                     {name: "Industry", value: MarketStore.valuation.industry || "—"}] : [])

@@ -86,7 +86,7 @@ class FinancialsTests(unittest.TestCase):
             financials.statements("AAPL", "trailing")
 
     def test_valuation_missing_values_and_listing_ambiguity(self):
-        row = {"s": "NASDAQ:AAPL", "d": [1230000000000, None, 0, -2, 12, "Technology", "Hardware", "USD", "stock"]}
+        row = {"s": "NASDAQ:AAPL", "d": [1230000000000, None, 0, -2, 12, "Technology", "Hardware", "USD", "stock"] + [None] * 4}
         result = financials.parse_valuation({"data": [row]}, "AAPL")
         self.assertEqual(result["metrics"][0]["value"], 1230000000000)
         self.assertIsNone(result["metrics"][1]["value"])
@@ -96,12 +96,21 @@ class FinancialsTests(unittest.TestCase):
         self.assertEqual(financials.parse_valuation({"data": [row]}, "MSFT")["metrics"], [])
 
     def test_share_class_symbol_is_normalized_in_request_and_response(self):
-        document = {"data": [{"s": "NYSE:BRK.B", "d": [1000, 10, 2, 3, 4, "Finance", "Insurance", "USD", "stock"]}]}
+        document = {"data": [{"s": "NYSE:BRK.B", "d": [1000, 10, 2, 3, 4, "Finance", "Insurance", "USD", "stock"] + [0] * 4}]}
         with patch.object(financials, "request", return_value=document) as fetch:
             result = financials.valuation("BRK-B")
         self.assertIn("NYSE:BRK.B", fetch.call_args.args[0]["symbols"]["tickers"])
         self.assertEqual(result["symbol"], "BRK-B")
         self.assertEqual(result["metrics"][0]["value"], 1000)
+        self.assertEqual(result["dividend"], {"yield": 0})
+
+    def test_dividend_yield_payout_and_streaks(self):
+        fields = [1000, 10, 2, 3, 4, "Consumer", "Beverages", "USD", "stock"]
+        paid = {"s": "NYSE:KO", "d": fields + [2.37, 62.7, 46, 45]}
+        self.assertEqual(financials.parse_valuation({"data": [paid]}, "KO")["dividend"],
+                         {"yield": 2.37, "payoutRatio": 62.7, "years": 46, "growthYears": 45})
+        # A missing yield is unknown, not "no dividend".
+        self.assertIsNone(financials.parse_valuation({"data": [dict(paid, d=fields + [None] * 4)]}, "KO")["dividend"])
 
     def test_research_financials_are_separate_from_valuation(self):
         import research
