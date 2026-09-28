@@ -9,6 +9,7 @@ StocksWindow 1.0 StocksWindow.qml
 BarWidget 1.0 BarWidget.qml
 
 DataRequest 1.0 data/DataRequest.qml
+ServerHelper 1.0 data/ServerHelper.qml
 BulkRequest 1.0 data/BulkRequest.qml
 WatchlistBatch 1.0 data/WatchlistBatch.qml
 

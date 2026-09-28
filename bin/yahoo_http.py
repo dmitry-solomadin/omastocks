@@ -79,12 +79,19 @@ def throttled(headers):
         write_json(path, {**state, "attempts": attempts, "last429": now, "retryAfter": max(state.get("retryAfter", 0), now + delay)})
 
 
+def awake():
+    """Seconds since boot, counting time asleep; time.monotonic() stops during a
+    suspend on Linux, so a connection left over one would look fresh."""
+    return time.clock_gettime(time.CLOCK_BOOTTIME)
+
+
 class KeepAlive:
     """One reused HTTPS connection per host for a long-lived helper, which saves
     a TLS handshake per request. A reused connection Yahoo has closed is
     reopened once, silently. One idle for over a minute is not reused: if a
     suspend or network change dropped it, a request would hang until timeout."""
     idle = 60
+    connect = http.client.HTTPSConnection
 
     def __init__(self):
         self.connections = {}
@@ -94,11 +101,11 @@ class KeepAlive:
         target = parts.path + ("?" + parts.query if parts.query else "")
         for attempt in range(2):
             connection, used = self.connections.pop(parts.netloc, (None, 0))
-            if connection is not None and time.monotonic() - used > self.idle:
+            if connection is not None and awake() - used > self.idle:
                 connection.close()
                 connection = None
             reused = connection is not None
-            connection = connection or http.client.HTTPSConnection(parts.netloc, timeout=timeout)
+            connection = connection or self.connect(parts.netloc, timeout=timeout)
             try:
                 connection.request(request.get_method(), target, body=request.data, headers=dict(request.header_items()))
                 response = connection.getresponse()
@@ -111,12 +118,32 @@ class KeepAlive:
             except (OSError, http.client.HTTPException) as error:
                 connection.close()
                 raise urllib.error.URLError(error) from error
-            self.connections[parts.netloc] = (connection, time.monotonic())
+            self.connections[parts.netloc] = (connection, awake())
             # The same errors urllib raises, so read() treats both transports alike.
             if response.status >= 400:
                 raise urllib.error.HTTPError(request.full_url, response.status, response.reason,
                                              response.headers, io.BytesIO(response.read()))
             return response
+
+
+class WithCookies:
+    """A kept connection that carries Yahoo's session cookies, as a cookie opener
+    does, so the data helper's quote requests reuse its connection too."""
+
+    def __init__(self, transport, jar):
+        self.transport, self.jar = transport, jar
+
+    def open(self, request, timeout=10):
+        if not request.has_header("User-agent"):
+            request.add_header("User-Agent", "Mozilla/5.0")
+        self.jar.add_cookie_header(request)
+        try:
+            response = self.transport.open(request, timeout)
+        except urllib.error.HTTPError as error:
+            self.jar.extract_cookies(error, request)
+            raise
+        self.jar.extract_cookies(response, request)
+        return response
 
 
 # The transport for requests without their own opener; the data helper sets a KeepAlive.
@@ -200,8 +227,10 @@ def authenticated(path, body=None, **parameters):
             url = "https://query1.finance.yahoo.com" + path + "?" + urllib.parse.urlencode({**parameters, "crumb": crumb})
             request = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
                                              headers={"Content-Type": "application/json"})
+            # Signing in stays with the cookie opener, which follows redirects;
+            # the data request reuses the helper's connection when there is one.
             try:
-                return json.loads(read(request, opener))
+                return json.loads(read(request, WithCookies(persistent, jar) if persistent else opener))
             except urllib.error.HTTPError as error:
                 if error.code == 401 and attempt == 0:
                     saved = {}

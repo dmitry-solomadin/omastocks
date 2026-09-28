@@ -79,30 +79,37 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   poll. Recovery requests include only failed/due quotes.
   Success resets the backoff, and Yahoo's shared rate-limit cooldown takes
   precedence. A stock outside the watchlist gets its header quote from the same
-  bulk request, not from its chart.
+  bulk request, not from its chart, fetched through the data helper below and
+  saved under the watchlist lock like the rest.
 - Charts are live and never saved; `cache.json` holds only quotes and sparklines,
   and chart entries left by earlier versions are dropped. A failed refresh keeps
   only the chart already on screen, with "As of d MMM HH:mm · refresh failed" on
   the chart's top line opposite the chart options (the date matters: it may be
   an earlier day's). A chart not yet shown says "Chart unavailable · Refresh to
   retry". The comparison legend's tooltips carry the same note.
-- The Stock view's charts and the search box come from one long-lived helper,
-  `bin/data_server.py` (a JSON line each way), which reuses Yahoo's HTTPS
-  connection (`yahoo_http.KeepAlive`), and whose requests take their turn at
-  once: about 40–75 ms a chart when Yahoo's edge has it cached and about 150 ms
-  when not, instead of about 230 ms for a new process. It takes no lock and
-  saves nothing, so neither waits behind the watchlist queue. One request runs
-  at a time, a chart before a search; a newer request of each kind replaces one
-  waiting. Search starts once typing pauses for 250 ms. If the helper dies, its
-  request goes to a one-shot `stocks.py` and the next request restarts it; if it
-  hangs for 45 seconds it is stopped and the request fails like any refresh;
-  after three failures in a row it rests for ten minutes while one-shot helpers
-  do its work. Closing the window stops it, and it exits by itself when its
-  input closes. A connection
-  idle for over a minute is replaced rather than reused, since one dropped by a
-  suspend or network change would only fail after the timeout.
+- The Stock view's charts, the header quote of a stock outside the watchlist,
+  and the search box come from up to three long-lived helpers
+  (`qml/data/ServerHelper.qml`, each running `bin/data_server.py`, a JSON line
+  each way). Each reuses its own Yahoo HTTPS connection (`yahoo_http.KeepAlive`,
+  carrying the session cookies for quotes), and their requests take their turn
+  at once: about 40–75 ms a chart when Yahoo's edge has it cached and about
+  150 ms when not, instead of about 230 ms for a new process. Charts and search
+  take no lock and save nothing; a quote takes the watchlist lock and is saved,
+  as `stocks.py quote` does. None waits behind the watchlist queue. Each request
+  goes to the first free helper, or waits in order for one, so a stock's chart
+  and quote load together; one identical to a request already running or
+  waiting is not sent again. A late reply never shows: only the selected chart
+  and the current query's results are. Search starts once typing pauses for
+  250 ms. A helper starts with its first request.
+  If one dies, its request goes to a one-shot `stocks.py` and its next request
+  restarts it; if one hangs for 45 seconds it is stopped and the request fails
+  like any refresh; after three failures in a row they rest for ten minutes
+  while one-shot helpers do their work. Closing the window stops them, and each
+  exits by itself when its input closes. A connection idle for over a minute is
+  replaced rather than reused, since one dropped by a suspend or network change
+  would only fail after the timeout.
 - Pausing 120 ms on a range button loads that range's chart for the stock on
-  screen while the data helper is idle, so the click shows it at once. The
+  screen when a helper is free, so the click shows it at once. The
   reply is kept in memory only and used if under ten seconds old; a click while
   it downloads takes over that request. A range still loading keeps the chart
   last drawn on screen, dimmed; a new stock starts blank.
@@ -204,6 +211,7 @@ node tests/test_research_refresh.cjs
 node tests/test_extended_hours.cjs
 node tests/test_yahoo_status.cjs
 node tests/test_watchlist_keys.cjs
+node tests/test_server_helper.cjs
 bash -n install install-launcher uninstall
 shellcheck install install-launcher uninstall
 omarchy plugin validate .

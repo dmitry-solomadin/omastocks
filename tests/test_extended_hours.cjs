@@ -2,7 +2,7 @@ const assert = require("node:assert/strict")
 const fs = require("node:fs")
 const path = require("node:path")
 const vm = require("node:vm")
-const {load, plain, dataServer, serverLane} = require("./qml_harness.cjs")
+const {load, plain, serverPool, serverLane} = require("./qml_harness.cjs")
 
 const qml = name => path.join(__dirname, "../qml", name)
 
@@ -73,7 +73,8 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
     const send = stock.request
     stock.sent = []
     stock.request = args => { stock.sent.push(plain(args)); send(args) }
-    stock.dataServer = dataServer(stock)
+    stock.pool = serverPool(stock)
+    stock.servers = stock.pool.helpers
     market.extendedRequest = request(market.source.match(/extendedRequest: DataRequest \{ arguments: ([^;]+);/)[1])
     market.comparisonRequests = [0, 1, 2, 3].map(index => request(`root.comparisonArguments(${index})`))
     for (const name of ["onSelectedChanged", "onPeriodChanged", "onChartRequested", "onDataChanged"]) market.evaluate(nested(market.source, name))
@@ -111,7 +112,8 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
         tick(times = 1) {
             for (let i = 0; i < times; i++) {
                 stock.refresh(false)
-                if (stock.serverActive) stock.dataServer.answer({})
+                while (stock.pool.running("chart")) stock.pool.answer("chart", {})
+                while (stock.pool.running("quote")) stock.pool.answer("quote")
                 stock.active = null
                 stock.queue = []
                 settle()
@@ -216,12 +218,12 @@ assert.equal(world.series(), day)
 world.stock.range("1W")
 assert.equal(world.view.holdingChart, true)
 assert.equal(world.series(), day, "Held, dimmed, while 1W loads")
-world.stock.dataServer.answer({symbol: "AAPL", range: "1W", points: [[1, 90], [2, 91], [3, 92]]})
+world.stock.pool.answer("chart", {symbol: "AAPL", range: "1W", points: [[1, 90], [2, 91], [3, 92]]})
 assert.equal(world.view.holdingChart, false)
 assert.equal(world.series().range, "1W")
 world.stock.range("1Y")
 assert.equal(world.series().range, "1W")
-world.stock.dataServer.answer({symbol: "AAPL", range: "1Y", points: [], error: "offline", stale: true})
+world.stock.pool.answer("chart", {symbol: "AAPL", range: "1Y", points: [], error: "offline", stale: true})
 assert.equal(world.view.holdingChart, false)
 assert.equal(world.series().error, "offline", "The failure shows, not the held chart")
 world.select("MSFT")

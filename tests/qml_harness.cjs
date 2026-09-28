@@ -72,42 +72,62 @@ function load(file, {state = {}, bindings = [], functions = [], handlers = [], g
 // Values built inside a context have its own prototypes.
 function plain(value) { return JSON.parse(JSON.stringify(value)) }
 
-// StockStore's long-lived data helper as a fake Process: starting it runs
-// onStarted, stopping it runs onExited, and each request written to it is
-// logged in context.sent in order with the store's other requests.
-function dataServer(context) {
+// StockStore's pool of long-lived data helpers, as fake ServerHelpers. Each
+// request sent is logged in context.sent in order with the store's other
+// requests; answer(), die() and hang() finish the oldest running request of an
+// action (chart, quote or search).
+function serverPool(context, size = 3) {
+    const helpers = Array.from({length: size}, () => ({
+        active: null, starts: 0, alive: false,
+        get free() { return this.active === null },
+        send(id, args) {
+            this.active = {id, args}
+            if (!this.alive) { this.alive = true; this.starts++ }
+            context.sent.push(plain(args))
+        },
+        stop() { this.active = null; this.alive = false }
+    }))
+    function finish(kind) {
+        const helper = helpers.filter(helper => helper.active && helper.active.args[0] === kind)
+            .sort((a, b) => a.active.id - b.active.id)[0]
+        assert.ok(helper, `No ${kind} request running`)
+        const args = helper.active.args
+        helper.active = null
+        return [helper, args]
+    }
     return {
-        writes: [], starts: 0, alive: false,
-        get running() { return this.alive },
-        set running(value) {
-            if (value === this.alive) return
-            this.alive = value
-            if (value) { this.starts++; context.sendRequest() }
-            else context.serverExited()
+        helpers,
+        get starts() { return helpers.reduce((sum, helper) => sum + helper.starts, 0) },
+        get alive() { return helpers.filter(helper => helper.alive).length },
+        running(kind) { return helpers.filter(helper => helper.active && helper.active.args[0] === kind).length },
+        answer(kind = "chart", result) {
+            const [, args] = finish(kind)
+            context.serverReplied(args, kind === "search" ? {search: result || {query: args[1], results: []}}
+                : kind === "quote" ? result || {quote: {symbol: args[1], price: 1, marketState: "REGULAR"}}
+                : {chart: result || {symbol: args[1], range: args[2], points: [[1, 1], [2, 2]]}})
         },
-        write(line) {
-            const request = JSON.parse(line)
-            this.writes.push(request)
-            context.sent.push(request.action === "search" ? ["search", request.query] : ["chart", request.symbol, request.range])
+        die(kind = "chart") {
+            const [helper, args] = finish(kind)
+            helper.alive = false
+            context.serverLost(args)
         },
-        // The helper's reply to the running request.
-        answer(result) {
-            const active = context.serverActive
-            const reply = active.args[0] === "search" ? {search: result || {query: active.args[1], results: []}}
-                : {chart: result || {symbol: active.args[1], range: active.args[2], points: [[1, 1], [2, 2]]}}
-            context.serverReply(JSON.stringify(Object.assign({id: active.id}, reply)))
+        hang(kind = "chart") {
+            const [helper, args] = finish(kind)
+            helper.alive = false
+            context.serverHung(args)
         }
     }
 }
-// The state and handlers StockStore's data helper lane needs.
+// The state and handlers StockStore's helper pool needs; the pool itself is
+// set on the context as servers.
 const serverLane = {
-    state: {serverActive: null, chartWaiting: null, searchWaiting: null, serverSerial: 0, serverFailures: 0, serverRestUntil: 0,
+    state: {serverWaiting: [], serverSerial: 0, serverFailures: 0, serverRestUntil: 0,
         hoveredRange: "", prefetched: null, searchQuery: "", completedQuery: "", searchError: "", results: []},
-    functions: ["requestChart", "requestSearch", "pumpServer", "sendRequest", "serverReply", "serverExited", "serverHung",
-        "serverFailed", "stopServer", "receiveChart", "receiveSearch", "search", "pending", "request", "hoverRange", "prefetchChart", "prefetchedFresh"],
-    globals: () => ({serverWatchdog: {running: false, restart() { this.running = true }, stop() { this.running = false }},
-        prefetchTimer: {running: false, restart() { this.running = true }, stop() { this.running = false }},
+    functions: ["serverRequests", "sendToServer", "requestChart", "requestQuote", "requestSearch", "pumpServer", "serverReplied", "serverLost", "serverHung",
+        "serverFailed", "stopServer", "receiveChart", "receiveQuote", "receiveSearch", "search", "pending", "request",
+        "hoverRange", "prefetchChart", "prefetchedFresh"],
+    globals: () => ({prefetchTimer: {running: false, restart() { this.running = true }, stop() { this.running = false }},
         searchTimer: {running: false, restart() { this.running = true }, stop() { this.running = false }}})
 }
 
-module.exports = {load, plain, expression, dataServer, serverLane}
+module.exports = {load, plain, expression, serverPool, serverLane}

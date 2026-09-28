@@ -79,7 +79,7 @@ QtObject {
         } else {
             marketRetries = 0
             marketRetryTimer.stop()
-            // The next chart or search starts the data helper again.
+            // The next request starts a helper again.
             stopServer()
         }
     }
@@ -254,7 +254,8 @@ QtObject {
         if (windowOpen) requestChart(false, ticker)
         selected = ticker
         view = "stock"
-        if (!entries.some(entry => entry.symbol === ticker)) request(["quote", ticker])
+        // With the window closed, opening it refreshes: its chart, then this quote.
+        if (windowOpen && !entries.some(entry => entry.symbol === ticker)) requestQuote(ticker)
     }
     // Opens the window on a stock, e.g. from the bar's favorites ticker.
     function show(ticker) {
@@ -285,9 +286,9 @@ QtObject {
         }
     }
     function prefetchChart(value) {
-        if (!value || value === period || !chartShown || serverActive || chartWaiting || searchWaiting || prefetchedFresh(selected, value)) return
-        chartWaiting = ["chart", selected, value]
-        pumpServer()
+        // Only with a helper free now, so it never queues ahead of a real request.
+        if (!value || value === period || !chartShown || prefetchedFresh(selected, value) || !servers.some(helper => helper.free)) return
+        sendToServer(["chart", selected, value], false)
     }
     function prefetchedFresh(ticker, value) {
         return !!prefetched && prefetched.symbol === ticker && prefetched.range === value && Date.now() / 1000 - prefetched.fetched < 10
@@ -297,90 +298,93 @@ QtObject {
     function refresh(force) {
         if (force && windowOpen) MarketStore.refresh(true)
         request(force ? ["refresh", "--force"] : ["refresh"])
-        if (selected && windowOpen && view === "stock" && !tracked) request(["quote", selected])
         if (force ? chartShown : chartLive) requestChart(force)
         else if (extendedLive) MarketStore.extendedRequest.reload(false)
+        if (selected && windowOpen && view === "stock" && !tracked) requestQuote(selected)
     }
     // The one place that asks for the chart. The same chart already running
     // or waiting is enough, unless the user asked to refresh.
     function requestChart(force, ticker) {
         ticker = ticker || selected
         if (!ticker) return
-        const same = args => !!args && args[0] === "chart" && args[1] === ticker && args[2] === period
-        if (!force && [serverActive && serverActive.args, chartWaiting, active].concat(queue).some(same)) return
-        chartWaiting = ["chart", ticker, period]
-        pumpServer()
-        chartRequested(!!force)
+        if (sendToServer(["chart", ticker, period], force)) chartRequested(!!force)
     }
-    // Charts and searches come from one long-lived helper, bin/data_server.py,
-    // that keeps Yahoo's connection open: a chart in about 40-150 ms instead of
-    // 230 for a new process, never behind the watchlist queue. It answers one
-    // request at a time, a chart before a search; a newer request of each kind
-    // replaces an older one waiting.
-    // If the helper dies, its request goes to a one-shot helper and the server
-    // restarts with the next request. If it hangs, it is stopped and the request
-    // fails like any refresh. After three failures in a row it rests for ten
-    // minutes while one-shot helpers do its work.
-    property var serverActive: null
-    property var chartWaiting: null
-    property var searchWaiting: null
+    // Charts, quotes for stocks outside the watchlist, and searches come from a
+    // few long-lived helpers (ServerHelper, running bin/data_server.py) that
+    // keep Yahoo's connection open: a chart in about 40-150 ms instead of 230 for
+    // a new process, never behind the watchlist queue. Each request goes to the
+    // first free helper, or waits in order for one; one identical to a request
+    // already running or waiting is not sent again. A late reply never shows:
+    // only the selected chart and the current query's results are.
+    // If a helper dies, its request goes to a one-shot helper, and the helper
+    // restarts with its next request. If one hangs, it is stopped and the request
+    // fails like any refresh. After three failures in a row they rest for ten
+    // minutes while one-shot helpers do their work.
+    property ServerHelper serverOne: ServerHelper {
+        onReplied: (args, reply) => root.serverReplied(args, reply)
+        onLost: args => root.serverLost(args)
+        onHung: args => root.serverHung(args)
+    }
+    property ServerHelper serverTwo: ServerHelper {
+        onReplied: (args, reply) => root.serverReplied(args, reply)
+        onLost: args => root.serverLost(args)
+        onHung: args => root.serverHung(args)
+    }
+    property ServerHelper serverThree: ServerHelper {
+        onReplied: (args, reply) => root.serverReplied(args, reply)
+        onLost: args => root.serverLost(args)
+        onHung: args => root.serverHung(args)
+    }
+    readonly property var servers: [serverOne, serverTwo, serverThree]
+    property var serverWaiting: []
     property int serverSerial: 0
     property int serverFailures: 0
     property double serverRestUntil: 0
-    readonly property bool chartLoading: !!serverActive && serverActive.args[0] === "chart" || chartWaiting !== null || pending(["chart"])
-    function requestSearch(query) {
-        searchWaiting = ["search", query]
+    // Every request the helpers or the one-shot queue run or will run.
+    function serverRequests() {
+        return servers.filter(helper => !helper.free).map(helper => helper.active.args)
+            .concat(serverWaiting, [active], queue).filter(args => !!args)
+    }
+    readonly property bool chartLoading: serverRequests().some(args => args[0] === "chart" && args[1] === selected && args[2] === period)
+    // Returns whether it was sent, rather than already on its way.
+    function sendToServer(args, force) {
+        const key = JSON.stringify(args)
+        if (!force && serverRequests().some(other => JSON.stringify(other) === key)) return false
+        serverWaiting = serverWaiting.concat([args])
         pumpServer()
+        return true
     }
+    function requestQuote(ticker) { sendToServer(["quote", ticker], false) }
+    function requestSearch(query) { sendToServer(["search", query], false) }
     function pumpServer() {
-        if (!running || serverActive || !(chartWaiting || searchWaiting)) return
-        const args = chartWaiting || searchWaiting
-        if (chartWaiting) chartWaiting = null
-        else searchWaiting = null
-        if (Date.now() < serverRestUntil) {
-            request(args)
-            return
+        while (running && serverWaiting.length) {
+            const args = serverWaiting[0]
+            const helper = servers.find(helper => helper.free)
+            if (!helper && Date.now() >= serverRestUntil) return
+            serverWaiting = serverWaiting.slice(1)
+            if (Date.now() < serverRestUntil) request(args)
+            else helper.send(++serverSerial, args)
         }
-        serverActive = {id: ++serverSerial, args: args}
-        serverWatchdog.restart()
-        if (dataServer.running) sendRequest()
-        else dataServer.running = true
     }
-    function sendRequest() {
-        if (!serverActive) return
-        const args = serverActive.args
-        dataServer.write(JSON.stringify(args[0] === "chart" ? {id: serverActive.id, action: "chart", symbol: args[1], range: args[2]}
-            : {id: serverActive.id, action: "search", query: args[1]}) + "\n")
-    }
-    function serverReply(line) {
-        let reply
-        try { reply = JSON.parse(line) } catch (_) { return }
-        if (!serverActive || !reply || reply.id !== serverActive.id) return
-        const args = serverActive.args
-        serverWatchdog.stop()
-        serverActive = null
+    function serverReplied(args, reply) {
         serverFailures = 0
         if (reply.chart) receiveChart(reply.chart)
+        if (reply.quote) receiveQuote(reply.quote)
+        if (args[0] === "quote" && reply.error) error = reply.error
         if (reply.search) receiveSearch(args[1], reply.search)
         pumpServer()
     }
-    function serverExited() {
-        const lost = serverActive
-        serverActive = null
-        serverWatchdog.stop()
-        if (!lost) return
+    function serverLost(args) {
         serverFailed()
-        request(lost.args)
+        request(args)
         pumpServer()
     }
-    function serverHung() {
-        const lost = serverActive
-        serverActive = null
+    function serverHung(args) {
         serverFailed()
-        dataServer.running = false
-        if (lost && lost.args[0] === "chart") receiveChart({symbol: lost.args[1], range: lost.args[2], points: [], stale: true,
+        if (args[0] === "chart") receiveChart({symbol: args[1], range: args[2], points: [], stale: true,
             error: "The chart took too long to load. Refresh to retry."})
-        if (lost && lost.args[0] === "search") receiveSearch(lost.args[1], {error: "Search took too long. Try again."})
+        if (args[0] === "quote") error = "The quote took too long to load. Refresh to retry."
+        if (args[0] === "search") receiveSearch(args[1], {error: "Search took too long. Try again."})
         pumpServer()
     }
     function serverFailed() {
@@ -388,20 +392,16 @@ QtObject {
         serverFailures = 0
         serverRestUntil = Date.now() + 600000
     }
-    // Closing the window stops the helper, dropping its requests without a retry.
+    // Closing the window stops the helpers, dropping their requests without a retry.
     function stopServer() {
-        serverActive = null
-        chartWaiting = null
-        searchWaiting = null
-        serverWatchdog.stop()
-        dataServer.running = false
+        serverWaiting = []
+        servers.forEach(helper => helper.stop())
     }
     function search(value) {
         const query = value.trim()
         if (query === searchQuery) return
         searchTimer.stop()
         queue = queue.filter(args => args[0] !== "search")
-        searchWaiting = null
         searchQuery = query
         completedQuery = ""
         searchError = ""
@@ -505,6 +505,12 @@ QtObject {
     }
     // Charts are never saved. A failed refresh keeps the chart already on
     // screen, marked stale so it can show its time; anything else is replaced.
+    // The quote of a stock outside the watchlist, for its header.
+    function receiveQuote(quote) {
+        const quotes = Object.assign({}, previewQuotes)
+        quotes[quote.symbol] = quote
+        previewQuotes = quotes
+    }
     // A reply for an older query never replaces the current results.
     function receiveSearch(query, data) {
         if (query !== searchQuery) return
@@ -557,11 +563,7 @@ QtObject {
                     } else if (!selected && entries.length) select(entries[0].symbol)
                 }
                 if (data.chart) receiveChart(data.chart)
-                if (data.quote) {
-                    const quotes = Object.assign({}, previewQuotes)
-                    quotes[data.quote.symbol] = data.quote
-                    previewQuotes = quotes
-                }
+                if (data.quote) receiveQuote(data.quote)
                 if (active[0] === "add" && active[active.length - 1] === activeWatchlist && entries.some(entry => entry.symbol === active[1])) {
                     search("")
                     select(active[1])
@@ -590,14 +592,6 @@ QtObject {
         onExited: { root.exited = true; root.finish() }
     }
     property Timer watchdog: Timer { interval: 60000; onTriggered: root.helper.running = false }
-    property Process dataServer: Process {
-        command: ["python3", decodeURIComponent(Qt.resolvedUrl("../../bin/data_server.py").toString().replace(/^file:\/\//, ""))]
-        stdinEnabled: true
-        stdout: SplitParser { onRead: data => root.serverReply(data) }
-        onStarted: root.sendRequest()
-        onExited: root.serverExited()
-    }
-    property Timer serverWatchdog: Timer { interval: 45000; onTriggered: root.serverHung() }
     property Timer quoteRetry: Timer { onTriggered: root.request(["retry-quotes"]) }
     // Every minute while a 1D chart is live; otherwise five minutes, which also
     // keeps the bar's quotes current while the window is closed.

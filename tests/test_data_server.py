@@ -1,5 +1,6 @@
 """The long-lived data helper: a JSON line each way over one reused connection."""
 import http.client
+import http.cookiejar
 import io
 import json
 import os
@@ -14,17 +15,30 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "bin"))
 import data_server
+import market_bulk
 import stocks
 import yahoo_http
+
+AWAKE = yahoo_http.awake  # the real clock, before tests replace it
 
 CHART = {"chart": {"result": [{"meta": {"regularMarketPrice": 105, "chartPreviousClose": 100, "regularMarketTime": 30},
                                 "timestamp": [10, 30], "indicators": {"quote": [{"close": [101, 105]}]}}]}}
 
 
 class Response(io.BytesIO):
-    def __init__(self, status=200, body=b"{}"):
+    def __init__(self, status=200, body=b"{}", cookie=None):
         super().__init__(body)
-        self.status, self.reason, self.headers = status, "Reason", {}
+        self.status, self.reason, self.headers = status, "Reason", http.client.HTTPMessage()
+        if cookie:
+            self.headers["Set-Cookie"] = cookie
+
+    def info(self):
+        return self.headers
+
+
+def cookie(name, value):
+    return http.cookiejar.Cookie(0, name, value, None, False, ".yahoo.com", True, True, "/", True, True,
+                                 None, False, None, None, {})
 
 
 class Connection:
@@ -37,6 +51,7 @@ class Connection:
 
     def request(self, method, target, body=None, headers=None):
         self.targets.append(target)
+        self.headers = headers
         if Connection.failures:
             raise Connection.failures.pop(0)
 
@@ -50,8 +65,8 @@ class Connection:
 class KeepAliveTests(unittest.TestCase):
     def setUp(self):
         Connection.made, Connection.failures, Connection.responses = [], [], []
-        patch.object(yahoo_http.http.client, "HTTPSConnection", Connection).start()
-        self.clock = patch.object(yahoo_http.time, "monotonic", return_value=1000).start()
+        patch.object(yahoo_http.KeepAlive, "connect", Connection).start()
+        self.clock = patch.object(yahoo_http, "awake", return_value=1000).start()
         self.addCleanup(patch.stopall)
         self.transport = yahoo_http.KeepAlive()
 
@@ -90,6 +105,11 @@ class KeepAliveTests(unittest.TestCase):
             self.open()
         self.assertEqual(len(Connection.made), 1)
 
+    def test_the_idle_clock_counts_time_asleep(self):
+        with patch.object(yahoo_http.time, "clock_gettime", return_value=5) as clock:
+            self.assertEqual(AWAKE(), 5)
+        clock.assert_called_once_with(yahoo_http.time.CLOCK_BOOTTIME)
+
     def test_idle_connection_is_not_reused(self):
         self.open()
         self.clock.return_value += 61
@@ -115,6 +135,47 @@ class KeepAliveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "No market data found"):
             stocks.fetch("/v8/finance/chart/NOPE")
         self.assertEqual(len(Connection.made), 1)
+
+
+class SessionTests(unittest.TestCase):
+    """Quote requests carry Yahoo's session cookies over the kept connection."""
+
+    def setUp(self):
+        Connection.made, Connection.failures, Connection.responses = [], [], []
+        patch.object(yahoo_http.KeepAlive, "connect", Connection).start()
+        self.addCleanup(patch.stopall)
+        self.jar = http.cookiejar.LWPCookieJar()
+        self.jar.set_cookie(cookie("A3", "session"))
+
+    def test_cookies_are_sent_and_new_ones_kept_even_from_errors(self):
+        transport = yahoo_http.WithCookies(yahoo_http.KeepAlive(), self.jar)
+        Connection.responses = [Response(200, b"{}", cookie="B=rotated; Domain=.yahoo.com; Path=/; Secure")]
+        request = urllib.request.Request("https://query1.finance.yahoo.com/v7/finance/quote?symbols=TSLA")
+        with transport.open(request):
+            pass
+        self.assertIn("A3=session", Connection.made[0].headers["Cookie"])
+        self.assertEqual(Connection.made[0].headers["User-agent"], "Mozilla/5.0")
+        self.assertIn("B", {item.name for item in self.jar})
+        Connection.responses = [Response(401, b"", cookie="C=late; Domain=.yahoo.com; Path=/; Secure")]
+        with self.assertRaises(urllib.error.HTTPError):
+            transport.open(urllib.request.Request("https://query1.finance.yahoo.com/v7/finance/quote?symbols=TSLA"))
+        self.assertIn("C", {item.name for item in self.jar})
+
+    def test_signed_in_requests_reuse_the_helpers_connection(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}).start()
+        directory = Path(temporary.name) / "yahoo"
+        directory.mkdir()
+        self.jar.save(str(directory / "cookies.txt"), ignore_discard=True)
+        (directory / "session.json").write_text(json.dumps({"crumb": "abc", "expires": 4102444800}))
+        patch.object(yahoo_http, "persistent", yahoo_http.KeepAlive()).start()
+        Connection.responses = [Response(200, b'{"quoteResponse": {"result": []}}') for _ in range(2)]
+        for _ in range(2):
+            self.assertEqual(yahoo_http.authenticated("/v7/finance/quote", symbols="TSLA"), {"quoteResponse": {"result": []}})
+        self.assertEqual(len(Connection.made), 1)
+        self.assertIn("crumb=abc", Connection.made[0].targets[0])
+        self.assertIn("A3=session", Connection.made[0].headers["Cookie"])
 
 
 class ServerTests(unittest.TestCase):
@@ -168,6 +229,20 @@ class ServerTests(unittest.TestCase):
         self.assertEqual((reply["id"], reply["search"]["results"], reply["search"]["error"]), (4, [], "broken"))
         reply = self.serve(json.dumps({"id": 5, "action": "delete"}))[0]
         self.assertEqual(reply["chart"]["error"], "Unknown request.")
+
+    def test_quotes_are_saved_like_the_one_shot_quote(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}).start()
+        row = {"symbol": "TSLA", "price": 250, "name": "Tesla, Inc.", "marketState": "REGULAR", "updated": 999}
+        with patch.object(market_bulk, "quotes", return_value={"rows": {"TSLA": row}}) as request:
+            replies = self.serve(json.dumps({"id": 1, "action": "quote", "symbol": "tsla"}),
+                                 json.dumps({"id": 2, "action": "quote", "symbol": "BAD SYMBOL"}))
+        request.assert_called_once_with(["TSLA"])
+        self.assertEqual((replies[0]["id"], replies[0]["quote"]["price"], replies[0]["quote"]["marketState"]), (1, 250, "REGULAR"))
+        self.assertIn("TSLA:quote", json.loads((Path(temporary.name) / "cache.json").read_text()))
+        self.assertEqual(replies[1]["id"], 2)
+        self.assertIn("valid stock symbol", replies[1]["error"])
 
     def test_process_answers_line_by_line_and_exits_when_stdin_closes(self):
         script = Path(__file__).parents[1] / "bin/data_server.py"

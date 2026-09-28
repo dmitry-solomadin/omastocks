@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-"""Charts and search for the window from one long-lived helper, a JSON line each way.
+"""Charts, quotes and search for the window from one long-lived helper, a JSON
+line each way.
 
 The window keeps this process running so a request skips Python's start-up and
-reuses Yahoo's HTTPS connection: a chart in about 40-150 ms instead of 230. It
-holds no lock and saves nothing. Requests are {"id", "action": "chart",
-"symbol", "range"} or {"id", "action": "search", "query"}, answered by
-{"id", "chart"} or {"id", "search"}; a failure is an error in that reply."""
+reuses Yahoo's HTTPS connection: a chart in about 40-150 ms instead of 230.
+Charts and search hold no lock and save nothing. A quote, for a stock outside
+the watchlist, is the same as `stocks.py quote`: taken and saved under the
+watchlist lock. Requests are {"id", "action": "chart", "symbol", "range"},
+{"id", "action": "quote", "symbol"} or {"id", "action": "search", "query"},
+answered by {"id", "chart"}, {"id", "quote"} or {"id", "search"}. A failed
+chart or search is an error in its reply; a failed quote is {"id", "error"}."""
 
 import json
 import sys
 
+import stocks
 import yahoo_http
 from stocks import chart, search, symbol
 
@@ -22,6 +27,8 @@ def answer(line):
             raise ValueError("A request is a JSON object.")
         if request.get("action") == "chart":
             result = {"chart": chart(symbol(str(request.get("symbol", ""))), str(request.get("range", "")))}
+        elif request.get("action") == "quote":
+            result = stocks.main(["quote", str(request.get("symbol", ""))])
         elif request.get("action") == "search":
             result = {"search": search(str(request.get("query", "")))}
         else:
@@ -30,7 +37,9 @@ def answer(line):
     except Exception as error:
         # One bad request never ends the helper.
         request = request if isinstance(request, dict) else {}
-        if request.get("action") == "search":
+        if request.get("action") == "quote":
+            failed = {"error": str(error)}
+        elif request.get("action") == "search":
             failed = {"search": {"query": str(request.get("query", "")), "results": [], "error": str(error)}}
         else:
             failed = {"chart": {"symbol": str(request.get("symbol", "")), "range": str(request.get("range", "")),
