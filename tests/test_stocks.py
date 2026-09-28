@@ -154,49 +154,31 @@ class StateTests(unittest.TestCase):
         self.assertEqual((self.path / "watchlist.json").read_text(), original)
 
     @patch.object(stocks, "fetch", return_value=SAMPLE)
-    def test_failed_refresh_keeps_price_and_timestamp_then_recovers(self, request):
-        initial = self.repository.chart("AAPL", "1D")
-        request.side_effect = ValueError("offline")
-        failed = self.repository.chart("AAPL", "1D", force=True)
-        self.assertEqual(failed["price"], initial["price"])
-        self.assertEqual(failed["fetched"], initial["fetched"])
-        self.assertTrue(failed["stale"])
-        with patch.object(stocks.time, "time", return_value=failed["retryAfter"] - 119):
-            request.side_effect = None
-            recovered = self.repository.chart("AAPL", "1D", force=True)
-        self.assertFalse(recovered["stale"])
-        self.assertEqual(recovered["error"], "")
-        self.assertNotIn("retryAfter", recovered)
-        self.assertEqual(request.call_count, 3)
-
-    @patch.object(stocks, "fetch", return_value=SAMPLE)
-    def test_fresh_cache_prevents_duplicate_requests(self, request):
-        self.repository.chart("AAPL", "1D")
-        self.repository.chart("AAPL", "1D")
-        request.assert_called_once()
-
-    @patch.object(stocks, "fetch", return_value=SAMPLE)
-    def test_historical_chart_recovers_after_failure_cooldown(self, request):
-        with patch.object(stocks.time, "time", return_value=1000) as clock:
-            self.repository.chart("AAPL", "1Y")
-            request.side_effect = ValueError("offline")
-            self.repository.chart("AAPL", "1Y", force=True)
-            request.side_effect = None
-            clock.return_value = 1119
-            self.assertTrue(self.repository.chart("AAPL", "1Y")["stale"])
-            self.assertEqual(request.call_count, 2)
-            clock.return_value = 1121
-            self.assertFalse(self.repository.chart("AAPL", "1Y")["stale"])
-            self.assertEqual(request.call_count, 3)
-
-    @patch.object(stocks, "fetch", side_effect=ValueError("rate limiting"))
-    def test_failed_symbol_backs_off_automatically_but_manual_refresh_retries(self, request):
-        self.repository.chart("AAPL", "1D")
-        self.repository.chart("AAPL", "1D")
-        request.assert_called_once()
-        self.repository.chart("AAPL", "1D", force=True)
+    def test_every_chart_request_downloads_and_nothing_is_saved(self, request):
+        with patch.dict(stocks.os.environ, {"STOCKS_STATE_DIR": str(self.path)}):
+            first = stocks.main(["chart", "AAPL", "1D"])["chart"]
+            stocks.main(["chart", "AAPL", "1D"])
         self.assertEqual(request.call_count, 2)
+        self.assertEqual(first["points"], [(10, 101), (30, 105)])
+        self.assertIn("fetched", first)
+        self.assertNotIn("AAPL:1D", json.loads((self.path / "cache.json").read_text()))
 
+    @patch.object(stocks, "fetch", side_effect=ValueError("offline"))
+    def test_failed_chart_says_so_and_saves_nothing(self, request):
+        with patch.dict(stocks.os.environ, {"STOCKS_STATE_DIR": str(self.path)}):
+            failed = stocks.main(["chart", "AAPL", "1Y"])["chart"]
+            stocks.main(["chart", "AAPL", "1Y"])
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual((failed["points"], failed["error"], failed["stale"]), ([], "offline", True))
+        self.assertNotIn("retryAfter", failed)
+        self.assertNotIn("AAPL:1Y", json.loads((self.path / "cache.json").read_text()))
+
+    def test_charts_saved_by_earlier_versions_are_dropped(self):
+        saved = {key: {"price": 1} for key in ("AAPL:1D", "AAPL:1Y", "AAPL:quote", "AAPL:spark")}
+        (self.path / "cache.json").write_text(json.dumps(saved))
+        with patch.dict(stocks.os.environ, {"STOCKS_STATE_DIR": str(self.path)}):
+            stocks.main(["snapshot"])
+        self.assertEqual(set(json.loads((self.path / "cache.json").read_text())), {"AAPL:quote", "AAPL:spark"})
 
 if __name__ == "__main__":
     unittest.main()

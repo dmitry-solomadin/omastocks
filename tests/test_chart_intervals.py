@@ -117,10 +117,9 @@ class ChartIntervals(unittest.TestCase):
         self.assertEqual(result["dates"], ["2026-09-24"] * 3 + ["2026-09-25"] * 3)
         self.assertEqual(result["volumes"], [None, 20, 20, 30, 20, 20])
 
-    def test_new_intervals_invalidate_old_chart_cache_and_apply_to_comparison(self):
+    def test_intervals_apply_to_charts_comparison_and_extended_hours(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(stocks, "fetch", return_value=document()) as request:
             repo = stocks.Repository(Path(directory))
-            repo.cache["AMD:1D"] = {"schema": 2, "fetched": stocks.time.time(), "price": 123}
             result = repo.chart("AMD", "1D")
             self.assertEqual(request.call_args.kwargs["interval"], "1m")
             self.assertEqual(result["schema"], stocks.CHART_SCHEMA)

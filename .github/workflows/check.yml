@@ -23,5 +23,7 @@ jobs:
       - run: node tests/test_pixel_art.cjs
       - run: node tests/test_market_assets.cjs
       - run: node tests/test_banner.cjs
+      - run: node tests/test_quote_retry.cjs
+      - run: node tests/test_chart_refresh.cjs
       - run: bash -n install install-launcher uninstall
       - run: shellcheck install install-launcher uninstall

@@ -29,6 +29,10 @@ Item {
     // How far past its sides the chart still takes the pointer, as into the
     // page margin, so a sweep past either end holds that end's reading.
     property real hoverReach: 0
+    // Why the line may be old, e.g. "As of 27 Sep 15:52 · refresh failed". It
+    // follows the readout on the top line, short of the width kept at the right.
+    property string note: ""
+    property real reservedRight: 0
     readonly property bool comparing: !miniature && compareMode
     readonly property var normalized: comparing ? ChartMath.compareMany(
         [{symbol: symbol, currency: currency, color: primaryColor, points: points, dates: dates}]
@@ -36,7 +40,7 @@ Item {
                 .map(row => ({symbol: row.symbol, currency: row.data.currency || "", color: row.color,
                     points: row.data.points, dates: row.data.dates || []}))), period) : null
     readonly property var compareLines: normalized ? normalized.series : []
-    readonly property var legendEntries: [{symbol: symbol, color: primaryColor, data: {}, busy: !points.length, primary: true}].concat(comparisons)
+    readonly property var legendEntries: [{symbol: symbol, color: primaryColor, data: note ? {error: note} : {}, busy: !points.length, primary: true}].concat(comparisons)
     readonly property var averageLines: miniature || comparing || !ChartMath.dailyAveragesSupported(period) ? [] : averages.map(series => ({window: series.window,
         color: series.color, points: ChartMath.projectAverage(points, dates, series, period)}))
     readonly property var eventMarkers: miniature || comparing ? [] : ChartMath.eventPositions(points, dates, events, period)
@@ -392,6 +396,15 @@ Item {
             anchors.baseline: readout.baseline
             text: root.comparison ? root.selectionTime(root.points[root.comparison.first][0]) + " → "
                 + root.selectionTime(root.points[root.comparison.last][0]) : ""
+            color: Tone.muted
+            font.pixelSize: Style.font.bodySmall
+        }
+        Label {
+            objectName: "chartNote"
+            visible: !!root.note && !root.hasSelection
+            anchors.baseline: readout.baseline
+            width: Math.min(implicitWidth, Math.max(0, root.width - root.reservedRight - root.leftInset - readout.implicitWidth - Style.space(24)))
+            text: root.note
             color: Tone.muted
             font.pixelSize: Style.font.bodySmall
         }

@@ -265,25 +265,19 @@ class Repository:
         self.cache = read_json(self.cache_path, {})
         if not isinstance(self.cache, dict):
             raise ValueError("Invalid cache.json. File left untouched.")
+        # Charts are never saved. Drop the ones earlier versions kept.
+        for key in [key for key in self.cache if key.rpartition(":")[2] in RANGES]:
+            del self.cache[key]
 
-    def chart(self, ticker, period, force=False):
+    def chart(self, ticker, period):
+        """Always a fresh download. A failure says so and returns no points."""
         if period not in RANGES:
             raise ValueError("Unknown chart range.")
-        key = ticker + ":" + period
-        cached = self.cache.get(key, {})
-        now = time.time()
-        ttl = 60 if period == "1D" else 3600
-        if cached.get("schema") == CHART_SCHEMA and not cached.get("stale", False) and not force and now - cached.get("fetched", 0) < ttl:
-            return cached
-        if not force and now < cached.get("retryAfter", 0):
-            return cached
         try:
             row = fetch_full_chart(ticker, period)
-            row["fetched"] = now
         except (ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
-            row = dict(cached) if cached else {"symbol": ticker, "range": period, "points": [], "price": None}
-            row.update(stale=True, error=str(error), retryAfter=now + 120)
-        self.cache[key] = row
+            return {"symbol": ticker, "range": period, "points": [], "error": str(error), "stale": True}
+        row["fetched"] = time.time()
         return row
 
     def refresh_quotes(self, tickers, force=False, retry_only=False):
@@ -315,9 +309,9 @@ class Repository:
                 if row.get("price") is not None and not row.get("error"):
                     self.cache[key] = {**row, "fetched": finished, "stale": False, "error": ""}
                     continue
-                # Preserve a saved quote (or the legacy chart quote) on failure.
-                cached = self.cache.get(key, self.cache.get(ticker + ":1D", {}))
-                failures = min(self.cache.get(key, {}).get("failures", 0) + 1, 10)
+                # Preserve a saved quote on failure.
+                cached = self.cache.get(key, {})
+                failures = min(cached.get("failures", 0) + 1, 10)
                 self.cache[key] = {**cached, "symbol": ticker, "stale": True,
                                    "error": error or row.get("error") or "Bulk quote unavailable",
                                    "failures": failures,
@@ -345,7 +339,7 @@ class Repository:
                     self.cache[key] = {**self.cache.get(key, {}), "retryAfter": finished + 120}
 
     def quote(self, entry):
-        cached = self.cache.get(entry["symbol"] + ":quote", self.cache.get(entry["symbol"] + ":1D", {}))
+        cached = self.cache.get(entry["symbol"] + ":quote", {})
         spark = self.cache.get(entry["symbol"] + ":spark", {})
         row = {**entry, **cached, **{key: spark[key] for key in ("points", "sessionStart", "sessionEnd") if key in spark},
                "favorite": entry.get("favorite", False)}
@@ -458,7 +452,7 @@ def main(arguments):
             result = repository.snapshot(refresh=action != "snapshot", force="--force" in arguments,
                                          retry_only=action == "retry-quotes")
         elif action == "chart":
-            result = {"chart": repository.chart(symbol(arguments[1]), arguments[2], "--force" in arguments)}
+            result = {"chart": repository.chart(symbol(arguments[1]), arguments[2])}
         elif action == "quote":
             # A stock outside the watchlist: the same bulk quote as a listed one.
             ticker = symbol(arguments[1])

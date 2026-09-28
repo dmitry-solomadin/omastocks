@@ -640,18 +640,21 @@ FloatingWindow {
                             referencePrice: StockStore.period === "1D" ? window.series.previous : null
                             period: StockStore.period
                             lineColor: window.chartColor
+                            note: StockStore.staleNote(window.series)
+                            reservedRight: chartOptions.visible ? chartOptions.width : 0
                         }
                         // On the readout's line at the chart's right edge, which stays put as
                         // the price axis resizes to each range's labels; hidden while a
                         // dragged selection's readout may need the width.
                         ChartOptions {
+                            id: chartOptions
                             visible: !MarketStore.compareMode && !detailChart.hasSelection
                             anchors.right: detailChart.right
                             y: -Style.space(4)
                         }
                         Label {
                             anchors.centerIn: parent
-                            text: StockStore.chartBusy ? "Loading chart…" : "No chart data available"
+                            text: StockStore.chartBusy ? "Loading chart…" : window.series.error ? "Chart unavailable · Refresh to retry" : "No chart data available"
                             visible: window.points.length === 0
                             color: Tone.muted
                         }

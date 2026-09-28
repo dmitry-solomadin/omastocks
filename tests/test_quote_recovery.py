@@ -48,7 +48,7 @@ class QuoteRecovery(unittest.TestCase):
         self.assertTrue(all(row["price"] == 123 and not row["stale"] for row in result["favoriteEntries"]))
 
     def test_offline_boot_retries_exponentially_persists_and_resets_after_success(self):
-        self.repo.cache["AAPL:1D"] = {"price": 100, "fetched": 900, "updated": 800}
+        self.repo.cache["AAPL:quote"] = {"price": 100, "fetched": 900, "updated": 800, "stale": True}
         self.request.side_effect = OSError("DNS unavailable")
         for delay in [1, 2, 4, 8, 16, 32, 64, 128, 256, 300, 300]:
             result = self.repo.snapshot(refresh=True, retry_only=True)

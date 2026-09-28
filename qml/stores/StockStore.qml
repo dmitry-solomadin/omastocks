@@ -208,7 +208,7 @@ QtObject {
         if (force && windowOpen) MarketStore.refresh(true)
         request(force ? ["refresh", "--force"] : ["refresh"])
         if (selected && windowOpen && view === "stock" && !tracked) request(["quote", selected])
-        if (selected && windowOpen && view === "stock") request(force ? ["chart", selected, period, "--force"] : ["chart", selected, period])
+        if (selected && windowOpen && view === "stock") request(["chart", selected, period])
     }
     function search(value) {
         const query = value.trim()
@@ -316,6 +316,18 @@ QtObject {
             quoteRetry.restart()
         }
     }
+    // Charts are never saved. A failed refresh keeps the chart already on
+    // screen, marked stale so it can show its time; anything else is replaced.
+    function receiveChart(reply) {
+        if (reply.symbol !== selected || reply.range !== period) return
+        const shown = chart.symbol === reply.symbol && chart.range === reply.range && (chart.points || []).length > 0
+        chart = reply.error && shown ? Object.assign({}, chart, {stale: true, error: reply.error}) : reply
+    }
+    // "As of 27 Sep 15:52 · refresh failed" for a chart kept after a failed refresh.
+    function staleNote(series) {
+        return series && series.stale && (series.points || []).length && series.fetched
+            ? "As of " + Qt.formatDateTime(new Date(series.fetched * 1000), "d MMM HH:mm") + " · refresh failed" : ""
+    }
     function finish() {
         if (!exited || !collected || !active) return
         watchdog.stop()
@@ -332,6 +344,7 @@ QtObject {
             } else if (data.error) {
                 error = data.error
                 if (active[0] === "move") request(["snapshot"])
+                if (active[0] === "chart") receiveChart({symbol: active[1], range: active[2], points: [], error: data.error, stale: true})
             }
             else {
                 if (active[0] !== "snapshot") error = ""
@@ -353,7 +366,7 @@ QtObject {
                         request(["refresh"])
                     } else if (!selected && entries.length) select(entries[0].symbol)
                 }
-                if (data.chart && data.chart.symbol === selected && data.chart.range === period) chart = data.chart
+                if (data.chart) receiveChart(data.chart)
                 if (data.quote) {
                     const quotes = Object.assign({}, previewQuotes)
                     quotes[data.quote.symbol] = data.quote
@@ -374,6 +387,7 @@ QtObject {
             } else {
                 error = "The data helper did not return a valid response. Try refreshing."
                 if (active[0] === "move") request(["snapshot"])
+                if (active[0] === "chart") receiveChart({symbol: active[1], range: active[2], points: [], error: error, stale: true})
             }
         }
         // A killed/timed-out helper has no backend deadline. Keep recovery
