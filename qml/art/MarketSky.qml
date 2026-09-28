@@ -33,12 +33,24 @@ Item {
     clip: true
     Accessible.ignored: true
 
-    onRunningChanged: if (running) { tick = 0; fadeIn.restart() } else { raise.stop(); burst = -1 }
+    onRunningChanged: if (running) { tick = 0; fadeIn.restart(); celebrateLate() } else { raise.stop(); burst = -1 }
     onSceneChanged: { flag = scene === "night" ? 0 : 1; still.requestPaint() }
     onSunChanged: still.requestPaint()
     Connections {
         target: root.session
-        function onOpening() { if (root.running) raise.restart() }
+        function onOpening() { if (root.running) root.celebrate() }
+        function onStateChanged() { root.celebrateLate() }
+    }
+    // The opening bell plays once a day: live at 9:30, or when a header first
+    // shows (or first learns the market is open) within three minutes after.
+    function celebrate() {
+        const day = Clock.easternDate(Date.now())
+        if (MarketStore.openingCelebrated === day) return
+        MarketStore.openingCelebrated = day
+        raise.restart()
+    }
+    function celebrateLate() {
+        if (running && session.state === "REGULAR" && Clock.openingGrace(Date.now(), 3)) celebrate()
     }
     NumberAnimation { id: fadeIn; target: root; property: "t"; from: 0; to: 1; duration: 900; easing.type: Easing.OutCubic }
     SequentialAnimation {

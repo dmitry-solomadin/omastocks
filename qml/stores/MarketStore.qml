@@ -14,6 +14,8 @@ QtObject {
     readonly property bool averagesAvailable: ChartMath.dailyAveragesSupported(StockStore.period)
     property var averageWindows: []
     property bool compareMode: false
+    // New York date whose opening bell has played, so either header plays it once.
+    property string openingCelebrated: ""
     property var compareSlots: ["", "", "", ""]
     readonly property var compareSymbols: compareSlots.filter(ticker => !!ticker)
     readonly property var compareColors: ["#4e9eff", "#f6bf4f", "#be8cff", "#41c9b4", "#f07eaa"]

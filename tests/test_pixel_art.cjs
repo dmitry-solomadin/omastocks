@@ -22,6 +22,13 @@ assert.equal(clock.scheduled(tuesday(9, 30)), "REGULAR")
 assert.equal(clock.scheduled(tuesday(16, 0)), "POST")
 assert.equal(clock.scheduled(tuesday(20, 0)), "CLOSED")
 assert.equal(clock.scheduled(et(2026, 9, 26, 12, 0, -4)), "CLOSED")
+// A late arrival still gets the opening bell for three minutes, weekdays only.
+assert.equal(clock.openingGrace(tuesday(9, 29), 3), false)
+assert.equal(clock.openingGrace(tuesday(9, 30), 3), true)
+assert.equal(clock.openingGrace(tuesday(9, 32), 3), true)
+assert.equal(clock.openingGrace(tuesday(9, 33), 3), false)
+assert.equal(clock.openingGrace(et(2026, 9, 26, 9, 31, -4), 3), false)
+assert.equal(clock.openingGrace(et(2026, 1, 13, 9, 31, -5), 3), true)
 // The New York date lags UTC in the evening, across both DST regimes.
 assert.equal(clock.easternDate(Date.UTC(2026, 8, 28, 3, 30)), "2026-09-27")
 assert.equal(clock.easternDate(Date.UTC(2026, 0, 15, 4, 59)), "2026-01-14")

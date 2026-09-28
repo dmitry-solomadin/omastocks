@@ -67,6 +67,13 @@ function nextBoundary(utcMs) {
 
 function nextOpen(utcMs) { return nextEvent(utcMs, [regularOpen]) }
 
+// Within the first minutes after a weekday's 9:30 open: still "the opening"
+// for someone who opens the app a moment late.
+function openingGrace(utcMs, minutes) {
+    const now = eastern(utcMs)
+    return weekday(now.day) && now.minutes >= regularOpen && now.minutes < regularOpen + minutes
+}
+
 // Position through the 04:00–20:00 ET extended day: 1 once a weekday's
 // sessions are over, -1 before they start and at weekends.
 function position(utcMs) {
