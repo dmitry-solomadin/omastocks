@@ -41,6 +41,39 @@ FloatingWindow {
     readonly property var valuationLabels: ["Market cap", "P/E (TTM)", "Price / sales", "Price / book", "EV / EBITDA"]
     readonly property bool valuationPending: MarketStore.companyResearchActive
         && (MarketStore.valuation.symbol !== StockStore.selected || (MarketStore.valuationRequest.busy && !(MarketStore.valuation.metrics || []).length))
+    // Ownership slots follow the same rule, and stay hidden for funds without it.
+    readonly property var ownership: MarketStore.ownership
+    readonly property bool ownershipKnown: [ownership.institutionsPercent, ownership.insidersPercent, ownership.shortPercentFloat].some(Number.isFinite)
+    readonly property bool ownershipPending: MarketStore.companyResearchActive
+        && (ownership.symbol !== StockStore.selected || (MarketStore.ownershipRequest.busy && !ownershipKnown))
+    readonly property var ownershipDetails: {
+        if (!ownershipPending && !ownershipKnown) return []
+        const percent = value => StockStore.financial(value, "percent")
+        const day = value => value ? Qt.formatDate(new Date(value + "T12:00:00"), "d MMM yyyy") : ""
+        const holders = (ownership.holders || []).map(row => row.name + " · " + percent(row.percent))
+        const reported = (ownership.holders || []).length && ownership.holders[0].date ? day(ownership.holders[0].date) : ""
+        return [
+            {name: "Institutional ownership", value: percent(ownership.institutionsPercent), hint: [
+                Number.isFinite(ownership.institutionsFloatPercent) ? percent(ownership.institutionsFloatPercent) + " of float" : "",
+                Number.isFinite(ownership.institutionsCount) ? Number(ownership.institutionsCount).toLocaleString(Qt.locale(), 'f', 0) + " institutions" : "",
+                "Shorted shares are counted twice, by the lender and the buyer,\nso heavily shorted stocks can exceed 100%",
+                holders.length ? "\nLargest holders" + (reported ? " · " + reported : "") + "\n" + holders.join("\n") : ""
+            ].filter(line => !!line).join("\n")},
+            {name: "Insider ownership", value: percent(ownership.insidersPercent)},
+            {name: "Other holders (est.)", value: percent(ownership.othersPercent), hint: Number.isFinite(ownership.othersPercent) ? [
+                "Shares not held by institutions or insiders, mostly individual investors",
+                "Estimated after removing the short-sale double count",
+                [reported ? "Holdings as of " + reported : "", ownership.shortDate ? "short interest " + day(ownership.shortDate) : ""]
+                    .filter(part => !!part).join(" · ")
+            ].filter(line => !!line).join("\n") : ""},
+            {name: "Short interest", value: Number.isFinite(ownership.shortPercentFloat) ? percent(ownership.shortPercentFloat) + " of float" : "—", hint: [
+                Number.isFinite(ownership.shortRatio) ? ownership.shortRatio.toFixed(2) + " days to cover" : "",
+                Number.isFinite(ownership.shortShares) ? StockStore.compact(ownership.shortShares) + " shares short"
+                    + (Number.isFinite(ownership.shortPriorShares) ? " · prior month " + StockStore.compact(ownership.shortPriorShares) : "") : "",
+                ownership.shortDate ? "Reported " + day(ownership.shortDate) : ""
+            ].filter(line => !!line).join("\n")}
+        ]
+    }
     readonly property string warning: StockStore.error || series.error || quote.error ||
         (quote.stale && quote.price !== undefined ? "Showing saved prices. Refresh to check for updates." : "")
     function refresh() {
@@ -618,8 +651,9 @@ FloatingWindow {
                                     {name: "52-week range", range: true}
                                 ].concat((window.valuationPending ? window.valuationLabels.map(label => ({label: label})) : MarketStore.valuation.metrics || [])
                                     .map(metric => ({name: metric.label, value: StockStore.financial(metric.value, metric.kind, metric.currency)})))
-                                .concat([{name: "Volume", value: StockStore.compact(window.quote.volume)},
-                                    {name: "Exchange", value: window.quote.exchange || "—"}])
+                                .concat([{name: "Volume", value: StockStore.compact(window.quote.volume)}])
+                                .concat(window.ownershipDetails)
+                                .concat([{name: "Exchange", value: window.quote.exchange || "—"}])
                                 .concat(MarketStore.valuation.sector || window.valuationPending ? [{name: "Sector", value: MarketStore.valuation.sector || "—"},
                                     {name: "Industry", value: MarketStore.valuation.industry || "—"}] : [])
                                 ColumnLayout {
@@ -638,6 +672,8 @@ FloatingWindow {
                                         Layout.fillWidth: true
                                         low: window.quote.yearLow; high: window.quote.yearHigh; price: window.quote.price
                                     }
+                                    HoverHandler { id: detailHover; enabled: !!modelData.hint }
+                                    Ui.PanelToolTip { visible: detailHover.hovered && !!modelData.hint; text: modelData.hint || "" }
                                 }
                             }
                         }

@@ -40,6 +40,7 @@ QtObject {
     property string financialFrequency: "quarterly"
     readonly property var financials: financialsRequest.data
     readonly property var valuation: valuationRequest.data
+    readonly property var ownership: ownershipRequest.data
     readonly property bool analystsOpen: sectionOpen("analysts")
     readonly property var analysts: analystsRequest.data
     property bool showExtended: false
@@ -88,7 +89,7 @@ QtObject {
     }
     function refresh(force) {
         [newsRequest, socialRequest, buzzRequest, eventsRequest, callsRequest,
-            averagesRequest, financialsRequest, valuationRequest, extendedRequest, analystsRequest]
+            averagesRequest, financialsRequest, valuationRequest, ownershipRequest, extendedRequest, analystsRequest]
             .concat(comparisonRequests).forEach(request => request.reload(force))
     }
     property DataRequest newsRequest: DataRequest { arguments: root.stockResearchActive && !root.socialOpen ? ["news", StockStore.selected] : []; refreshInterval: 600000 }
@@ -98,6 +99,7 @@ QtObject {
         arguments: root.companyResearchActive && root.financialsOpen ? ["financials", StockStore.selected, root.financialFrequency] : []
     }
     property DataRequest valuationRequest: DataRequest { arguments: root.companyResearchActive ? ["valuation", StockStore.selected] : [] }
+    property DataRequest ownershipRequest: DataRequest { arguments: root.companyResearchActive ? ["ownership", StockStore.selected] : [] }
     property DataRequest analystsRequest: DataRequest { arguments: root.companyResearchActive && root.analystsOpen ? ["analysts", StockStore.selected] : []; refreshInterval: 3600000 }
     property DataRequest extendedRequest: DataRequest { arguments: root.stockResearchActive ? ["extended", StockStore.selected] : []; refreshInterval: 60000 }
     property DataRequest eventsRequest: DataRequest { arguments: root.companyResearchActive ? ["events", StockStore.selected] : []; refreshInterval: 300000 }
