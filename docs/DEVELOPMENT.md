@@ -77,8 +77,12 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   Recovery retries skip it, and a failed request keeps each symbol's last line.
 - Chart sampling uses one-minute candles for 1D (including extended hours).
   Its volume histogram groups those values into five-minute totals, while
-  price-hover tooltips retain each minute's original volume. A zero-volume
-  closing-price marker at the session boundary has no volume tooltip on 1D/1W.
+  price-hover tooltips retain each minute's original volume. Yahoo ends
+  intraday candles with its latest quote (live or closing price) and a
+  placeholder zero volume. On 1D the quote keeps its price and time without a
+  volume tooltip, and the five-minute bar in progress sums only its candles; on
+  1W the half-hour bar the quote falls in, or closes, takes its price and keeps
+  its own volume.
   1M requests hourly data and groups it into three exchange-session segments per
   day, retaining each segment's last close and summed volume. Provider session
   hours handle early closes; unfinished or sparse sessions can have fewer samples.

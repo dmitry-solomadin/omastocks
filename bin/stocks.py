@@ -31,7 +31,7 @@ SEED = [("AAPL", "Apple Inc."), ("MSFT", "Microsoft Corporation"),
         ("NVDA", "NVIDIA Corporation"), ("GOOGL", "Alphabet Inc."),
         ("AMZN", "Amazon.com, Inc.")]
 BASE = "https://query1.finance.yahoo.com"
-CHART_SCHEMA = 4
+CHART_SCHEMA = 5
 
 
 def number(value):
@@ -168,6 +168,18 @@ def parse_chart(document, ticker, period):
         stamp, volume = number(stamp), number(volume)
         if stamp is not None and volume is not None and volume >= 0:
             volumes[int(stamp)] = volume
+    regular = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
+    session_start, session_end = number(regular.get("start")), number(regular.get("end"))
+    # Yahoo ends intraday candles with its latest quote: the live price at
+    # regularMarketTime, or the closing price at the regular-session boundary.
+    # Keep the price, but do not describe its placeholder zero as traded volume.
+    stamp = points[-1][0] if points else None
+    if period in ("1D", "1W") and volumes.get(stamp) == 0 and stamp in (session_end, number(meta.get("regularMarketTime"))):
+        if period == "1W" and len(points) > 1 and stamp <= points[-2][0] + 1800:
+            # The half-hour bar the quote falls in, or closes, takes its price.
+            points[-2:] = [(points[-2][0], points[-1][1])]
+        else:
+            volumes[stamp] = None
     if period == "1M":
         points, volumes = month_samples(points, volumes, meta, timezone)
     dates = [datetime.fromtimestamp(stamp, timezone).date().isoformat() for stamp, _ in points]
@@ -191,12 +203,6 @@ def parse_chart(document, ticker, period):
     # Historical chartPreviousClose is the range baseline, not yesterday's close.
     change = current - previous if period == "1D" and previous is not None else None
     opens = [price(value) for value in quotes.get("open") or [] if price(value) is not None]
-    regular = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
-    session_start, session_end = number(regular.get("start")), number(regular.get("end"))
-    # Yahoo appends a closing-price marker at the regular-session boundary.
-    # Keep the price, but do not describe its placeholder zero as traded volume.
-    if period in ("1D", "1W") and points and points[-1][0] == session_end and volumes.get(points[-1][0]) == 0:
-        volumes[points[-1][0]] = None
     if period != "1D" or session_start is None or session_end is None or session_end <= session_start:
         session_start = session_end = None
     return {

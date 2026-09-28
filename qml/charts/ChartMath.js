@@ -24,17 +24,19 @@ function volumeSeries(points, volumes, period) {
         const bucket = Math.floor(point[0] / 300)
         let group = groups[groups.length - 1]
         if (!group || group.bucket !== bucket) {
-            group = {bucket: bucket, first: index, last: index, volume: 0, known: true}
+            group = {bucket: bucket, first: index, last: index, volume: 0, counted: 0, known: true}
             groups.push(group)
         }
         group.last = index
         const volume = volumes[index]
-        if (Number.isFinite(volume) && volume >= 0) group.volume += volume
-        else group.known = false
+        if (Number.isFinite(volume) && volume >= 0) { group.volume += volume; group.counted++ }
+        // The last point can be the latest quote rather than a candle. It has
+        // no volume of its own, and the bar in progress is partial anyway.
+        else if (index < points.length - 1) group.known = false
     })
     return {
         points: groups.map(group => [(points[group.first][0] + points[group.last][0]) / 2, points[group.last][1]]),
-        volumes: groups.map(group => group.known ? group.volume : null),
+        volumes: groups.map(group => group.known && group.counted ? group.volume : null),
         falling: groups.map(group => points[group.last][1] < points[Math.max(0, group.first - 1)][1])
     }
 }

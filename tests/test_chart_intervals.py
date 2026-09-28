@@ -27,21 +27,60 @@ def document(day=25, end=16, hours=range(9, 16)):
 
 
 class ChartIntervals(unittest.TestCase):
-    def test_intraday_closing_marker_keeps_price_but_omits_volume(self):
-        for period in ("1D", "1W"):
-            with self.subTest(period=period):
-                data = document()
-                source = data["chart"]["result"][0]
-                source["timestamp"].append(stamp(25, 16, 0))
-                source["indicators"]["quote"][0]["close"].append(108)
-                source["indicators"]["quote"][0]["volume"].append(0)
-                source["indicators"]["quote"][0]["volume"][-2] = 0
-                result = stocks.parse_chart(data, "AMD", period)
-                self.assertEqual(result["points"][-1], (stamp(25, 16, 0), 108))
-                self.assertIsNone(result["volumes"][-1])
-                self.assertEqual(result["volumes"][-2], 0, "Real zero-volume candles remain reportable")
-                source["indicators"]["quote"][0]["volume"][-1] = 50
-                self.assertEqual(stocks.parse_chart(data, "AMD", period)["volumes"][-1], 50)
+    def test_day_closing_marker_keeps_price_but_omits_volume(self):
+        data = document()
+        source = data["chart"]["result"][0]
+        source["timestamp"].append(stamp(25, 16, 0))
+        source["indicators"]["quote"][0]["close"].append(108)
+        source["indicators"]["quote"][0]["volume"].append(0)
+        source["indicators"]["quote"][0]["volume"][-2] = 0
+        result = stocks.parse_chart(data, "AMD", "1D")
+        self.assertEqual(result["points"][-1], (stamp(25, 16, 0), 108))
+        self.assertIsNone(result["volumes"][-1])
+        self.assertEqual(result["volumes"][-2], 0, "Real zero-volume candles remain reportable")
+        source["indicators"]["quote"][0]["volume"][-1] = 50
+        self.assertEqual(stocks.parse_chart(data, "AMD", "1D")["volumes"][-1], 50)
+
+    def test_day_live_quote_keeps_its_price_and_time_without_volume(self):
+        data = document(hours=range(9, 14))
+        source = data["chart"]["result"][0]
+        source["meta"]["regularMarketTime"] = stamp(25, 13, 41)
+        source["timestamp"].append(stamp(25, 13, 41))
+        source["indicators"]["quote"][0]["close"].append(108)
+        source["indicators"]["quote"][0]["volume"].append(0)
+        result = stocks.parse_chart(data, "AMD", "1D")
+        self.assertEqual(result["points"][-2:], [(stamp(25, 13), 104), (stamp(25, 13, 41), 108)])
+        self.assertEqual(result["volumes"][-2:], [10, None])
+        # Found by its quote time, not only at today's session end.
+        source["meta"]["currentTradingPeriod"]["regular"] = {"start": stamp(26, 9), "end": stamp(26, 16, 0)}
+        self.assertIsNone(stocks.parse_chart(data, "AMD", "1D")["volumes"][-1])
+
+    def test_week_bar_takes_the_trailing_quote_price_and_keeps_its_volume(self):
+        def week(quote, hours=range(9, 16)):
+            data = document(hours=hours)
+            source = data["chart"]["result"][0]
+            source["meta"]["regularMarketTime"] = quote
+            source["timestamp"].append(quote)
+            source["indicators"]["quote"][0]["close"].append(108)
+            source["indicators"]["quote"][0]["volume"].append(0)
+            return data
+        # Live price during the 13:30 bar, and the closing price after 15:30's.
+        for hours, quote, bar in ((range(9, 14), stamp(25, 13, 41), stamp(25, 13)),
+                                  (range(9, 16), stamp(25, 16, 0), stamp(25, 15))):
+            with self.subTest(quote=quote):
+                result = stocks.parse_chart(week(quote, hours), "AMD", "1W")
+                self.assertEqual(result["points"][-1], (bar, 108))
+                self.assertEqual(len(result["points"]), len(hours))
+                self.assertEqual(result["volumes"][-1], 10)
+                self.assertEqual(len(result["dates"]), len(hours))
+        # A quote past its bar, before the next bar arrives, has no volume of its own.
+        result = stocks.parse_chart(week(stamp(25, 14, 5), range(9, 14)), "AMD", "1W")
+        self.assertEqual(result["points"][-1], (stamp(25, 14, 5), 108))
+        self.assertIsNone(result["volumes"][-1])
+        # A real zero-volume bar is not a quote.
+        data = document()
+        data["chart"]["result"][0]["indicators"]["quote"][0]["volume"][-1] = 0
+        self.assertEqual(stocks.parse_chart(data, "AMD", "1W")["volumes"][-1], 0)
 
     def test_month_has_three_samples_per_full_session_with_volume_totals(self):
         data = document()
