@@ -80,7 +80,7 @@ Item {
             if (!comparing || (point[0] >= normalized.first && point[0] <= normalized.last)) values.push(axisValue(point[1]))
         }
         if (comparing) values.push(0)
-        else if (referencePrice !== null && referencePrice !== undefined && !miniature) values.push(referencePrice)
+        else if (referencePrice !== null && referencePrice !== undefined) values.push(referencePrice)
         if (!values.length) return [0, 1]
         const low = Math.min.apply(null, values), high = Math.max.apply(null, values)
         const padding = Math.max((high - low) * .12, Math.abs(high) * .0005, .01)
@@ -201,13 +201,15 @@ Item {
                     const y = root.topInset + root.plotHeight * i / 3
                     ctx.beginPath(); ctx.moveTo(root.leftInset, y); ctx.lineTo(root.leftInset + root.plotWidth, y); ctx.stroke()
                 }
-                if (root.comparing || (root.referencePrice !== null && root.referencePrice !== undefined)) {
-                    const y = root.comparing ? root.axisY(0) : root.pointY(root.referencePrice)
-                    ctx.strokeStyle = Util.alpha(Color.foreground, .3)
-                    ctx.setLineDash(root.comparing ? [] : [4, 5])
-                    ctx.beginPath(); ctx.moveTo(root.leftInset, y); ctx.lineTo(root.leftInset + root.plotWidth, y); ctx.stroke()
-                    ctx.setLineDash([])
-                }
+            }
+            // Sparklines draw the baseline only when given one (the bar preview).
+            if (root.comparing || (root.referencePrice !== null && root.referencePrice !== undefined)) {
+                const y = root.comparing ? root.axisY(0) : root.pointY(root.referencePrice)
+                ctx.strokeStyle = Util.alpha(Color.foreground, .3)
+                ctx.lineWidth = 1
+                ctx.setLineDash(root.comparing ? [] : root.miniature ? [3, 3] : [4, 5])
+                ctx.beginPath(); ctx.moveTo(root.leftInset, y); ctx.lineTo(root.leftInset + root.plotWidth, y); ctx.stroke()
+                ctx.setLineDash([])
             }
             ctx.beginPath()
             const main = root.comparing ? [] : root.points.map((point, index) => [index, point[1]])

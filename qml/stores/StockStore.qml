@@ -192,6 +192,11 @@ QtObject {
         if (!entries.some(entry => entry.symbol === ticker)) request(["quote", ticker])
         if (windowOpen) request(["chart", ticker, period])
     }
+    // Opens the window on a stock, e.g. from the bar's favorites ticker.
+    function show(ticker) {
+        openRequested()
+        select(ticker)
+    }
     function range(value) { period = value; if (selected) request(["chart", selected, value]) }
     function refresh(force) {
         if (force && windowOpen) MarketStore.refresh(true)

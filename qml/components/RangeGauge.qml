@@ -9,6 +9,7 @@ RowLayout {
     property var low: null
     property var high: null
     property var price: null
+    property string title: "52-week"
     readonly property bool validRange: low !== null && low !== undefined && isFinite(low)
         && high !== null && high !== undefined && isFinite(high) && high >= low
     readonly property bool validPrice: price !== null && price !== undefined && isFinite(price)
@@ -16,7 +17,7 @@ RowLayout {
         ? high === low ? .5 : Math.max(0, Math.min(1, (price - low) / (high - low))) : .5
     spacing: Style.space(10)
     Accessible.role: Accessible.Indicator
-    Accessible.name: "52-week low " + StockStore.price(low) + ", high " + StockStore.price(high)
+    Accessible.name: title + " low " + StockStore.price(low) + ", high " + StockStore.price(high)
         + ", current price " + StockStore.price(price)
     Label { text: StockStore.price(root.low); font.bold: true }
     Item {

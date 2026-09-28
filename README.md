@@ -43,7 +43,8 @@ benchmark, instrument or tile to open its Stock view.
 - **Sort Watchlist** offers Custom, Price Change, Percentage Change, Market Cap,
   Symbol and Name. Drag rows in **Custom** mode; the Overview follows the same order.
 - **Star** a stock to put it in the top bar. Favorites are shared across lists;
-  an overflowing ticker scrolls and pauses on hover.
+  an overflowing ticker scrolls and pauses on hover. Hover a ticker for its day
+  chart and range; click it to open that stock.
 - **Settings** controls the topbar widget, its fields and width, the sidebar's
   displayed metric, chart volume and event markers.
 - Hover a chart for prices; drag to measure an interval. Moving averages are
