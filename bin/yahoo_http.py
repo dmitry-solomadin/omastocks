@@ -22,6 +22,7 @@ def locked(name):
 
 
 def reserve():
+    """Wait for this request's turn; returns the shared state it read."""
     from stocks import read_json, write_json
     with locked("traffic") as directory:
         path = directory / "traffic.json"
@@ -31,6 +32,22 @@ def reserve():
             raise ValueError("Yahoo Finance is rate limiting requests. Please try again later.")
         time.sleep(max(0, state.get("next", 0) - now))
         write_json(path, {**state, "next": time.time() + .25})
+        return state
+
+
+def outage(failed):
+    """Yahoo unreachable: count requests that failed on the network or with a
+    server error since the first one. Any reply from Yahoo clears it."""
+    from stocks import read_json, write_json
+    with locked("traffic") as directory:
+        path = directory / "traffic.json"
+        state = read_json(path, {})
+        if failed:
+            previous = state.get("outage") or {}
+            state["outage"] = {"since": previous.get("since", time.time()), "failures": previous.get("failures", 0) + 1}
+        elif state.pop("outage", None) is None:
+            return
+        write_json(path, state)
 
 
 def throttled(headers):
@@ -55,23 +72,35 @@ def throttled(headers):
 def read(request, opener=None):
     # Recover from brief DNS/network outages before falling back to cached quotes.
     # Reserve every attempt so retries still respect the shared provider cooldown.
+    # A request held back by the shared cooldown never reached Yahoo: not an outage.
     for attempt in range(3):
-        reserve()
+        traffic = reserve()
+        # Normal operation writes nothing extra; only an outage on record is cleared.
+        recorded = isinstance(traffic, dict) and "outage" in traffic
         try:
             with (opener.open if opener else urllib.request.urlopen)(request, timeout=10) as response:
                 raw = response.read(4 * 1024 * 1024 + 1)
-            if len(raw) > 4 * 1024 * 1024:
-                raise ValueError("Yahoo Finance returned an oversized response.")
-            return raw
         except urllib.error.HTTPError as error:
+            # Any reply but a server error proves Yahoo is reachable, even a 404.
+            if error.code < 500 and recorded:
+                outage(False)
             if error.code == 429:
                 throttled(error.headers)
                 raise ValueError("Yahoo Finance is rate limiting requests. Please try again later.") from error
             if error.code not in (500, 502, 503, 504) or attempt == 2:
+                if error.code >= 500:
+                    outage(True)
                 raise
         except (urllib.error.URLError, TimeoutError, ConnectionError):
             if attempt == 2:
+                outage(True)
                 raise
+        else:
+            if recorded:
+                outage(False)
+            if len(raw) > 4 * 1024 * 1024:
+                raise ValueError("Yahoo Finance returned an oversized response.")
+            return raw
         time.sleep(2 ** attempt)
 
 

@@ -7,6 +7,7 @@ import ".."
 import "../watchlist/WatchlistOrder.js" as Order
 import "../market/MarketAssets.js" as Assets
 import "../market/MarketClock.js" as Clock
+import "../data/YahooStatus.js" as YahooStatus
 
 QtObject {
     id: root
@@ -115,6 +116,33 @@ QtObject {
     property var chart: ({})
     property var previewQuotes: ({})
     property string error: ""
+    // The Yahoo Finance banner reads the helpers' shared traffic state: no
+    // health-check requests, only what the app's own requests recorded.
+    property var yahooTraffic: ({})
+    property bool yahooTrafficLoaded: false
+    property double yahooStatusNow: Date.now() / 1000
+    readonly property var yahooStatus: YahooStatus.status(yahooTraffic, yahooStatusNow)
+    property FileView yahooTrafficFile: FileView {
+        path: (Quickshell.env("STOCKS_STATE_DIR") || (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
+            + "/omarchy/io.github.dmitry-solomadin.omastocks") + "/yahoo/traffic.json"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            try { root.yahooTraffic = JSON.parse(text()); root.yahooTrafficLoaded = true }
+            catch (_) { root.yahooTraffic = ({}); root.yahooTrafficLoaded = false }
+            root.yahooStatusNow = Date.now() / 1000
+        }
+        onLoadFailed: { root.yahooTraffic = ({}); root.yahooTrafficLoaded = false }
+    }
+    // Clears the banner when a cooldown ends and shows an outage once it has lasted.
+    property Timer yahooStatusClock: Timer {
+        interval: 1000; running: root.windowOpen && !root.windowMinimized; repeat: true; triggeredOnStart: true
+        onTriggered: {
+            root.yahooStatusNow = Date.now() / 1000
+            // The file appears with the first Yahoo request.
+            if (!root.yahooTrafficLoaded) root.yahooTrafficFile.reload()
+        }
+    }
     property var queue: []
     property var active: null
     property bool windowOpen: false

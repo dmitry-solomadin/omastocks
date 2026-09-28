@@ -479,12 +479,33 @@ FloatingWindow {
                 }
             }
         }
+        // Yahoo Finance limiting requests or out of reach, above the right
+        // panel's tabs. The panel moves only when it appears or clears.
+        Rectangle {
+            id: yahooBanner
+            objectName: "yahooStatusBanner"
+            anchors.left: sidebar.right
+            anchors.right: parent.right
+            anchors.top: parent.top
+            visible: StockStore.yahooStatus.message !== ""
+            height: visible ? yahooMessage.implicitHeight + Style.space(16) : 0
+            color: Util.alpha(Color.urgent, .12)
+            Label {
+                id: yahooMessage
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: Style.space(16)
+                text: StockStore.yahooStatus.message
+                color: Color.urgent
+            }
+        }
         Flow {
             id: viewNavigation
             objectName: "viewNavigation"
             anchors.left: sidebar.right
             anchors.right: parent.right
-            anchors.top: parent.top
+            anchors.top: yahooBanner.bottom
             anchors.margins: Style.space(12)
             spacing: Style.space(4)
             Repeater {

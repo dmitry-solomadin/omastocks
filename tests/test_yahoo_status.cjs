@@ -1,0 +1,35 @@
+const assert = require("node:assert/strict")
+const fs = require("node:fs")
+const path = require("node:path")
+const vm = require("node:vm")
+
+// The Yahoo Finance banner, a pure function of traffic.json and the time.
+const context = vm.createContext({})
+vm.runInContext(fs.readFileSync(path.join(__dirname, "../qml/data/YahooStatus.js"), "utf8"), context)
+const status = (traffic, now = 1000) => context.status(traffic, now)
+
+assert.equal(status({}).message, "")
+assert.equal(status(null).message, "")
+const limited = status({retryAfter: 1090})
+assert.equal(limited.kind, "rate-limited")
+const retry = new Date(1140 * 1000)
+const time = String(retry.getHours()).padStart(2, "0") + ":" + String(retry.getMinutes()).padStart(2, "0")
+assert.ok(limited.message.includes(time), `${limited.message} names the local ${time}`)
+assert.equal(status({retryAfter: 1090}, 1060).message, limited.message, "A fixed time, not a countdown")
+assert.equal(status({retryAfter: 999}).message, "", "An expired cooldown")
+assert.equal(status({outage: {since: 970, failures: 2}}).message, "", "Two failures")
+assert.equal(status({outage: {since: 990, failures: 3}}).message, "", "Three failures within 15 s")
+assert.equal(status({outage: {since: 980, failures: 3}}).kind, "unreachable")
+assert.equal(status({outage: {since: 980, failures: 3}}).message, "Can't reach Yahoo Finance. Retrying automatically.")
+assert.equal(status({retryAfter: 1090, outage: {since: 900, failures: 9}}).kind, "rate-limited", "The rate limit wins")
+
+// Only the right panel moves: the view tabs hang off the banner, the sidebar does not.
+const window = fs.readFileSync(path.join(__dirname, "../qml/StocksWindow.qml"), "utf8")
+const anchored = window.split("\n").filter(line => /yahooBanner\./.test(line))
+assert.deepEqual(anchored.map(line => line.trim()), ["anchors.top: yahooBanner.bottom"])
+const tabs = window.slice(window.indexOf("id: viewNavigation"), window.indexOf("id: viewNavigation") + 300)
+assert.match(tabs, /anchors\.top: yahooBanner\.bottom/)
+const sidebar = window.slice(window.indexOf("id: sidebar"), window.indexOf("id: sidebar") + 300)
+assert.match(sidebar, /anchors\.top: parent\.top/)
+
+console.log("PASS: one Yahoo banner for rate limits and outages, above the right panel only")

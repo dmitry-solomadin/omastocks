@@ -27,5 +27,6 @@ jobs:
       - run: node tests/test_chart_refresh.cjs
       - run: node tests/test_research_refresh.cjs
       - run: node tests/test_extended_hours.cjs
+      - run: node tests/test_yahoo_status.cjs
       - run: bash -n install install-launcher uninstall
       - run: shellcheck install install-launcher uninstall
