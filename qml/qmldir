@@ -23,6 +23,7 @@ SessionHeader 1.0 components/SessionHeader.qml
 
 PriceChart 1.0 charts/PriceChart.qml
 ChartTools 1.0 charts/ChartTools.qml
+ChartOptions 1.0 charts/ChartOptions.qml
 MetricChart 1.0 charts/MetricChart.qml
 
 CompanyNews 1.0 stock/CompanyNews.qml

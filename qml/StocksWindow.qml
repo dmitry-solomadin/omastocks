@@ -584,42 +584,27 @@ FloatingWindow {
                             ExtendedQuote { Layout.alignment: Qt.AlignTop | Qt.AlignRight; Layout.fillHeight: false }
                         }
                     }
-                    ChartTools { Layout.fillWidth: true; chart: detailChart }
+                    ChartTools { visible: MarketStore.compareMode; Layout.fillWidth: true; chart: detailChart }
                     Item {
                         Layout.fillWidth: true
                         implicitHeight: Style.space(34)
+                        // Nine equal cells across the full width; the last takes the
+                        // rounding remainder so the row ends at the edge.
                         Row {
                             id: rangeButtons
                             anchors.fill: parent
                             spacing: Style.space(3)
-                            readonly property real cellWidth: Math.max(0, Math.floor((width - spacing * 9) / 10))
+                            readonly property real cellWidth: Math.max(0, Math.floor((width - spacing * 8) / 9))
                             Repeater {
                                 model: ["1D", "1W", "1M", "3M", "YTD", "1Y", "2Y", "5Y", "ALL"]
                                 ActionButton {
                                     required property string modelData
+                                    required property int index
                                     objectName: "range_" + modelData
                                     text: modelData
-                                    width: rangeButtons.cellWidth
+                                    width: index === 8 ? rangeButtons.width - 8 * (rangeButtons.cellWidth + rangeButtons.spacing) : rangeButtons.cellWidth
                                     selected: StockStore.period === modelData
                                     onClicked: StockStore.range(modelData)
-                                }
-                            }
-                            // Reserve this cell when Extended is hidden.
-                            Item {
-                                width: rangeButtons.cellWidth
-                                height: Style.space(34)
-                                ActionButton {
-                                    anchors.fill: parent
-                                    objectName: "extendedToggle"
-                                    visible: StockStore.period === "1D" && !MarketStore.compareMode
-                                    text: "Extended"
-                                    font.pixelSize: Style.font.bodySmall
-                                    selected: MarketStore.extendedChart
-                                    enabled: MarketStore.extended.supported === true && (MarketStore.extended.points || []).length > 0
-                                    hint: MarketStore.extendedRequest.busy ? "Loading extended hours…" : MarketStore.extended.error
-                                        || (enabled ? "Include pre-market and after-hours in 1D · Shaded regions show extended sessions"
-                                            : "Extended hours unavailable for this symbol")
-                                    onClicked: MarketStore.showExtended = !MarketStore.showExtended
                                 }
                             }
                         }
@@ -654,6 +639,14 @@ FloatingWindow {
                             referencePrice: StockStore.period === "1D" ? window.series.previous : null
                             period: StockStore.period
                             lineColor: window.chartColor
+                        }
+                        // On the readout's line, over the plot's right edge; hidden while a
+                        // dragged selection's readout may need the width.
+                        ChartOptions {
+                            visible: !MarketStore.compareMode && !detailChart.hasSelection
+                            anchors.right: detailChart.right
+                            anchors.rightMargin: detailChart.rightInset
+                            y: -Style.space(4)
                         }
                         Label {
                             anchors.centerIn: parent
