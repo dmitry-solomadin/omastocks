@@ -162,6 +162,7 @@ Item {
     onTimeDomainChanged: canvas.requestPaint()
     onExtentChanged: canvas.requestPaint()
     onLineColorChanged: canvas.requestPaint()
+    onComparisonChanged: canvas.requestPaint()
     onAverageLinesChanged: canvas.requestPaint()
     onNormalizedChanged: { clearSelection(); canvas.requestPaint() }
     onVolumesChanged: canvas.requestPaint()
@@ -212,30 +213,37 @@ Item {
                 ctx.beginPath(); ctx.moveTo(root.leftInset, y); ctx.lineTo(root.leftInset + root.plotWidth, y); ctx.stroke()
                 ctx.setLineDash([])
             }
-            ctx.beginPath()
-            const main = root.comparing ? [] : root.points.map((point, index) => [index, point[1]])
-            main.forEach((point, index) => {
-                const x = root.pointX(point[0]), y = root.comparing ? root.axisY(point[1]) : root.pointY(point[1])
-                if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
-            })
-            ctx.strokeStyle = root.lineColor
-            ctx.lineWidth = root.miniature ? 1.5 : 2
-            ctx.lineJoin = "round"
-            ctx.stroke()
+            // The line and the gradient beneath it. A dragged selection draws
+            // its stretch in the selection's own trend colour.
+            const selection = root.miniature || root.comparing ? null : root.comparison
+            const last = root.points.length - 1
+            const segments = !selection ? [[0, last, root.lineColor, false]]
+                : [[0, selection.first, root.lineColor, false], [selection.first, selection.last, root.selectionColor, true],
+                    [selection.last, last, root.lineColor, false]].filter(segment => segment[1] > segment[0])
+            if (!root.comparing) for (const [from, to, color, selected] of segments) {
+                ctx.beginPath()
+                for (let index = from; index <= to; index++) {
+                    const x = root.pointX(index), y = root.pointY(root.points[index][1])
+                    if (index === from) ctx.moveTo(x, y); else ctx.lineTo(x, y)
+                }
+                ctx.strokeStyle = color
+                ctx.lineWidth = root.miniature ? 1.5 : 2
+                ctx.lineJoin = "round"
+                ctx.stroke()
+                if (root.miniature || to === from) continue
+                ctx.lineTo(root.pointX(to), root.topInset + root.plotHeight)
+                ctx.lineTo(root.pointX(from), root.topInset + root.plotHeight)
+                ctx.closePath()
+                const gradient = ctx.createLinearGradient(0, root.topInset, 0, root.topInset + root.plotHeight)
+                gradient.addColorStop(0, Util.alpha(color, selected ? .3 : .15))
+                gradient.addColorStop(1, Util.alpha(color, 0))
+                ctx.fillStyle = gradient
+                ctx.fill()
+            }
             if (!root.comparing && root.points.length === 1) {
                 ctx.beginPath()
                 ctx.arc(root.pointX(0), root.pointY(root.points[0][1]), 2, 0, Math.PI * 2)
                 ctx.fillStyle = root.lineColor
-                ctx.fill()
-            }
-            if (!root.miniature && !root.comparing && root.points.length > 1) {
-                ctx.lineTo(root.pointX(root.points.length - 1), root.topInset + root.plotHeight)
-                ctx.lineTo(root.pointX(0), root.topInset + root.plotHeight)
-                ctx.closePath()
-                const gradient = ctx.createLinearGradient(0, root.topInset, 0, root.topInset + root.plotHeight)
-                gradient.addColorStop(0, Util.alpha(root.lineColor, .15))
-                gradient.addColorStop(1, Util.alpha(root.lineColor, 0))
-                ctx.fillStyle = gradient
                 ctx.fill()
             }
             if (root.comparing) {
@@ -315,14 +323,6 @@ Item {
             color: Tone.muted
         }
     }
-    Rectangle {
-        visible: !root.miniature && root.hasSelection
-        x: root.comparison ? root.pointX(root.comparison.first) : 0
-        y: root.topInset
-        width: root.comparison ? root.pointX(root.comparison.last) - x : 0
-        height: root.plotHeight
-        color: Util.alpha(root.selectionColor, .1)
-    }
     Repeater {
         model: !root.miniature && root.comparison ? [root.comparison.first, root.comparison.last] : []
         Item {
@@ -361,11 +361,12 @@ Item {
         border.width: 2
     }
     // One line above the plot: the period's change, or a dragged selection's
-    // change followed by its time range.
+    // change and time range, centred over the dragged point.
     Row {
         visible: !root.miniature && !root.comparing
-        x: root.leftInset; y: 0
-        width: root.width - root.leftInset
+        x: root.hasSelection ? Math.max(root.leftInset, Math.min(root.leftInset + root.plotWidth - implicitWidth,
+            root.pointX(root.selectionIndex) - implicitWidth / 2)) : root.leftInset
+        y: 0
         spacing: Style.space(12)
         Label {
             id: readout
