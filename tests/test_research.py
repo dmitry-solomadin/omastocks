@@ -86,6 +86,25 @@ class ResearchTests(unittest.TestCase):
             self.assertNotIn("retryAfter", recovered)
             self.assertEqual(load.call_count, 3)
 
+    def test_comparison_lines_are_downloaded_every_time_and_never_saved(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        line = {"symbol": "NVDA", "range": "3M", "points": [[1, 100], [2, 101]], "schema": research.CHART_SCHEMA}
+        with patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}), \
+                patch.object(research, "fetch", return_value={}) as request, \
+                patch.object(research, "parse_chart", return_value=line):
+            first = research.main(["compare", "NVDA", "3M"])
+            research.main(["compare", "NVDA", "3M"])
+            self.assertEqual(request.call_count, 2)
+            self.assertEqual((first["points"], first["stale"], first["error"]), (line["points"], False, ""))
+            self.assertIn("fetched", first)
+            request.side_effect = ValueError("offline")
+            failed = research.main(["compare", "NVDA", "3M", "--force"])
+        self.assertEqual(failed, {"symbol": "NVDA", "error": "offline", "stale": True, "points": []})
+        self.assertEqual(list(Path(temporary.name).rglob("*")), [])
+        with self.assertRaisesRegex(ValueError, "Unknown research request"):
+            research.main(["unknown", "NVDA"])
+
     def test_news_is_deduplicated_and_safe_to_open(self):
         row = {"uuid": "one", "title": "Apple earnings", "publisher": "Publisher",
                "link": "https://example.org/story", "providerPublishTime": 100, "relatedTickers": ["AAPL"],

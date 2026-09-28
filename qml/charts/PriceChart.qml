@@ -461,7 +461,8 @@ Item {
                     HoverHandler { id: legendHover }
                     Ui.PanelToolTip {
                         visible: legendHover.hovered
-                        text: entry.modelData.data.error || (entry.modelData.busy ? "Loading " + entry.modelData.symbol
+                        text: [StockStore.staleNote(entry.modelData.data), entry.modelData.data.error].filter(line => !!line).join("\n")
+                            || (entry.modelData.busy ? "Loading " + entry.modelData.symbol
                             : !root.normalized ? "No shared trading intervals" : "Percentage return from the first shared interval")
                     }
                 }

@@ -121,12 +121,15 @@ QtObject {
     property DataRequest eventsRequest: DataRequest { arguments: root.companyResearchActive ? ["events", StockStore.selected] : []; refreshInterval: 300000 }
     property DataRequest callsRequest: DataRequest { arguments: root.companyResearchActive && root.earningsCallsOpen ? ["calls", StockStore.selected] : [] }
     property DataRequest averagesRequest: DataRequest { arguments: root.stockResearchActive && root.averagesAvailable && root.averageWindows.length ? ["averages", StockStore.selected] : []; refreshInterval: 300000 }
-    property DataRequest compareOne: DataRequest { arguments: root.comparisonArguments(0); refreshInterval: 300000 }
-    property DataRequest compareTwo: DataRequest { arguments: root.comparisonArguments(1); refreshInterval: 300000 }
-    property DataRequest compareThree: DataRequest { arguments: root.comparisonArguments(2); refreshInterval: 300000 }
-    property DataRequest compareFour: DataRequest { arguments: root.comparisonArguments(3); refreshInterval: 300000 }
+    // Comparison lines reload with the primary chart rather than on a timer of
+    // their own, so a shared axis is never cut back to an older line.
+    property DataRequest compareOne: DataRequest { arguments: root.comparisonArguments(0); keepOnError: true }
+    property DataRequest compareTwo: DataRequest { arguments: root.comparisonArguments(1); keepOnError: true }
+    property DataRequest compareThree: DataRequest { arguments: root.comparisonArguments(2); keepOnError: true }
+    property DataRequest compareFour: DataRequest { arguments: root.comparisonArguments(3); keepOnError: true }
     property Connections selection: Connections {
         target: StockStore
         function onSelectedChanged() { root.removeComparison(StockStore.selected) }
+        function onChartRequested(force) { root.comparisonRequests.forEach(request => request.reload(force)) }
     }
 }

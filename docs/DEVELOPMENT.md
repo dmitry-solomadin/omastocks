@@ -131,6 +131,7 @@ node tests/test_pixel_art.cjs
 node tests/test_market_assets.cjs
 node tests/test_banner.cjs
 node tests/test_chart_refresh.cjs
+node tests/test_research_refresh.cjs
 bash -n install install-launcher uninstall
 shellcheck install install-launcher uninstall
 omarchy plugin validate .

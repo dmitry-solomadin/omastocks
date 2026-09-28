@@ -6,6 +6,7 @@ const {load, plain} = require("./qml_harness.cjs")
 const file = path.join(__dirname, "../qml/stores/StockStore.qml")
 const regular = {symbol: "AAPL", price: 100, marketState: "REGULAR"}
 function store(state) {
+    const emitted = []
     const context = load(file, {
         state: Object.assign({
             running: true, windowOpen: true, windowMinimized: false, view: "stock", selected: "AAPL", period: "1D",
@@ -18,7 +19,8 @@ function store(state) {
         globals: {
             Date, watchdog: {stop() {}}, quoteRetry: {stop() {}, restart() {}}, MarketStore: {refresh() {}},
             Qt: {callLater() {}, formatDateTime: (date, format) => date.toISOString() + " " + format},
-            pump() {}, search() {}, stockAdded() {}
+            pump() {}, search() {}, stockAdded() {}, emitted,
+            chartRequested: force => emitted.push(force)
         }
     })
     // Service.open(): the window appears and the quotes refresh.
@@ -156,5 +158,12 @@ assert.equal(charts(context).length, 1, "Even with the market closed")
 context = store({})
 context.range("1Y")
 assert.deepEqual(charts(context), [["chart", "AAPL", "1Y"]])
+
+// Each chart request is announced once, for the lines that follow the chart.
+context = store({})
+context.requestChart(false)
+context.requestChart(false)
+context.refresh(true)
+assert.deepEqual(plain(context.emitted), [false, true])
 
 console.log("PASS: failed charts keep only the one on screen, marked stale; one poll refreshes quotes and the live chart")

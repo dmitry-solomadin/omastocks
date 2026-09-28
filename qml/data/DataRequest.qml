@@ -6,6 +6,9 @@ QtObject {
     property var arguments: []
     property string script: "../../bin/research.py"
     property int refreshInterval: 0
+    // Chart lines are never saved: a failed refresh keeps the line on screen,
+    // marked stale, instead of blanking it.
+    property bool keepOnError: false
     readonly property string requestKey: JSON.stringify([root.script, root.arguments])
     property var data: ({})
     readonly property bool busy: pending !== null || activeRevision >= 0
@@ -53,8 +56,13 @@ QtObject {
         if (!exited || !collected) return
         watchdog.stop()
         if (activeRevision === revision) {
-            try { data = JSON.parse(captured) }
-            catch (_) { data = {error: "This request could not be completed. Try refreshing.", stale: true} }
+            let reply
+            try { reply = JSON.parse(captured) }
+            catch (_) { reply = {error: "This request could not be completed. Try refreshing.", stale: true} }
+            // A crashed helper's reply has no symbol; it was for this one.
+            const kept = keepOnError && reply.error && !(reply.points || []).length && (data.points || []).length
+                && (!reply.symbol || reply.symbol === data.symbol)
+            data = kept ? Object.assign({}, data, {stale: true, error: reply.error}) : reply
         }
         activeRevision = -1
         Qt.callLater(pump)

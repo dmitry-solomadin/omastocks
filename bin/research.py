@@ -27,13 +27,15 @@ CACHE_TTLS = {
     "averages": 3600, "financials": 86400, "valuation": 3600, "extended": 60, "analysts": 86400,
     "sectors": 86400, "sector": 900, "market-index": 900, "market-news": 600,
     "sentiment": 1800, "economic-calendar": 900, "quotes": 300, "calendar-bulk": 21600,
-    "calendar": 21600, "overview": 86400, "fundamentals": 3600, "insiders": 3600, "compare": 3600,
+    "calendar": 21600, "overview": 86400, "fundamentals": 3600, "insiders": 3600,
     "ownership": 86400, "ipos": 3600,
     # A past quarter's release does not move.
     "release": 2592000,
 }
+# Chart lines refresh with the primary chart and are never saved.
+LIVE = {"compare"}
 CACHE_SCHEMAS = {
-    "compare": ("schema", CHART_SCHEMA), "extended": ("schema", CHART_SCHEMA),
+    "extended": ("schema", CHART_SCHEMA),
     "events": ("earningsSchema", 3), "sectors": ("catalogSchema", 4),
     "market-news": ("marketNewsSchema", 3), "quotes": ("quotesSchema", 3),
     "calendar-bulk": ("calendarSchema", 2), "news": ("newsSchema", 6),
@@ -354,18 +356,24 @@ def main(arguments):
         ticker = ",".join(symbols(arguments[1]))
     else:
         ticker = symbol(arguments[1])
-    if action not in CACHE_TTLS:
+    if action not in CACHE_TTLS and action not in LIVE:
         raise ValueError("Unknown research request.")
     if action == "buzz":
         ticker = "ALL"
     period = arguments[2] if action in ("compare", "financials", "fundamentals", "release") else ""
     if action == "compare" and period not in RANGES:
         raise ValueError("Unknown chart range.")
+    if action in LIVE:
+        # A failure says so rather than showing an old line.
+        try:
+            return {**load(action, ticker, period), "fetched": time.time(), "stale": False, "error": ""}
+        except Exception as error:
+            return {"symbol": ticker, "error": str(error), "stale": True, "points": []}
     directory = state_directory() / "research"
     directory.mkdir(parents=True, exist_ok=True)
     key = hashlib.sha256(f"{action}:{ticker}:{period}".encode()).hexdigest()
     path = directory / (key + ".json")
-    ttl = 60 if action == "compare" and period in ("1D", "1W") else CACHE_TTLS[action]
+    ttl = CACHE_TTLS[action]
     with (directory / (key + ".lock")).open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         saved = read_json(path, {})

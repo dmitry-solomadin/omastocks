@@ -160,6 +160,8 @@ QtObject {
     readonly property color gain: "#4caf50"
     readonly property color loss: "#ef5350"
     signal openRequested()
+    // Compare lines and the extended chart reload with the chart, never older.
+    signal chartRequested(bool force)
     signal stockAdded(string ticker)
 
     function start() {
@@ -227,6 +229,7 @@ QtObject {
         if (!selected) return
         if (!force && [active].concat(queue).some(args => !!args && args[0] === "chart" && args[1] === selected && args[2] === period)) return
         request(["chart", selected, period])
+        chartRequested(!!force)
     }
     function search(value) {
         const query = value.trim()
