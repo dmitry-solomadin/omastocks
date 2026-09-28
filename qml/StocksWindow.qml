@@ -38,11 +38,21 @@ FloatingWindow {
     readonly property bool regularSession: quote.marketState ? quote.marketState === "REGULAR"
         : Number.isFinite(quote.sessionStart) && Number.isFinite(quote.sessionEnd)
             && Date.now() / 1000 >= quote.sessionStart && Date.now() / 1000 < quote.sessionEnd
-    readonly property var series: MarketStore.extendedChart ? MarketStore.extended : StockStore.visibleChart
+    // While a new range of the same stock loads, the chart last drawn stays,
+    // dimmed, instead of blanking. A new stock starts blank: another stock's
+    // line would be wrong. A failed load ends the hold like any reply.
+    readonly property var liveSeries: MarketStore.extendedChart ? MarketStore.extended : StockStore.visibleChart
+    property var drawnSeries: ({})
+    onLiveSeriesChanged: if ((liveSeries.points || []).length) drawnSeries = liveSeries
+    readonly property bool holdingChart: !(liveSeries.points || []).length && StockStore.chartLoading
+        && drawnSeries.symbol === StockStore.selected && (drawnSeries.points || []).length > 0
+    readonly property var series: holdingChart ? drawnSeries : liveSeries
+    // The range of the data drawn, which lags the range buttons while holding.
+    readonly property string chartPeriod: series.range || StockStore.period
     readonly property var points: series.points || []
     readonly property var rangeChange: points.length > 1 && points[0][1] !== 0
         ? (points[points.length - 1][1] - points[0][1]) / points[0][1] * 100 : null
-    readonly property color chartColor: StockStore.direction(StockStore.period === "1D" && !MarketStore.extendedChart ? quote.percent : rangeChange)
+    readonly property color chartColor: StockStore.direction(chartPeriod === "1D" && !(series.sessions || []).length ? quote.percent : rangeChange)
     // While a company's valuation loads, Market details keeps placeholder slots
     // in their final order, so the grid does not grow or reshuffle on arrival.
     readonly property var valuationLabels: ["Market cap", "P/E (TTM)", "Price / sales", "Price / book", "EV / EBITDA"]
@@ -638,15 +648,16 @@ FloatingWindow {
                             id: detailChart
                             objectName: "detailChart"
                             anchors.fill: parent
+                            opacity: window.holdingChart ? .4 : 1
                             hoverReach: Style.space(28)
                             // Earnings load after prices; reserve their lane where a report is
                             // likely in range. ALL shows only splits, which come with the prices.
                             reserveEvents: MarketStore.showEvents && !StockStore.selectedIsNonCompany
-                                && ["3M", "YTD", "1Y", "2Y", "5Y"].indexOf(StockStore.period) >= 0
+                                && ["3M", "YTD", "1Y", "2Y", "5Y"].indexOf(window.chartPeriod) >= 0
                             points: window.points
                             symbol: StockStore.selected
                             dates: window.series.dates || []
-                            sessions: MarketStore.extendedChart ? MarketStore.extended.sessions || [] : []
+                            sessions: window.series.sessions || []
                             volumes: window.series.volumes || []
                             showVolume: MarketStore.showVolume
                             compareMode: MarketStore.compareMode
@@ -659,8 +670,8 @@ FloatingWindow {
                             sessionStart: window.series.sessionStart === undefined ? null : window.series.sessionStart
                             sessionEnd: window.series.sessionEnd === undefined ? null : window.series.sessionEnd
                             currency: window.quote.currency || ""
-                            referencePrice: StockStore.period === "1D" ? window.series.previous : null
-                            period: StockStore.period
+                            referencePrice: window.chartPeriod === "1D" ? window.series.previous : null
+                            period: window.chartPeriod
                             lineColor: window.chartColor
                             note: StockStore.staleNote(window.series)
                             reservedRight: chartOptions.visible ? chartOptions.width : 0

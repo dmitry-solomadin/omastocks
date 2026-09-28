@@ -32,7 +32,6 @@ assert.equal(extendedQuote({marketState: "POST", updated: 1000, postPrice: 101, 
 // DataRequests count loads: new arguments drop their data and load, as
 // DataRequest.onRequestKeyChanged does, and reloads in the same moment share
 // one run, as its debounce does.
-const windowSource = fs.readFileSync(qml("StocksWindow.qml"), "utf8")
 const optionsSource = fs.readFileSync(qml("charts/ChartOptions.qml"), "utf8")
 function nested(source, name) {
     return source.match(new RegExp(`^ {8}(function ${name}\\(.*\\) \\{(?:.*\\}$|[^]*?^ {8}\\}$))`, "m"))[1]
@@ -42,7 +41,7 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
         state: {running: true, windowOpen: true, windowMinimized: false, view: "stock", selected: "AAPL", period: "1D",
             entries: entries || [{symbol: "AAPL", marketState}], previewQuotes: {}, chart: {}, queue: [], active: null, activeWatchlist: "default",
             ...chartLane.state},
-        bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive", "visibleChart", "watchlistQuotes"],
+        bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive", "visibleChart", "watchlistQuotes", "chartLoading"],
         functions: ["select", "range", "refresh"].concat(chartLane.functions),
         handlers: ["chartShown", "chartLive", "extendedLive"],
         globals: {...chartLane.globals(), pump() {}, MarketStore: {refresh() {}}, chartRequested: force => market.onChartRequested(force)}
@@ -94,11 +93,18 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
     }
     const click = toggle.match(/onClicked: \{([^]*?)\n {8}\}/)[1]
     const settle = () => [market.extendedRequest].concat(market.comparisonRequests).forEach(fake => fake.sync())
-    const series = windowSource.match(/readonly property var series: (.+)/)[1]
+    // The window's series, with the chart last drawn held while a range loads.
+    const view = load(qml("StocksWindow.qml"), {state: {drawnSeries: {}}, bindings: ["liveSeries", "holdingChart", "series"],
+        globals: {MarketStore: market, StockStore: stock}})
+    const drawn = () => {
+        const live = view.liveSeries
+        if ((live.points || []).length) view.drawnSeries = live
+        return view.series
+    }
     return {
         stock, market, button, settle,
         extended: market.extendedRequest,
-        series: () => vm.runInContext(series, vm.createContext({MarketStore: market, StockStore: stock})),
+        view, series: drawn,
         click() { vm.runInContext(click, button); settle() },
         select(ticker) { stock.select(ticker); market.onSelectedChanged(); settle() },
         // A minute of the shared poll; the chart request then completes.
@@ -200,5 +206,26 @@ world = app({entries: [{symbol: "AAPL", marketState: "REGULAR", extendedData: fa
 assert.equal(world.button.enabled, false)
 assert.doesNotMatch(world.button.hint, /No extended-hours data/)
 assert.equal(world.extended.loads, 0)
+
+// A range switch holds the chart last drawn until the new range arrives; a
+// stock switch starts blank; a failed range ends the hold.
+world = app({entries: [{symbol: "AAPL", marketState: "REGULAR"}, {symbol: "MSFT", marketState: "REGULAR"}]})
+const day = {symbol: "AAPL", range: "1D", points: [[1, 100], [2, 101]]}
+world.stock.chart = day
+assert.equal(world.series(), day)
+world.stock.range("1W")
+assert.equal(world.view.holdingChart, true)
+assert.equal(world.series(), day, "Held, dimmed, while 1W loads")
+world.stock.chartServer.answer({symbol: "AAPL", range: "1W", points: [[1, 90], [2, 91], [3, 92]]})
+assert.equal(world.view.holdingChart, false)
+assert.equal(world.series().range, "1W")
+world.stock.range("1Y")
+assert.equal(world.series().range, "1W")
+world.stock.chartServer.answer({symbol: "AAPL", range: "1Y", points: [], error: "offline", stale: true})
+assert.equal(world.view.holdingChart, false)
+assert.equal(world.series().error, "offline", "The failure shows, not the held chart")
+world.select("MSFT")
+assert.equal(world.view.holdingChart, false)
+assert.deepEqual(plain(world.series().points || []), [], "Never another stock's line")
 
 console.log("PASS: extended hours come from the quote, and the Extended chart is fetched only while shown")
