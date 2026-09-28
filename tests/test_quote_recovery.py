@@ -104,6 +104,15 @@ class QuoteRecovery(unittest.TestCase):
         self.repo.refresh_quotes(tickers)
         self.assertEqual(self.request.call_count, 3)
 
+    def test_quotes_refresh_on_each_minute_poll_but_not_twice_in_one(self):
+        self.repo.refresh_quotes(["AAPL"])
+        self.clock.return_value += 20
+        self.repo.refresh_quotes(["AAPL"])
+        self.assertEqual(self.request.call_count, 1)
+        self.clock.return_value += 25
+        self.repo.refresh_quotes(["AAPL"])
+        self.assertEqual(self.request.call_count, 2)
+
     def test_sparklines_join_rows_in_chunks_and_failures_keep_the_previous_line(self):
         line = {"points": [[900, 1], [960, 2]], "sessionStart": 800, "sessionEnd": 2000}
         self.sparks.side_effect = lambda tickers: {ticker: line for ticker in tickers}

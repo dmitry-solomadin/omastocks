@@ -118,6 +118,7 @@ QtObject {
     property var queue: []
     property var active: null
     property bool windowOpen: false
+    property bool windowMinimized: false
     property var barSettings: ({})
     property bool running: false
     readonly property bool busy: active !== null || queue.length > 0
@@ -145,6 +146,14 @@ QtObject {
     readonly property bool selectedIsNonCompany: isNonCompany(selected)
     readonly property bool starred: entries.some(entry => entry.symbol === selected && entry.favorite)
     readonly property var visibleChart: chart.symbol === selected && chart.range === period ? chart : ({})
+    // Charts are downloaded only for the one on screen: once when it appears,
+    // then with each poll while its market trades (pre-market to after hours).
+    // A quote without a market state counts as open.
+    readonly property bool marketOpen: ["CLOSED", "PREPRE", "POSTPOST"].indexOf(quote.marketState) < 0
+    readonly property bool chartShown: running && windowOpen && !windowMinimized && view === "stock" && !!selected
+    readonly property bool chartLive: chartShown && marketOpen
+    onChartShownChanged: if (chartShown) requestChart(false)
+    onChartLiveChanged: if (chartLive) requestChart(false)
     readonly property bool chartBusy: busy && (!visibleChart.points || !visibleChart.points.length)
     property var chartColors: []
     // Financial direction must retain its meaning across all theme palettes.
@@ -192,23 +201,32 @@ QtObject {
         const unit = currency === "USD" ? "$" : currency ? currency + " " : ""
         return unit + (kind === "perShare" ? price(value) : compact(value))
     }
+    // The stock first: showing the Stock view must not fetch the previous one's chart.
     function select(ticker) {
-        view = "stock"
         selected = ticker
+        view = "stock"
         if (!entries.some(entry => entry.symbol === ticker)) request(["quote", ticker])
-        if (windowOpen) request(["chart", ticker, period])
+        if (windowOpen) requestChart(false)
     }
     // Opens the window on a stock, e.g. from the bar's favorites ticker.
     function show(ticker) {
-        openRequested()
         select(ticker)
+        openRequested()
     }
-    function range(value) { period = value; if (selected) request(["chart", selected, value]) }
+    function range(value) { period = value; if (selected) requestChart(false) }
+    // One poll refreshes the quotes and the chart together, so they agree.
     function refresh(force) {
         if (force && windowOpen) MarketStore.refresh(true)
         request(force ? ["refresh", "--force"] : ["refresh"])
         if (selected && windowOpen && view === "stock" && !tracked) request(["quote", selected])
-        if (selected && windowOpen && view === "stock") request(["chart", selected, period])
+        if (force ? chartShown : chartLive) requestChart(force)
+    }
+    // The one place that asks for the chart. The same chart already running
+    // or waiting is enough, unless the user asked to refresh.
+    function requestChart(force) {
+        if (!selected) return
+        if (!force && [active].concat(queue).some(args => !!args && args[0] === "chart" && args[1] === selected && args[2] === period)) return
+        request(["chart", selected, period])
     }
     function search(value) {
         const query = value.trim()
@@ -362,7 +380,7 @@ QtObject {
                     if (changedList) {
                         selected = entries.length ? entries[0].symbol : ""
                         search("")
-                        if (selected && windowOpen) request(["chart", selected, period])
+                        if (windowOpen) requestChart(false)
                         request(["refresh"])
                     } else if (!selected && entries.length) select(entries[0].symbol)
                 }
@@ -405,7 +423,9 @@ QtObject {
     }
     property Timer watchdog: Timer { interval: 60000; onTriggered: root.helper.running = false }
     property Timer quoteRetry: Timer { onTriggered: root.request(["retry-quotes"]) }
-    property Timer poll: Timer { interval: 300000; running: root.running; repeat: true; onTriggered: root.refresh(false) }
+    // Every minute while a 1D chart is live; otherwise five minutes, which also
+    // keeps the bar's quotes current while the window is closed.
+    property Timer poll: Timer { interval: root.chartLive && root.period === "1D" ? 60000 : 300000; running: root.running; repeat: true; onTriggered: root.refresh(false) }
     property Timer searchTimer: Timer { interval: 300; onTriggered: root.request(["search", root.searchQuery]) }
     property FileView palette: FileView {
         path: Color.currentThemePath + "/colors.toml"

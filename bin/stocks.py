@@ -288,8 +288,10 @@ class Repository:
             cached = self.cache.get(ticker + ":quote", {})
             if retry_only and cached and not cached.get("stale") and now - cached.get("fetched", 0) <= 600:
                 continue
+            # Below the one-minute poll: "fetched" is stamped when the previous
+            # request finished, so a 60-second floor would skip every other poll.
             if not force and (now < cached.get("retryAfter", 0) or
-                              (not cached.get("stale") and now - cached.get("fetched", 0) < 60)):
+                              (not cached.get("stale") and now - cached.get("fetched", 0) < 30)):
                 continue
             due.append(ticker)
         # Favorites can span several lists. Keep each request within the bulk

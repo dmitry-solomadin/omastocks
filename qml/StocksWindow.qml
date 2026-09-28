@@ -25,6 +25,7 @@ FloatingWindow {
     color: Color.background
     // A compositor close must also clear FloatingWindow's requested visibility.
     onClosed: visible = false
+    onMinimizedChanged: StockStore.windowMinimized = minimized
     onVisibleChanged: {
         StockStore.windowOpen = visible
         if (visible) wordmark.play()
