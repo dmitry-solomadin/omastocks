@@ -41,9 +41,9 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
     const stock = load(qml("stores/StockStore.qml"), {
         state: {running: true, windowOpen: true, windowMinimized: false, view: "stock", selected: "AAPL", period: "1D",
             entries: entries || [{symbol: "AAPL", marketState}], previewQuotes: {}, chart: {}, queue: [], active: null, activeWatchlist: "default"},
-        bindings: ["quote", "tracked", "marketOpen", "chartShown", "chartLive", "visibleChart", "watchlistQuotes"],
+        bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive", "visibleChart", "watchlistQuotes"],
         functions: ["select", "range", "refresh", "requestChart", "request"],
-        handlers: ["chartShown", "chartLive"],
+        handlers: ["chartShown", "chartLive", "extendedLive"],
         globals: {pump() {}, MarketStore: {refresh() {}}, chartRequested: force => market.onChartRequested(force)}
     })
     const market = load(qml("stores/MarketStore.qml"), {
@@ -69,6 +69,10 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
         fake.sync()
         return fake
     }
+    stock.MarketStore = market
+    const send = stock.request
+    stock.sent = []
+    stock.request = args => { stock.sent.push(plain(args)); send(args) }
     market.extendedRequest = request(market.source.match(/extendedRequest: DataRequest \{ arguments: ([^;]+);/)[1])
     market.comparisonRequests = [0, 1, 2, 3].map(index => request(`root.comparisonArguments(${index})`))
     for (const name of ["onSelectedChanged", "onPeriodChanged", "onChartRequested", "onDataChanged"]) market.evaluate(nested(market.source, name))
@@ -129,9 +133,18 @@ world = app({showExtended: true})
 assert.equal(world.extended.loads, 1)
 world.tick(3)
 assert.equal(world.extended.loads, 4)
+assert.equal(world.stock.sent.filter(args => args[0] === "chart").length, 3, "With the regular chart in the session")
 world = app({showExtended: true, marketState: "CLOSED"})
 world.tick(3)
 assert.equal(world.extended.loads, 1, "Loaded once when shown, then no periodic reloads")
+// After hours the regular chart stands still: the Extended chart refreshes alone.
+world = app({showExtended: true, marketState: "POST"})
+world.tick(3)
+assert.equal(world.extended.loads, 4, "Once when shown, then every minute")
+assert.equal(world.stock.sent.filter(args => args[0] === "chart").length, 0)
+world = app({marketState: "POST"})
+world.tick(3)
+assert.equal(world.extended.loads, 0, "Nothing for a hidden Extended chart")
 
 // The caveat: Extended clicked on a stock not yet known to lack the data.
 world = app({})

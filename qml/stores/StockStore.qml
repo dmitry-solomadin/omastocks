@@ -175,13 +175,16 @@ QtObject {
     readonly property bool starred: entries.some(entry => entry.symbol === selected && entry.favorite)
     readonly property var visibleChart: chart.symbol === selected && chart.range === period ? chart : ({})
     // Charts are downloaded only for the one on screen: once when it appears,
-    // then with each poll while its market trades (pre-market to after hours).
-    // A quote without a market state counts as open.
-    readonly property bool marketOpen: ["CLOSED", "PREPRE", "POSTPOST"].indexOf(quote.marketState) < 0
+    // then with each poll while its regular session trades, and once more when
+    // that session ends, for the closing price. Pre-market and after hours move
+    // only the Extended chart, which then refreshes alone. A quote without a
+    // market state counts as the regular session.
     readonly property bool chartShown: running && windowOpen && !windowMinimized && view === "stock" && !!selected
-    readonly property bool chartLive: chartShown && marketOpen
+    readonly property bool chartLive: chartShown && ["", "REGULAR"].indexOf(quote.marketState || "") >= 0
+    readonly property bool extendedLive: chartShown && MarketStore.wantExtended && ["PRE", "REGULAR", "POST"].indexOf(quote.marketState) >= 0
     onChartShownChanged: if (chartShown) requestChart(false)
-    onChartLiveChanged: if (chartLive) requestChart(false)
+    onChartLiveChanged: if (chartShown) requestChart(false)
+    onExtendedLiveChanged: if (extendedLive) MarketStore.extendedRequest.reload(false)
     readonly property bool chartBusy: busy && (!visibleChart.points || !visibleChart.points.length)
     property var chartColors: []
     // Financial direction must retain its meaning across all theme palettes.
@@ -261,6 +264,7 @@ QtObject {
         request(force ? ["refresh", "--force"] : ["refresh"])
         if (selected && windowOpen && view === "stock" && !tracked) request(["quote", selected])
         if (force ? chartShown : chartLive) requestChart(force)
+        else if (extendedLive) MarketStore.extendedRequest.reload(false)
     }
     // The one place that asks for the chart. The same chart already running
     // or waiting is enough, unless the user asked to refresh.
@@ -467,7 +471,7 @@ QtObject {
     property Timer quoteRetry: Timer { onTriggered: root.request(["retry-quotes"]) }
     // Every minute while a 1D chart is live; otherwise five minutes, which also
     // keeps the bar's quotes current while the window is closed.
-    property Timer poll: Timer { interval: root.chartLive && root.period === "1D" ? 60000 : 300000; running: root.running; repeat: true; onTriggered: root.refresh(false) }
+    property Timer poll: Timer { interval: (root.chartLive || root.extendedLive) && root.period === "1D" ? 60000 : 300000; running: root.running; repeat: true; onTriggered: root.refresh(false) }
     property Timer searchTimer: Timer { interval: 300; onTriggered: root.request(["search", root.searchQuery]) }
     property FileView palette: FileView {
         path: Color.currentThemePath + "/colors.toml"

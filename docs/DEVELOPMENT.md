@@ -86,11 +86,14 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   header, sidebar, bar ticker and chart never disagree. It runs every 60 seconds
   while a 1D chart is live and every five minutes otherwise, which also keeps the
   bar's quotes current while the window is closed. Live means the window is open
-  and not minimized, the Stock view shows a stock, and that stock's quote does not
-  report its market `CLOSED`, `PREPRE` or `POSTPOST` (pre-market and after hours
-  count as open; a quote without a state counts as open). Only a live chart
-  refreshes on the poll; any chart also loads once when it appears (opening or
-  restoring the window, returning to the Stock view) and when its market reopens.
+  and not minimized, the Stock view shows a stock, and that stock's quote reports
+  its regular session (`REGULAR`, or no state). Pre-market and after hours leave
+  the regular chart unchanged: only a shown Extended chart refreshes then, every
+  60 seconds; otherwise the poll slows to five minutes for the quotes, which carry
+  the extended-hours price. Only a live chart refreshes on the poll; any chart
+  also loads once when it appears (opening or restoring the window, returning to
+  the Stock view), when the regular session starts, and once when it ends, for
+  the closing price.
   Quotes older than 30 seconds are refreshed, below the poll so none is skipped.
   `StockStore.requestChart` is the one place that asks for the chart; it skips a
   duplicate of the chart already running or waiting unless the user refreshes,

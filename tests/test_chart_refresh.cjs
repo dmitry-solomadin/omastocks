@@ -13,11 +13,12 @@ function store(state) {
             entries: [regular], previewQuotes: {}, chart: {}, queue: [], active: null, error: "",
             exited: true, collected: true, captured: "", quoteTransportFailures: 0, activeWatchlist: "default"
         }, state),
-        bindings: ["quote", "tracked", "marketOpen", "chartShown", "chartLive"],
+        bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive"],
         functions: ["receiveChart", "staleNote", "scheduleQuoteRetry", "finish", "select", "show", "range", "refresh", "requestChart", "request"],
-        handlers: ["chartShown", "chartLive"],
+        handlers: ["chartShown", "chartLive", "extendedLive"],
         globals: {
-            Date, watchdog: {stop() {}}, quoteRetry: {stop() {}, restart() {}}, MarketStore: {refresh() {}},
+            Date, watchdog: {stop() {}}, quoteRetry: {stop() {}, restart() {}},
+            MarketStore: {refresh() {}, wantExtended: false, extendedRequest: {reload() {}}},
             Qt: {callLater() {}, formatDateTime: (date, format) => date.toISOString() + " " + format},
             pump() {}, search() {}, stockAdded() {}, emitted,
             chartRequested: force => emitted.push(force)
@@ -69,26 +70,28 @@ context = store({chart: shown, period: "1Y"})
 reply(context, ["chart", "AAPL", "1D"], {chart: Object.assign({}, shown, {points: [[9, 9]]})})
 assert.equal(context.chart, shown, "A reply for a range no longer selected is ignored")
 
-// Step 3: one poll, every minute while a 1D chart is live.
+// Step 3: one poll, every minute while a 1D chart is live. Only the regular
+// session moves the chart; pre-market and after hours do not.
+const inState = state => ({entries: [Object.assign({}, regular, {marketState: state})]})
 context = store({})
 assert.equal(context.chartLive, true)
 assert.equal(interval(context), 60000)
 for (const [change, why] of [[{period: "3M"}, "other ranges"], [{windowMinimized: true}, "minimized"],
     [{view: "market"}, "Market view"], [{windowOpen: false}, "window closed"],
-    ...["CLOSED", "PREPRE", "POSTPOST"].map(state => [{entries: [Object.assign({}, regular, {marketState: state})]}, state])]) {
+    ...["PRE", "POST", "CLOSED", "PREPRE", "POSTPOST"].map(state => [inState(state), state])]) {
     context = store(change)
     assert.equal(interval(context), 300000, why)
 }
-for (const state of ["PRE", "REGULAR", "POST", undefined]) {
-    context = store({entries: [Object.assign({}, regular, {marketState: state})]})
-    assert.equal(interval(context), 60000, `${state} counts as open`)
+for (const state of ["REGULAR", undefined]) {
+    context = store(inState(state))
+    assert.equal(interval(context), 60000, `${state} is the regular session`)
 }
 
 // A scheduled refresh asks for the chart only while it is live.
 context = store({})
 context.refresh(false)
 assert.deepEqual(context.sent, [["refresh"], ["chart", "AAPL", "1D"]])
-for (const change of [{entries: [Object.assign({}, regular, {marketState: "CLOSED"})]}, {windowMinimized: true}, {view: "watchlist"}, {windowOpen: false}]) {
+for (const change of [inState("POST"), inState("PRE"), inState("CLOSED"), {windowMinimized: true}, {view: "watchlist"}, {windowOpen: false}]) {
     context = store(change)
     context.refresh(false)
     assert.deepEqual(context.sent, [["refresh"]], JSON.stringify(change))
@@ -115,12 +118,31 @@ context.active = null
 context.refresh(false)
 assert.equal(charts(context).length, 2, "The next poll asks again")
 
-// The quote poll reporting the market open again resumes the chart.
-context = store({entries: [Object.assign({}, regular, {marketState: "CLOSED"})]})
+// The quote poll reporting the regular session resumes the chart; its end
+// fetches the chart once more, for the closing price, then nothing after hours.
+context = store(inState("PRE"))
 context.refresh(false)
 assert.equal(charts(context).length, 0)
-context.entries = [Object.assign({}, regular, {marketState: "PRE"})]
+context.entries = inState("REGULAR").entries
 assert.equal(charts(context).length, 1)
+context.active = null
+context.queue = []
+context.entries = inState("POST").entries
+assert.equal(charts(context).length, 2, "The closing price")
+context.active = null
+context.queue = []
+for (let tick = 0; tick < 3; tick++) context.refresh(false)
+assert.equal(charts(context).length, 2)
+
+// After hours with the Extended chart shown: only it refreshes, every minute.
+const reloads = []
+context = store(inState("POST"))
+context.MarketStore = {refresh() {}, wantExtended: true, extendedRequest: {reload: force => reloads.push(force)}}
+assert.equal(context.extendedLive, true)
+assert.equal(interval(context), 60000)
+for (let tick = 0; tick < 3; tick++) context.refresh(false)
+assert.deepEqual(plain(reloads), [false, false, false])
+assert.equal(charts(context).length, 0, "Not the regular chart, which does not move")
 
 // A closed market still shows the chart once when it appears: the one on
 // screen may be from before the window closed.
