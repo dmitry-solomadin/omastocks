@@ -23,6 +23,7 @@ QtObject {
     readonly property string status: opened ? "Market open" : state === "PRE" ? "Pre-market" : state === "POST" ? "After hours"
         : state === "CLOSED" ? "Market closed" : StockStore.marketQuotesRequest.busy ? "Checking market…" : "Status unavailable"
     readonly property string countdown: state ? Clock.countdown(state, now) : ""
+    readonly property bool weekend: !Clock.weekday(Clock.eastern(now).day)
     // 0..1 through the 04:00–20:00 ET day, -1 before it or at weekends.
     readonly property real position: Clock.position(now)
     readonly property string clock: {

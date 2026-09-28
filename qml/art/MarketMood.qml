@@ -7,6 +7,9 @@ import "PixelSprites.js" as Sprites
 Item {
     id: root
     objectName: "marketMood"
+    property var session: null
+    // Friday's move is not the market's mood on a Saturday or Sunday.
+    visible: !(session && session.weekend)
     readonly property var quote: StockStore.marketQuotes["^SPX"] || {}
     readonly property var change: quote.percent
     readonly property bool known: Number.isFinite(change) && !StockStore.marketQuotesRequest.data.stale && !StockStore.marketQuotesRequest.data.error

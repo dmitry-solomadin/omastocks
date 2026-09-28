@@ -32,7 +32,7 @@ Controls.ScrollView {
             objectName: "marketHeader"
             visible: StockStore.view === "market"
             Layout.fillWidth: true
-            MarketMood { Layout.alignment: Qt.AlignVCenter }
+            MarketMood { session: marketHeader.session; Layout.alignment: Qt.AlignVCenter }
             ColumnLayout {
                 spacing: Style.space(6)
                 Label { text: "Market"; font.pixelSize: Style.space(22); font.bold: true }
