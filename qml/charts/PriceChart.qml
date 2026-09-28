@@ -68,9 +68,14 @@ Item {
         : StockStore.percent(periodComparison ? periodComparison.percent : null) + " over this period"
     readonly property color selectionColor: comparison ? StockStore.direction(comparison.change) : lineColor
     readonly property real leftInset: miniature ? 2 : Style.space(4)
-    readonly property real rightInset: miniature ? 2 : Style.space(comparing ? 88 : 72)
+    // The price axis is as wide as its widest label, so the plot and labels run
+    // to the chart's right edge.
+    readonly property real axisWidth: [0, 1, 2, 3].map(index => axisMetrics.advanceWidth(axisLabel(extent[1] - (extent[1] - extent[0]) * index / 3)))
+        .concat(volumeHeight ? [axisMetrics.advanceWidth("Vol"), axisMetrics.advanceWidth(StockStore.compact(maxVolume))] : [])
+        .reduce((widest, width) => Math.max(widest, width), 0)
+    readonly property real rightInset: miniature ? 2 : Math.ceil(axisWidth) + 1 + Style.space(6)
     readonly property real topInset: miniature ? 2 : comparing ? legend.implicitHeight + Style.space(16) : Style.space(30)
-    readonly property real bottomInset: miniature ? 2 : Style.space(22)
+    readonly property real bottomInset: miniature ? 2 : Style.space(19)
     readonly property real plotWidth: Math.max(1, width - leftInset - rightInset)
     readonly property real plotHeight: Math.max(1, height - topInset - bottomInset - eventHeight - (volumeHeight ? volumeHeight + Style.space(12) : 0))
     readonly property var extent: {
@@ -178,6 +183,7 @@ Item {
         function onGainChanged() { canvas.requestPaint() }
         function onLossChanged() { canvas.requestPaint() }
     }
+    FontMetrics { id: axisMetrics; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
     Timer { interval: 30000; running: root.period === "1D" && root.visible && StockStore.windowOpen; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() / 1000 }
     Canvas {
         id: canvas
@@ -291,9 +297,9 @@ Item {
         model: root.miniature || !root.points.length ? 0 : 4
         Label {
             required property int index
-            x: root.width - root.rightInset + Style.space(12)
+            x: root.width - root.rightInset + Style.space(6)
             y: root.topInset + root.plotHeight * index / 3 - height / 2
-            width: root.rightInset - Style.space(12)
+            width: root.rightInset - Style.space(6)
             text: root.axisLabel(root.extent[1] - (root.extent[1] - root.extent[0]) * index / 3)
             color: Tone.muted
             font.pixelSize: Style.font.bodySmall
@@ -301,9 +307,10 @@ Item {
     }
     Label {
         visible: root.volumeHeight > 0
-        x: root.width - root.rightInset + Style.space(12)
-        y: root.volumeTop
-        width: root.rightInset - Style.space(12)
+        x: root.width - root.rightInset + Style.space(6)
+        // Level with the bars' base, clear of the lowest price label.
+        y: root.volumeTop + root.volumeHeight - height
+        width: root.rightInset - Style.space(6)
         text: "Vol\n" + StockStore.compact(root.maxVolume)
         color: Tone.muted
         font.pixelSize: Style.font.bodySmall
@@ -317,7 +324,7 @@ Item {
                 ? root.timeDomain[0] + (root.timeDomain[1] - root.timeDomain[0]) * index / 2
                 : root.points.length ? root.points[pointIndex][0] : 0
             x: Math.max(root.leftInset, Math.min(root.leftInset + root.plotWidth - width, root.leftInset + root.plotWidth * index / 2 - width / 2))
-            y: root.height - root.bottomInset + Style.space(6)
+            y: root.height - root.bottomInset + Style.space(3)
             text: root.timeLabel(timestamp)
             font.pixelSize: Style.font.bodySmall
             color: Tone.muted
@@ -336,7 +343,7 @@ Item {
             Rectangle {
                 x: -width / 2
                 y: parent.point ? root.pointY(parent.point[1]) - root.topInset - height / 2 : 0
-                width: Style.space(8); height: width; radius: width / 2
+                width: Style.spaceReal(10.4); height: width; radius: width / 2
                 color: root.selectionColor
                 border.width: 2
                 border.color: Color.background
@@ -355,7 +362,7 @@ Item {
         visible: !root.miniature && !root.comparing && root.hoveredPoint !== null
         x: root.pointX(root.hoveredIndex) - width / 2
         y: root.hoveredPoint ? root.pointY(root.hoveredPoint[1]) - height / 2 : 0
-        width: Style.space(8); height: width; radius: width / 2
+        width: Style.spaceReal(10.4); height: width; radius: width / 2
         color: root.lineColor
         border.color: Color.background
         border.width: 2
@@ -462,7 +469,7 @@ Item {
             required property var modelData
             x: root.pointX(root.hoveredIndex) - width / 2
             y: root.axisY(modelData.percent) - height / 2
-            width: Style.space(8); height: width; radius: width / 2
+            width: Style.spaceReal(10.4); height: width; radius: width / 2
             color: modelData.color
             border.width: 2; border.color: Color.background
         }
@@ -470,7 +477,10 @@ Item {
     Rectangle {
         objectName: "chartHoverBox"
         visible: !root.miniature && root.hoveredPoint !== null
-        x: Math.max(root.leftInset, Math.min(root.width - width, root.pointX(root.hoveredIndex) + Style.space(16)))
+        // Right of the cursor, or left of it where the box would run past the plot.
+        readonly property real cursorX: root.pointX(root.hoveredIndex)
+        x: Math.max(root.leftInset, cursorX + Style.space(16) + width <= root.leftInset + root.plotWidth
+            ? cursorX + Style.space(16) : cursorX - Style.space(16) - width)
         y: Math.max(root.topInset, Math.min(root.topInset + root.plotHeight - height, pointer.mouseY - height - Style.space(12)))
         width: hoverContent.implicitWidth + Style.space(24)
         height: hoverContent.implicitHeight + Style.space(20)
