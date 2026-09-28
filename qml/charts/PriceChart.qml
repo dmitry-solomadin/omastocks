@@ -49,7 +49,7 @@ Item {
     readonly property var volumeSeries: ChartMath.volumeSeries(points, volumes, period)
     readonly property bool hasVolume: volumeSeries.volumes.some(value => value !== null && value !== undefined && value > 0)
     readonly property real volumeHeight: !miniature && !comparing && showVolume && hasVolume ? Style.space(52) : 0
-    readonly property real eventHeight: !miniature && (eventMarkers.length || (reserveEvents && !comparing)) ? Style.space(25) : 0
+    readonly property real eventHeight: !miniature && (eventMarkers.length || (reserveEvents && !comparing)) ? Style.space(22) : 0
     readonly property real volumeTop: topInset + plotHeight + Style.space(8)
     readonly property real eventTop: height - bottomInset - eventHeight
     readonly property real maxVolume: Math.max(1, ...volumeSeries.volumes.map(value => value || 0))
@@ -70,7 +70,7 @@ Item {
     readonly property real leftInset: miniature ? 2 : Style.space(4)
     readonly property real rightInset: miniature ? 2 : Style.space(comparing ? 88 : 72)
     readonly property real topInset: miniature ? 2 : comparing ? legend.implicitHeight + Style.space(16) : Style.space(30)
-    readonly property real bottomInset: miniature ? 2 : Style.space(30)
+    readonly property real bottomInset: miniature ? 2 : Style.space(22)
     readonly property real plotWidth: Math.max(1, width - leftInset - rightInset)
     readonly property real plotHeight: Math.max(1, height - topInset - bottomInset - eventHeight - (volumeHeight ? volumeHeight + Style.space(12) : 0))
     readonly property var extent: {
@@ -317,7 +317,7 @@ Item {
                 ? root.timeDomain[0] + (root.timeDomain[1] - root.timeDomain[0]) * index / 2
                 : root.points.length ? root.points[pointIndex][0] : 0
             x: Math.max(root.leftInset, Math.min(root.leftInset + root.plotWidth - width, root.leftInset + root.plotWidth * index / 2 - width / 2))
-            y: root.height - root.bottomInset + Style.space(12)
+            y: root.height - root.bottomInset + Style.space(6)
             text: root.timeLabel(timestamp)
             font.pixelSize: Style.font.bodySmall
             color: Tone.muted

@@ -603,8 +603,10 @@ FloatingWindow {
                             id: detailChart
                             objectName: "detailChart"
                             anchors.fill: parent
-                            // Earnings load after prices; reserve their lane where they are expected.
-                            reserveEvents: MarketStore.showEvents && !StockStore.selectedIsNonCompany && StockStore.period !== "1D"
+                            // Earnings load after prices; reserve their lane where a report is
+                            // likely in range. ALL shows only splits, which come with the prices.
+                            reserveEvents: MarketStore.showEvents && !StockStore.selectedIsNonCompany
+                                && ["3M", "YTD", "1Y", "2Y", "5Y"].indexOf(StockStore.period) >= 0
                             points: window.points
                             symbol: StockStore.selected
                             dates: window.series.dates || []
@@ -644,7 +646,8 @@ FloatingWindow {
                         visible: !MarketStore.compareMode
                         Layout.fillWidth: true
                         spacing: Style.space(10)
-                        SectionDivider {}
+                        // The chart's date row already leaves room above it.
+                        SectionDivider { Layout.topMargin: 0 }
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.bottomMargin: Style.space(8)
