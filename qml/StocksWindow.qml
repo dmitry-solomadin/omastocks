@@ -640,12 +640,12 @@ FloatingWindow {
                             period: StockStore.period
                             lineColor: window.chartColor
                         }
-                        // On the readout's line, over the plot's right edge; hidden while a
+                        // On the readout's line at the chart's right edge, which stays put as
+                        // the price axis resizes to each range's labels; hidden while a
                         // dragged selection's readout may need the width.
                         ChartOptions {
                             visible: !MarketStore.compareMode && !detailChart.hasSelection
                             anchors.right: detailChart.right
-                            anchors.rightMargin: detailChart.rightInset
                             y: -Style.space(4)
                         }
                         Label {
