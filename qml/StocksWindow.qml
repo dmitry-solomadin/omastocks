@@ -187,8 +187,8 @@ FloatingWindow {
                         // share their visual centre line.
                         StocksLogo { id: wordmark; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; anchors.verticalCenterOffset: -Style.space(1) }
                     }
-                    ActionButton { text: "↻"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.refreshing; onClicked: window.refresh(); font.pixelSize: Style.space(18) }
-                    ActionButton { text: "\uf013"; hint: "Settings"; font.pixelSize: Style.space(18); onClicked: settingsMenu.open() }
+                    IconButton { text: "󰑐"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.refreshing; onClicked: window.refresh() }
+                    IconButton { text: "󰒓"; hint: "Settings"; onClicked: settingsMenu.open() }
                 }
                 WatchlistSelector { id: watchlistSelector; Layout.fillWidth: true; onEditRequested: watchlistMenu.open() }
                 Controls.TextField {

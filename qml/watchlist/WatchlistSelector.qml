@@ -50,17 +50,17 @@ RowLayout {
         }
         TextMetrics { id: chevronMetrics; text: "󰅀"; font.family: dropdown.fontFamily; font.pixelSize: Style.font.body }
     }
-    ActionButton {
+    IconButton {
         id: editButton
         objectName: "editWatchlists"
-        text: "\uf040"
+        text: "󰏫"
         hint: "Manage watchlists"
         onClicked: { root.close(); root.editRequested() }
     }
-    ActionButton {
+    IconButton {
         id: sortButton
         objectName: "sortWatchlist"
-        text: "⇅"
+        text: "󰒺"
         hint: "Sort Watchlist"
         onClicked: { dropdown.close(); sortMenu.opened ? sortMenu.close() : sortMenu.open() }
         WatchlistSortMenu { id: sortMenu; x: sortButton.width - width; y: sortButton.height + Style.space(4) }

@@ -14,6 +14,7 @@ BulkRequest 1.0 data/BulkRequest.qml
 WatchlistBatch 1.0 data/WatchlistBatch.qml
 
 ActionButton 1.0 components/ActionButton.qml
+IconButton 1.0 components/IconButton.qml
 Label 1.0 components/Label.qml
 FastWheel 1.0 components/FastWheel.qml
 FeatureTable 1.0 components/FeatureTable.qml
