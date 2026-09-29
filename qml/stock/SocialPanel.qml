@@ -70,7 +70,7 @@ ColumnLayout {
         RowLayout {
             Layout.fillWidth: true
             Layout.topMargin: Style.space(8)
-            Label { text: "STOCKTWITS"; Layout.fillWidth: true; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
+            SectionHeading { text: "STOCKTWITS"; Layout.fillWidth: true }
             ActionButton {
                 text: "Stocktwits ↗"
                 hint: "Open this symbol's discussion on Stocktwits"

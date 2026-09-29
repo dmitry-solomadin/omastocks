@@ -47,7 +47,7 @@ ColumnLayout {
     function dateLabel(date) { return Qt.formatDate(new Date(date + "T12:00:00"), "d MMM yyyy") }
     RowLayout {
         Layout.fillWidth: true
-        Label { text: "EARNINGS"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+        SectionHeading { text: "EARNINGS"; Layout.fillWidth: true }
         ActionButton { text: "↻"; hint: MarketStore.earnings.error || MarketStore.earnings.notice || "Refresh earnings"; enabled: !MarketStore.eventsRequest.busy; onClicked: MarketStore.eventsRequest.reload(true) }
     }
     MarketLoading {
@@ -104,18 +104,18 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth: true
-        ActionButton {
+        DisclosureRow {
             objectName: "earningsCallsToggle"
-            implicitHeight: Style.space(28)
-            text: (MarketStore.earningsCallsOpen ? "▾ " : "▸ ") + "Earnings calls"
+            Layout.fillWidth: true
+            text: "Earnings calls"
+            open: MarketStore.earningsCallsOpen
             hint: "Recent earnings call transcripts"
             onClicked: MarketStore.toggleSection("calls")
         }
-        Item { Layout.fillWidth: true }
         // Same height as the toggle, so the row does not grow when this appears.
         ActionButton {
             visible: MarketStore.earningsCallsOpen
-            implicitHeight: Style.space(28)
+            implicitHeight: Style.space(38)
             text: "↻"
             hint: MarketStore.earningsCalls.error || "Refresh earnings calls · Yahoo Finance"
             enabled: !MarketStore.callsRequest.busy

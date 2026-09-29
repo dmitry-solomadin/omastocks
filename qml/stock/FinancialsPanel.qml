@@ -17,10 +17,11 @@ ColumnLayout {
     spacing: Style.space(10)
     RowLayout {
         Layout.fillWidth: true
-        ActionButton {
+        SectionHeading {
             objectName: "financialsToggle"
-            text: (MarketStore.financialsOpen ? "▾ " : "▸ ") + "FINANCIALS"
-            font.pixelSize: Style.font.bodySmall
+            text: "FINANCIALS"
+            collapsible: true
+            open: MarketStore.financialsOpen
             hint: "Income statements, balance sheets and cash flow"
             onClicked: MarketStore.toggleFinancials()
         }

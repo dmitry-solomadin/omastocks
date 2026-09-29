@@ -25,10 +25,11 @@ ColumnLayout {
     spacing: Style.space(12)
     RowLayout {
         Layout.fillWidth: true
-        ActionButton {
+        SectionHeading {
             objectName: "analystsToggle"
-            text: (MarketStore.analystsOpen ? "▾ " : "▸ ") + "ANALYSTS"
-            font.pixelSize: Style.font.bodySmall
+            text: "ANALYSTS"
+            collapsible: true
+            open: MarketStore.analystsOpen
             hint: "Analyst recommendations and price targets · Nasdaq / TipRanks"
             onClicked: MarketStore.toggleSection("analysts")
         }
@@ -129,10 +130,13 @@ ColumnLayout {
             text: "● Current " + root.money(root.currentPrice)
             font.pixelSize: Style.font.bodySmall; color: Tone.muted
         }
-        ActionButton {
+        DisclosureRow {
             objectName: "analystsHistoryToggle"
             visible: root.history.length > 0
-            text: (root.historyOpen ? "▾ " : "▸ ") + "History"
+            Layout.fillWidth: true
+            text: "History"
+            detail: root.history.length + " months"
+            open: root.historyOpen
             hint: "Monthly recommendation counts and average price targets"
             onClicked: MarketStore.toggleSection("analystHistory")
         }

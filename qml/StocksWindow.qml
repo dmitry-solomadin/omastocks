@@ -737,7 +737,7 @@ FloatingWindow {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.bottomMargin: Style.space(8)
-                            Label { text: "MARKET DETAILS"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+                            SectionHeading { text: "MARKET DETAILS"; Layout.fillWidth: true }
                         }
                         GridLayout {
                             objectName: "marketDetailsGrid"
