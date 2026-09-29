@@ -76,6 +76,22 @@ function comparison(points, anchor, cursor) {
         percent: points[first][1] === 0 ? null : change / points[first][1] * 100}
 }
 
+// How the change line names the chart's span: "today" (or the day the last
+// session fell on), "past week", "since 1980".
+function periodPhrase(period, points, now) {
+    if (period === "1D") {
+        if (!points.length) return "today"
+        const day = new Date(points[points.length - 1][0] * 1000), today = new Date(now * 1000)
+        if (day.toDateString() === today.toDateString()) return "today"
+        if (now - points[points.length - 1][0] < 6 * 86400)
+            return "on " + ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day.getDay()]
+        return "on " + day.getDate() + " " + ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][day.getMonth()]
+    }
+    if (period === "ALL") return points.length ? "since " + new Date(points[0][0] * 1000).getFullYear() : "all time"
+    return {"1W": "past week", "1M": "past month", "3M": "past 3 months", "YTD": "this year",
+        "1Y": "past year", "2Y": "past 2 years", "5Y": "past 5 years"}[period] || "over this period"
+}
+
 // Match trading intervals rather than stretching unrelated sample indices.
 function compareSeries(points, dates, other, otherDates, period) {
     const intraday = period === "1D" || period === "1W" || period === "1M"

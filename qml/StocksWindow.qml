@@ -5,6 +5,7 @@ import Quickshell
 import qs.Commons
 import qs.Ui as Ui
 import "."
+import "charts/ChartMath.js" as ChartMath
 
 FloatingWindow {
     id: window
@@ -32,8 +33,8 @@ FloatingWindow {
         if (!visible) { settingsMenu.close(); watchlistMenu.close(); watchlistSelector.close(); list.cancelDrag() }
     }
     readonly property var quote: StockStore.quote
-    // The session decides the header's layout: "At close" above the price out
-    // of session, today's change below it in session. The stock's own quote has
+    // The session decides the header's caption: "At close" above the price out
+    // of session. The stock's own quote has
     // it; until that arrives, the session its market is known to be in, so the
     // layout is right at once. When that is unknown (a foreign listing), it is
     // laid out as closed with the caption left blank until the quote says.
@@ -54,6 +55,18 @@ FloatingWindow {
     readonly property var rangeChange: points.length > 1 && points[0][1] !== 0
         ? (points[points.length - 1][1] - points[0][1]) / points[0][1] * 100 : null
     readonly property color chartColor: StockStore.direction(chartPeriod === "1D" && !(series.sessions || []).length ? quote.percent : rangeChange)
+    // The one change line, under the price, follows the range drawn: on 1D the
+    // live quote's change since the previous close, on other ranges the chart's
+    // from its first point to its last.
+    readonly property bool dayRange: chartPeriod === "1D"
+    readonly property var periodChange: dayRange ? quote.change : points.length > 1 ? points[points.length - 1][1] - points[0][1] : null
+    readonly property var periodPercent: dayRange ? quote.percent : rangeChange
+    readonly property bool hasPeriodChange: periodChange !== null && periodChange !== undefined
+    readonly property string periodChangeText: hasPeriodChange
+        ? (periodChange >= 0 ? "+" : "") + StockStore.price(periodChange) + " (" + StockStore.percent(periodPercent) + ")"
+        : dayRange ? "Daily change unavailable" : ""
+    readonly property string periodPhraseText: hasPeriodChange
+        ? ChartMath.periodPhrase(chartPeriod, dayRange ? (quote.updated ? [[quote.updated, 0]] : []) : points, Date.now() / 1000) : ""
     // While a company's valuation loads, Market details keeps placeholder slots
     // in their final order, so the grid does not grow or reshuffle on arrival.
     readonly property var valuationLabels: ["Market cap", "P/E (TTM)", "Price / sales", "Price / book", "EV / EBITDA"]
@@ -630,13 +643,18 @@ FloatingWindow {
                                     }
                                     Label { text: window.quote.currency || ""; color: Tone.muted; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: Style.space(8) }
                                 }
-                                Label {
-                                    objectName: "dailyChange"
-                                    visible: window.regularSession
+                                // The change in bold and its colour, then the span it covers, muted like "At close".
+                                // Keeps its line while a new stock's chart loads, so nothing shifts.
+                                Row {
+                                    objectName: "periodChange"
                                     Layout.topMargin: Style.space(6)
-                                    text: window.quote.change === null || window.quote.change === undefined ? "Daily change unavailable"
-                                        : (window.quote.change >= 0 ? "+" : "") + StockStore.price(window.quote.change) + " (" + StockStore.percent(window.quote.percent) + ") today"
-                                    color: StockStore.direction(window.quote.percent)
+                                    spacing: Style.space(6)
+                                    Label {
+                                        text: window.periodChangeText || " "
+                                        color: window.hasPeriodChange ? StockStore.direction(window.periodPercent) : Tone.muted
+                                        font.bold: window.hasPeriodChange
+                                    }
+                                    Label { visible: text !== ""; text: window.periodPhraseText; color: Tone.muted }
                                 }
                             }
                             Item { Layout.fillWidth: true }

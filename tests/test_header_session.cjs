@@ -48,19 +48,37 @@ assert.equal(context.quote.price, 90, "Not an older quote of its own")
 // is laid out as closed with a blank caption, so a closed answer fills it in.
 const windowSource = fs.readFileSync(path.join(__dirname, "../qml/StocksWindow.qml"), "utf8")
 const caption = windowSource.match(/objectName: "closeLabel"\s*visible: ([^\n]+)\s*text: ([^\n]+)/)
-const changeLine = windowSource.match(/objectName: "dailyChange"\s*visible: ([^\n]+)/)[1]
 function header(quote, expected) {
     const window = load(path.join(__dirname, "../qml/StocksWindow.qml"), {
         state: {quote}, bindings: ["session", "regularSession"],
         globals: {StockStore: {selected: quote.symbol, expectedSession: () => expected}}
     })
     window.window = window
-    return {caption: window.evaluate(caption[1]) ? window.evaluate(caption[2]) : null, change: window.evaluate(changeLine)}
+    return window.evaluate(caption[1]) ? window.evaluate(caption[2]) : null
 }
-assert.deepEqual(header({symbol: "AAPL", marketState: "REGULAR"}, "CLOSED"), {caption: null, change: true}, "Its own quote wins")
-assert.deepEqual(header({symbol: "HOOW"}, "REGULAR"), {caption: null, change: true}, "In session before its quote")
-assert.deepEqual(header({symbol: "HOOW"}, "POST"), {caption: "AT CLOSE", change: false})
-assert.deepEqual(header({symbol: "BMW.DE"}, ""), {caption: "", change: false}, "Unknown: the caption's line kept blank")
-assert.deepEqual(header({symbol: "BMW.DE", marketState: "POSTPOST"}, ""), {caption: "AT CLOSE", change: false}, "Filled in place")
-
+assert.equal(header({symbol: "AAPL", marketState: "REGULAR"}, "CLOSED"), null, "Its own quote wins")
+assert.equal(header({symbol: "HOOW"}, "REGULAR"), null, "In session before its quote")
+assert.equal(header({symbol: "HOOW"}, "POST"), "AT CLOSE")
+assert.equal(header({symbol: "BMW.DE"}, ""), "", "Unknown: the caption's line kept blank")
+assert.equal(header({symbol: "BMW.DE", marketState: "POSTPOST"}, ""), "AT CLOSE", "Filled in place")
 console.log("PASS: the header is laid out for the session at once, from what the app already knows")
+
+// The one change line follows the range drawn: the live quote's on 1D, the
+// chart's from its first point on the others.
+const ChartMath = vm.createContext({})
+vm.runInContext(fs.readFileSync(path.join(__dirname, "../qml/charts/ChartMath.js"), "utf8"), ChartMath)
+function changeLine(quote, chartPeriod, points) {
+    const window = load(path.join(__dirname, "../qml/StocksWindow.qml"), {
+        state: {quote, chartPeriod, points},
+        bindings: ["rangeChange", "dayRange", "periodChange", "periodPercent", "hasPeriodChange", "periodChangeText", "periodPhraseText"],
+        globals: {ChartMath, Date, StockStore: {
+            price: value => value.toFixed(2), percent: value => (value >= 0 ? "+" : "") + value.toFixed(2) + "%"}}
+    })
+    return [window.periodChangeText, window.periodPhraseText].filter(Boolean).join(" ")
+}
+const now = Date.now() / 1000
+assert.equal(changeLine({change: 1.18, percent: 0.19, updated: now}, "1D", [[now - 60, 1], [now, 2]]), "+1.18 (+0.19%) today")
+assert.equal(changeLine({change: null}, "1D", []), "Daily change unavailable")
+assert.equal(changeLine({change: 1.18, percent: 0.19}, "1W", [[now - 86400, 200], [now, 190]]), "-10.00 (-5.00%) past week")
+assert.equal(changeLine({change: 1.18, percent: 0.19}, "1W", []), "", "Blank while a new stock's chart loads")
+console.log("PASS: the change line follows the range")

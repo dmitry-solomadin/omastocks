@@ -136,3 +136,14 @@ assert.equal(chart.compareMany([{points: [[100, 0], [200, 10]], dates: days.slic
 const intraday = chart.compareMany([{points: [[300, 10], [600, 20], [900, 30]]}, {points: [[300, 2], [900, 4]]}], "1D")
 assert.deepEqual(plain(intraday.series[1].points), [[0, 0, 2], [2, 100, 4]])
 console.log("PASS: five-stock shared baseline, raw hover prices, currencies/colors, missing intervals and non-overlap")
+
+// The readout names each range; 1D names the day when its session isn't today.
+const noon = Date.UTC(2026, 8, 25, 17) / 1000
+const at = offset => [[noon + offset, 100]]
+assert.equal(chart.periodPhrase("1D", at(0), noon + 3600), "today")
+assert.equal(chart.periodPhrase("1D", at(0), noon + 3 * 86400), "on " + ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date(noon * 1000).getDay()])
+assert.match(chart.periodPhrase("1D", at(0), noon + 20 * 86400), /^on \d+ Sep$/)
+assert.equal(chart.periodPhrase("1W", at(0), noon), "past week")
+assert.equal(chart.periodPhrase("YTD", at(0), noon), "this year")
+assert.equal(chart.periodPhrase("ALL", [[Date.UTC(1980, 5, 1) / 1000, 1], [noon, 100]], noon), "since 1980")
+console.log("PASS: period readout names")

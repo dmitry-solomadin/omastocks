@@ -69,10 +69,10 @@ Item {
     property bool dragging: false
     readonly property var comparison: ChartMath.comparison(points, anchorIndex, selectionIndex)
     readonly property bool hasSelection: comparison !== null
-    readonly property var periodComparison: ChartMath.comparison(points, 0, points.length - 1)
+    // The range's own change is under the header price; the readout shows a
+    // dragged selection, or each line's change while comparing.
     readonly property string readoutText: hasSelection ? changeText() : comparing
-        ? compareLines.map(row => row.symbol + " " + StockStore.percent(row.points[row.points.length - 1][1])).join(" · ")
-        : StockStore.percent(periodComparison ? periodComparison.percent : null) + " over this period"
+        ? compareLines.map(row => row.symbol + " " + StockStore.percent(row.points[row.points.length - 1][1])).join(" · ") : ""
     readonly property color selectionColor: comparison ? StockStore.direction(comparison.change) : lineColor
     readonly property real leftInset: miniature ? 2 : Style.space(4)
     // The price axis is as wide as its widest label, so the plot and labels run
@@ -375,8 +375,8 @@ Item {
         border.color: Color.background
         border.width: 2
     }
-    // One line above the plot: the period's change, or a dragged selection's
-    // change and time range, centred over the dragged point.
+    // One line above the plot: a dragged selection's change and time range,
+    // centred over the dragged point, or the chart's note.
     Row {
         visible: !root.miniature && !root.comparing
         x: root.hasSelection ? Math.max(root.leftInset, Math.min(root.leftInset + root.plotWidth - implicitWidth,
@@ -387,7 +387,7 @@ Item {
             id: readout
             objectName: "chartReadout"
             text: root.readoutText
-            color: StockStore.direction(root.hasSelection ? root.comparison.change : root.periodComparison ? root.periodComparison.percent : null)
+            color: StockStore.direction(root.hasSelection ? root.comparison.change : null)
             font.bold: true
         }
         Label {
