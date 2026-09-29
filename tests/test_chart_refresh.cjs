@@ -1,8 +1,12 @@
 const assert = require("node:assert/strict")
+const fs = require("node:fs")
 const path = require("node:path")
+const vm = require("node:vm")
 const {load, plain, serverPool, serverLane} = require("./qml_harness.cjs")
 
 // The real StockStore handlers with fake helper processes.
+const Clock = vm.createContext({})
+vm.runInContext(fs.readFileSync(path.join(__dirname, "../qml/market/MarketClock.js"), "utf8"), Clock)
 const file = path.join(__dirname, "../qml/stores/StockStore.qml")
 const regular = {symbol: "AAPL", price: 100, marketState: "REGULAR"}
 function store(state) {
@@ -10,15 +14,15 @@ function store(state) {
     const context = load(file, {
         state: Object.assign({
             running: true, windowOpen: true, windowMinimized: false, view: "stock", selected: "AAPL", period: "1D",
-            entries: [regular], favoriteEntries: [], previewQuotes: {}, chart: {}, queue: [], active: null, error: "",
+            entries: [regular], favoriteEntries: [], previewQuotes: {}, marketQuotes: {}, chart: {}, queue: [], active: null, error: "",
             exited: true, collected: true, captured: "", quoteTransportFailures: 0, activeWatchlist: "default",
-            marketStarted: true, marketRetries: 0
+            marketStarted: true, marketRetries: 0, nextPollAt: 0
         }, serverLane.state, state),
-        bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive", "chartLoading"],
+        bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive", "quotesLive", "pollInterval", "chartLoading", "visibleChart"],
         functions: ["staleNote", "scheduleQuoteRetry", "finish", "select", "show", "range", "refresh"].concat(serverLane.functions),
         handlers: ["chartShown", "chartLive", "extendedLive", "windowOpen"],
         globals: {
-            ...serverLane.globals(), Date, watchdog: {stop() {}}, quoteRetry: {stop() {}, restart() {}},
+            ...serverLane.globals(), Date, Clock, watchdog: {stop() {}}, quoteRetry: {stop() {}, restart() {}},
             marketQuotesRequest: {reload() {}}, marketRetryTimer: {stop() {}},
             MarketStore: {refresh() {}, wantExtended: false, extendedRequest: {reload() {}}},
             Qt: {callLater() {}, formatDateTime: (date, format) => date.toISOString() + " " + format},
@@ -36,7 +40,7 @@ function store(state) {
     return context
 }
 const charts = context => context.sent.filter(args => args[0] === "chart")
-const interval = context => context.evaluate(context.source.match(/property Timer poll: Timer \{ interval: ([^;]+);/)[1])
+const interval = context => context.pollInterval
 function reply(context, args, data) {
     context.active = args
     context.captured = typeof data === "string" ? data : JSON.stringify(data)
@@ -80,16 +84,32 @@ const inState = state => ({entries: [Object.assign({}, regular, {marketState: st
 context = store({})
 assert.equal(context.chartLive, true)
 assert.equal(interval(context), 60000)
-for (const [change, why] of [[{period: "3M"}, "other ranges"], [{windowMinimized: true}, "minimized"],
-    [{view: "market"}, "Market view"], [{windowOpen: false}, "window closed"],
+for (const [change, why] of [[{windowMinimized: true}, "minimized"], [{windowOpen: false}, "window closed"],
     ...["PRE", "POST", "CLOSED", "PREPRE", "POSTPOST"].map(state => [inState(state), state])]) {
     context = store(change)
     assert.equal(interval(context), 300000, why)
+}
+// Prices move all session: quotes every minute on any range or view.
+for (const [change, why] of [[{period: "3M"}, "other ranges"], [{view: "market"}, "Market view"],
+    [{entries: [], selected: "BMW.DE", marketQuotes: {"^SPX": {marketState: "REGULAR"}}}, "the US market trading"]]) {
+    context = store(change)
+    assert.equal(interval(context), 60000, why)
 }
 for (const state of ["REGULAR", undefined]) {
     context = store(inState(state))
     assert.equal(interval(context), 60000, `${state} is the regular session`)
 }
+
+// The poll runs on a wall-clock deadline, whatever pace the QML timer keeps.
+const tick = context => context.evaluate("(() => {" + context.source.match(/property Timer poll: Timer \{[^]*?onTriggered: \{([^]*?)\n        \}/)[1] + "})()")
+context = store({})
+context.nextPollAt = Date.now() + 5000
+tick(context)
+assert.deepEqual(context.sent, [], "Not before its deadline")
+context.nextPollAt = Date.now() - 1
+tick(context)
+assert.deepEqual(context.sent[0], ["refresh"])
+assert.ok(context.nextPollAt > Date.now() + 59000, "The next deadline is a full interval on")
 
 // A scheduled refresh asks for the chart only while it is live.
 context = store({})
@@ -103,6 +123,14 @@ for (const change of [inState("POST"), inState("PRE"), inState("CLOSED"), {windo
 context = store({selected: "TSLA", previewQuotes: {TSLA: {symbol: "TSLA", marketState: "REGULAR"}}})
 context.refresh(false)
 assert.deepEqual(context.sent, [["refresh"], ["chart", "TSLA", "1D"], ["quote", "TSLA"]], "Its chart and quote together, on two helpers")
+
+// Other ranges' charts refresh every five minutes; their quotes every minute.
+context = store({period: "3M", chart: {symbol: "AAPL", range: "3M", points: [[1, 1]], fetched: Date.now() / 1000 - 60}})
+context.refresh(false)
+assert.deepEqual(context.sent, [["refresh"]])
+context.chart = Object.assign({}, context.chart, {fetched: Date.now() / 1000 - 300})
+context.refresh(false)
+assert.deepEqual(charts(context), [["chart", "AAPL", "3M"]])
 
 // Going live asks once; a second trigger while that chart runs or waits does not.
 context = store({windowMinimized: true})

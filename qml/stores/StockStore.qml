@@ -199,6 +199,10 @@ QtObject {
     readonly property bool chartShown: running && windowOpen && !windowMinimized && view === "stock" && !!selected
     readonly property bool chartLive: chartShown && ["", "REGULAR"].indexOf(quote.marketState || "") >= 0
     readonly property bool extendedLive: chartShown && MarketStore.wantExtended && ["PRE", "REGULAR", "POST"].indexOf(quote.marketState) >= 0
+    // Prices move all session: with the window up and the market trading, the
+    // quotes refresh every minute on any range or view.
+    readonly property bool quotesLive: running && windowOpen && !windowMinimized
+        && (quote.marketState === "REGULAR" || Clock.normalize((marketQuotes["^SPX"] || {}).marketState) === "REGULAR")
     onChartShownChanged: if (chartShown) requestChart(false)
     onChartLiveChanged: if (chartShown) requestChart(false)
     onExtendedLiveChanged: if (extendedLive) MarketStore.extendedRequest.reload(false)
@@ -313,7 +317,8 @@ QtObject {
     function refresh(force) {
         if (force && windowOpen) MarketStore.refresh(true)
         request(force ? ["refresh", "--force"] : ["refresh"])
-        if (force ? chartShown : chartLive) requestChart(force)
+        // Other ranges' bars barely move within minutes: their charts refresh every five.
+        if (force ? chartShown : chartLive && (period === "1D" || Date.now() / 1000 - (chart.fetched || 0) >= 290)) requestChart(force)
         else if (extendedLive) MarketStore.extendedRequest.reload(false)
         if (selected && windowOpen && view === "stock" && !tracked) requestQuote(selected)
     }
@@ -608,9 +613,23 @@ QtObject {
     }
     property Timer watchdog: Timer { interval: 60000; onTriggered: root.helper.running = false }
     property Timer quoteRetry: Timer { onTriggered: root.request(["retry-quotes"]) }
-    // Every minute while a 1D chart is live; otherwise five minutes, which also
-    // keeps the bar's quotes current while the window is closed.
-    property Timer poll: Timer { interval: (root.chartLive || root.extendedLive) && root.period === "1D" ? 60000 : 300000; running: root.running; repeat: true; onTriggered: root.refresh(false) }
+    // Every minute while prices move on screen; otherwise five minutes, which
+    // also keeps the bar's quotes current while the window is closed.
+    readonly property int pollInterval: quotesLive || (chartLive || extendedLive) && period === "1D" ? 60000 : 300000
+    // The poll keeps a wall-clock deadline: a QML Timer runs on Qt's animation
+    // clock, which a looping animation once made run 16% fast (polling every
+    // 52 s instead of 60). The timer only checks the deadline, so a poll is never
+    // more than a second off.
+    property double nextPollAt: Date.now() + pollInterval
+    onPollIntervalChanged: nextPollAt = Date.now() + pollInterval
+    property Timer poll: Timer {
+        interval: 1000; running: root.running; repeat: true
+        onTriggered: {
+            if (Date.now() < root.nextPollAt) return
+            root.nextPollAt = Date.now() + root.pollInterval
+            root.refresh(false)
+        }
+    }
     // Searches once typing pauses for a quarter of a second.
     property Timer searchTimer: Timer { interval: 250; onTriggered: root.requestSearch(root.searchQuery) }
     property FileView palette: FileView {
