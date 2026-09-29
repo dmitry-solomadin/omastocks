@@ -161,11 +161,26 @@ QtObject {
     readonly property var quote: {
         const entry = entries.find(entry => entry.symbol === selected)
         if (entry) return entry
-        return previewQuotes[selected] || {symbol: selected}
+        // Outside the active list: its own quote or, for a favorite from another
+        // list, the one the watchlist refresh keeps; the fresher of the two.
+        const known = [previewQuotes[selected], favoriteEntries.find(entry => entry.symbol === selected)].filter(row => !!row)
+        return known.sort((a, b) => (b.fetched || 0) - (a.fetched || 0))[0] || {symbol: selected}
+    }
+    // The session a symbol's market is in before its own quote arrives, so the
+    // header can be laid out at once: a quote the app already has (the lists,
+    // the Market view's assets), crypto always trading, a US listing with the US
+    // market. "" for what is unknown until then: a foreign listing, an index or
+    // contract the app has no quote for.
+    function expectedSession(ticker) {
+        const known = (watchlistQuotes[ticker] || favoriteEntries.find(entry => entry.symbol === ticker) || marketQuotes[ticker] || {}).marketState
+        if (known) return Clock.normalize(known)
+        if (/-(USD|USDT|USDC|EUR|GBP)$/.test(ticker)) return "REGULAR"
+        if (/[.=^]/.test(ticker)) return ""
+        return Clock.normalize((marketQuotes["^SPX"] || {}).marketState) || Clock.scheduled(Date.now())
     }
     readonly property bool tracked: entries.some(entry => entry.symbol === selected)
     function isNonCompany(ticker) {
-        const entry = entries.find(row => row.symbol === ticker) || previewQuotes[ticker] || {}
+        const entry = entries.find(row => row.symbol === ticker) || previewQuotes[ticker] || favoriteEntries.find(row => row.symbol === ticker) || {}
         const detail = chart.symbol === ticker ? chart : {}
         const result = results.find(row => row.symbol === ticker) || {}
         const type = detail.instrumentType || entry.instrumentType || result.type || ""

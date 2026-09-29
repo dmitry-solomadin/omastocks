@@ -39,7 +39,7 @@ function nested(source, name) {
 function app({entries, marketState = "REGULAR", showExtended = false}) {
     const stock = load(qml("stores/StockStore.qml"), {
         state: {running: true, windowOpen: true, windowMinimized: false, view: "stock", selected: "AAPL", period: "1D",
-            entries: entries || [{symbol: "AAPL", marketState}], previewQuotes: {}, chart: {}, queue: [], active: null, activeWatchlist: "default",
+            entries: entries || [{symbol: "AAPL", marketState}], favoriteEntries: [], previewQuotes: {}, chart: {}, queue: [], active: null, activeWatchlist: "default",
             ...serverLane.state},
         bindings: ["quote", "tracked", "chartShown", "chartLive", "extendedLive", "visibleChart", "watchlistQuotes", "chartLoading"],
         functions: ["select", "range", "refresh"].concat(serverLane.functions),

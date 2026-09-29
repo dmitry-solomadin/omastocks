@@ -32,12 +32,13 @@ FloatingWindow {
         if (!visible) { settingsMenu.close(); watchlistMenu.close(); watchlistSelector.close(); list.cancelDrag() }
     }
     readonly property var quote: StockStore.quote
-    // Whether the price is still moving in today's regular session. Watchlist
-    // quotes carry the exchange's state; other quotes have the session's hours.
-    // Either refreshes with the quote, so "At close" follows within minutes.
-    readonly property bool regularSession: quote.marketState ? quote.marketState === "REGULAR"
-        : Number.isFinite(quote.sessionStart) && Number.isFinite(quote.sessionEnd)
-            && Date.now() / 1000 >= quote.sessionStart && Date.now() / 1000 < quote.sessionEnd
+    // The session decides the header's layout: "At close" above the price out
+    // of session, today's change below it in session. The stock's own quote has
+    // it; until that arrives, the session its market is known to be in, so the
+    // layout is right at once. When that is unknown (a foreign listing), it is
+    // laid out as closed with the caption left blank until the quote says.
+    readonly property string session: quote.marketState || StockStore.expectedSession(StockStore.selected)
+    readonly property bool regularSession: session === "REGULAR"
     // While a new range of the same stock loads, the chart last drawn stays,
     // dimmed, instead of blanking. A new stock starts blank: another stock's
     // line would be wrong. A failed load ends the hold like any reply.
@@ -609,7 +610,7 @@ FloatingWindow {
                                 Label {
                                     objectName: "closeLabel"
                                     visible: !window.regularSession
-                                    text: "AT CLOSE"
+                                    text: window.session ? "AT CLOSE" : ""
                                     color: Tone.muted
                                     font.pixelSize: Style.font.bodySmall
                                     font.letterSpacing: 1

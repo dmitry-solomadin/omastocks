@@ -10,7 +10,7 @@ function store(state) {
     const context = load(file, {
         state: Object.assign({
             running: true, windowOpen: true, windowMinimized: false, view: "stock", selected: "AAPL", period: "1D",
-            entries: [regular], previewQuotes: {}, chart: {}, queue: [], active: null, error: "",
+            entries: [regular], favoriteEntries: [], previewQuotes: {}, chart: {}, queue: [], active: null, error: "",
             exited: true, collected: true, captured: "", quoteTransportFailures: 0, activeWatchlist: "default",
             marketStarted: true, marketRetries: 0
         }, serverLane.state, state),

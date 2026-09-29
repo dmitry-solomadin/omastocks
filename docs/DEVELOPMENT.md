@@ -80,7 +80,12 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   Success resets the backoff, and Yahoo's shared rate-limit cooldown takes
   precedence. A stock outside the watchlist gets its header quote from the same
   bulk request, not from its chart, fetched through the data helper below and
-  saved under the watchlist lock like the rest.
+  saved under the watchlist lock like the rest. A favorite from another list
+  shows the quote the watchlist refresh keeps at once. Until its own quote
+  arrives, the Stock page header is laid out for the session its market is
+  known to be in (the lists, the Market view's quotes, crypto always trading, a
+  US listing with the US market); for a foreign listing it keeps the "At close"
+  caption's line blank until the quote says, so nothing moves.
 - Charts are live and never saved; `cache.json` holds only quotes and sparklines,
   and chart entries left by earlier versions are dropped. A failed refresh keeps
   only the chart already on screen, with "As of d MMM HH:mm · refresh failed" on
@@ -212,6 +217,7 @@ node tests/test_extended_hours.cjs
 node tests/test_yahoo_status.cjs
 node tests/test_watchlist_keys.cjs
 node tests/test_server_helper.cjs
+node tests/test_header_session.cjs
 bash -n install install-launcher uninstall
 shellcheck install install-launcher uninstall
 omarchy plugin validate .
