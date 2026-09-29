@@ -22,7 +22,8 @@ QtObject {
         if (!active) return
         const args = active.args
         const request = args[0] === "chart" ? {action: "chart", symbol: args[1], range: args[2]}
-            : args[0] === "quote" ? {action: "quote", symbol: args[1]} : {action: "search", query: args[1]}
+            : args[0] === "quote" ? {action: "quote", symbol: args[1]}
+            : args[0] === "quotes" ? {action: "quotes", symbols: args.slice(1)} : {action: "search", query: args[1]}
         process.write(JSON.stringify(Object.assign({id: active.id}, request)) + "\n")
     }
     // Only the reply to the running request counts.

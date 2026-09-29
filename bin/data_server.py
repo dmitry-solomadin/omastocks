@@ -7,16 +7,18 @@ reuses Yahoo's HTTPS connection: a chart in about 40-150 ms instead of 230.
 Charts and search hold no lock and save nothing. A quote, for a stock outside
 the watchlist, is the same as `stocks.py quote`: taken and saved under the
 watchlist lock. Requests are {"id", "action": "chart", "symbol", "range"},
-{"id", "action": "quote", "symbol"} or {"id", "action": "search", "query"},
-answered by {"id", "chart"}, {"id", "quote"} or {"id", "search"}. A failed
-chart or search is an error in its reply; a failed quote is {"id", "error"}."""
+{"id", "action": "quote", "symbol"}, {"id", "action": "search", "query"} or
+{"id", "action": "quotes", "symbols"} (search results' prices, not saved),
+answered by {"id", "chart"}, {"id", "quote"}, {"id", "search"} or
+{"id", "quotes"}. A failed chart, search or quotes request is an error in its
+reply; a failed quote is {"id", "error"}."""
 
 import json
 import sys
 
 import stocks
 import yahoo_http
-from stocks import chart, search, symbol
+from stocks import chart, search, search_quotes, symbol
 
 
 def answer(line):
@@ -31,6 +33,8 @@ def answer(line):
             result = stocks.main(["quote", str(request.get("symbol", ""))])
         elif request.get("action") == "search":
             result = {"search": search(str(request.get("query", "")))}
+        elif request.get("action") == "quotes":
+            result = {"quotes": search_quotes([symbol(str(ticker)) for ticker in request.get("symbols") or []])}
         else:
             raise ValueError("Unknown request.")
         return json.dumps({"id": request.get("id"), **result}, allow_nan=False)
@@ -41,6 +45,8 @@ def answer(line):
             failed = {"error": str(error)}
         elif request.get("action") == "search":
             failed = {"search": {"query": str(request.get("query", "")), "results": [], "error": str(error)}}
+        elif request.get("action") == "quotes":
+            failed = {"quotes": {"rows": [], "error": str(error)}}
         else:
             failed = {"chart": {"symbol": str(request.get("symbol", "")), "range": str(request.get("range", "")),
                                 "points": [], "error": str(error), "stale": True}}

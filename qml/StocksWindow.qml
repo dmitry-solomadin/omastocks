@@ -244,8 +244,10 @@ FloatingWindow {
                         const query = StockStore.searchQuery.toLowerCase()
                         if (!query) return StockStore.sortedEntries
                         const local = StockStore.sortedEntries.filter(entry => (entry.symbol + " " + entry.name).toLowerCase().indexOf(query) >= 0)
+                        // Results outside the watchlist show their price once it arrives.
                         const results = StockStore.results.map(result =>
-                            StockStore.entries.find(entry => entry.symbol === result.symbol) || result)
+                            StockStore.entries.find(entry => entry.symbol === result.symbol)
+                            || Object.assign({}, result, StockStore.previewQuotes[result.symbol] || {}))
                         const symbols = results.map(entry => entry.symbol)
                         return results.concat(local.filter(entry => symbols.indexOf(entry.symbol) < 0))
                     }

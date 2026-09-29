@@ -39,9 +39,11 @@ server.read(JSON.stringify({id: 1, chart: {symbol: "AAPL"}}))
 server.send(2, ["quote", "TSLA"])
 server.read(JSON.stringify({id: 2, quote: {symbol: "TSLA"}}))
 server.send(3, ["search", "nvid"])
+server.read(JSON.stringify({id: 3, search: {}}))
+server.send(4, ["quotes", "NVDA", "AMD"])
 assert.equal(server.process.starts, 1, "One process for every request")
 assert.deepEqual(plain(server.process.writes), [{id: 1, action: "chart", symbol: "AAPL", range: "1D"},
-    {id: 2, action: "quote", symbol: "TSLA"}, {id: 3, action: "search", query: "nvid"}])
+    {id: 2, action: "quote", symbol: "TSLA"}, {id: 3, action: "search", query: "nvid"}, {id: 4, action: "quotes", symbols: ["NVDA", "AMD"]}])
 
 // Only the reply to the running request counts.
 server = helper()

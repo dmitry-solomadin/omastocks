@@ -230,6 +230,25 @@ class ServerTests(unittest.TestCase):
         reply = self.serve(json.dumps({"id": 5, "action": "delete"}))[0]
         self.assertEqual(reply["chart"]["error"], "Unknown request.")
 
+    def test_search_prices_take_one_request_and_save_nothing(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        patch.dict(os.environ, {"STOCKS_STATE_DIR": temporary.name}).start()
+        rows = {"NVDA": {"symbol": "NVDA", "price": 180, "percent": 1.5},
+                "GONE": {"symbol": "GONE", "price": None, "percent": None, "error": "Bulk quote unavailable"}}
+        with patch.object(market_bulk, "quotes", return_value={"rows": rows}) as quotes, \
+                patch.object(market_bulk, "sparks") as sparks:
+            reply = self.serve(json.dumps({"id": 1, "action": "quotes", "symbols": ["nvda", "GONE", "NVDA"]}))[0]
+        self.assertEqual(quotes.call_args.args[0], ["NVDA", "GONE"])
+        sparks.assert_not_called()
+        [row] = reply["quotes"]["rows"]
+        self.assertEqual((row["symbol"], row["price"]), ("NVDA", 180))
+        self.assertIn("fetched", row)
+        self.assertEqual(os.listdir(temporary.name), [])
+        with patch.object(market_bulk, "quotes", side_effect=ValueError("offline")):
+            reply = self.serve(json.dumps({"id": 3, "action": "quotes", "symbols": ["NVDA"]}))[0]
+        self.assertEqual((reply["id"], reply["quotes"]["rows"], reply["quotes"]["error"]), (3, [], "offline"))
+
     def test_quotes_are_saved_like_the_one_shot_quote(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

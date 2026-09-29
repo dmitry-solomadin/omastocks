@@ -473,6 +473,16 @@ def search(query):
     return {"query": query, "results": merge_results(query, remote), "error": error}
 
 
+def search_quotes(tickers):
+    """Prices for search results in one bulk quote request, without sparklines.
+    Nothing is saved."""
+    from market_bulk import quotes
+    tickers = list(dict.fromkeys(tickers))[:20]
+    fetched = time.time()
+    return {"symbols": tickers, "rows": [{**row, "fetched": fetched}
+                                         for row in quotes(tickers)["rows"].values() if row.get("price") is not None]}
+
+
 def state_directory():
     return Path(os.environ.get("STOCKS_STATE_DIR") or
                 Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state"))) / "omarchy/io.github.dmitry-solomadin.omastocks")

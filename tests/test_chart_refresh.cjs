@@ -389,6 +389,24 @@ assert.deepEqual(context.sent, [["search", "nvid"]], "Not through the watchlist 
 context.pool.answer("search", {query: "nvid", results: [{symbol: "NVDA"}], error: ""})
 assert.deepEqual(plain(context.results), [{symbol: "NVDA"}])
 assert.equal(context.completedQuery, "nvid")
+// Then the results' prices, in one request, kept with other untracked quotes.
+assert.deepEqual(context.sent.slice(-1), [["quotes", "NVDA"]])
+context.pool.answer("quotes", {rows: [{symbol: "NVDA", price: 180, fetched: Date.now() / 1000}]})
+assert.equal(context.previewQuotes.NVDA.price, 180)
+// Not for watchlist stocks, nor prices from the last minute.
+context = store({})
+context.entries = [{symbol: "AAPL"}]
+context.previewQuotes = {NVDA: {symbol: "NVDA", fetched: Date.now() / 1000 - 10}, AMD: {symbol: "AMD", fetched: Date.now() / 1000 - 90}}
+typed(context, "a")
+context.pool.answer("search", {query: "a", results: [{symbol: "AAPL"}, {symbol: "NVDA"}, {symbol: "AMD"}, {symbol: "ARM"}], error: ""})
+assert.deepEqual(context.sent.slice(-1), [["quotes", "AMD", "ARM"]])
+// A search price never replaces a newer quote of the stock.
+context.receiveQuote({symbol: "NVDA", price: 1, fetched: Date.now() / 1000 - 20})
+assert.equal(context.previewQuotes.NVDA.price, undefined)
+// While the helpers rest, search results go without prices.
+context = store({})
+context.request(["quotes", "X"])
+assert.deepEqual(plain(context.queue), [])
 // A search runs beside a chart and other searches; a reply for an older query
 // never replaces the results.
 context = store({})

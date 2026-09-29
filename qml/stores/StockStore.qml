@@ -376,6 +376,13 @@ QtObject {
     }
     function requestQuote(ticker) { sendToServer(["quote", ticker], false) }
     function requestSearch(query) { sendToServer(["search", query], false) }
+    // Prices for search results outside the watchlist, unless known from the last minute.
+    function requestSearchQuotes(results) {
+        const now = Date.now() / 1000
+        const symbols = results.map(result => result.symbol).filter(ticker => !entries.some(entry => entry.symbol === ticker)
+            && !(previewQuotes[ticker] && now - (previewQuotes[ticker].fetched || 0) < 60)).slice(0, 20)
+        if (symbols.length) sendToServer(["quotes"].concat(symbols), false)
+    }
     function pumpServer() {
         while (running && serverWaiting.length) {
             const args = serverWaiting[0]
@@ -392,6 +399,7 @@ QtObject {
         if (reply.quote) receiveQuote(reply.quote)
         if (args[0] === "quote" && reply.error) error = reply.error
         if (reply.search) receiveSearch(args[1], reply.search)
+        if (reply.quotes) (reply.quotes.rows || []).forEach(receiveQuote)
         pumpServer()
     }
     function serverLost(args) {
@@ -491,6 +499,8 @@ QtObject {
         request(["move", ticker, before])
     }
     function request(args) {
+        // Search prices come only from the helpers; while they rest, results go without.
+        if (args[0] === "quotes") return
         if (["add", "remove", "favorite", "move", "transfer"].indexOf(args[0]) >= 0 && args.indexOf("--list") < 0)
             args = args.concat(["--list", activeWatchlist])
         // Supersede reads, but preserve every watchlist mutation in order.
@@ -525,8 +535,10 @@ QtObject {
     }
     // Charts are never saved. A failed refresh keeps the chart already on
     // screen, marked stale so it can show its time; anything else is replaced.
-    // The quote of a stock outside the watchlist, for its header.
+    // The quote of a stock outside the watchlist, for its header and its search result.
     function receiveQuote(quote) {
+        // A search result's price never replaces a newer quote of the stock.
+        if (previewQuotes[quote.symbol] && (previewQuotes[quote.symbol].fetched || 0) > (quote.fetched || 0)) return
         const quotes = Object.assign({}, previewQuotes)
         quotes[quote.symbol] = quote
         previewQuotes = quotes
@@ -537,6 +549,7 @@ QtObject {
         results = data.results || []
         searchError = data.error || ""
         completedQuery = searchQuery
+        requestSearchQuotes(results)
     }
     function receiveChart(reply) {
         // Another range of this stock, loaded ahead of a click: kept for it.

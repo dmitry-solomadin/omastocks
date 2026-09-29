@@ -103,6 +103,7 @@ function serverPool(context, size = 3) {
         answer(kind = "chart", result) {
             const [, args] = finish(kind)
             context.serverReplied(args, kind === "search" ? {search: result || {query: args[1], results: []}}
+                : kind === "quotes" ? {quotes: result || {rows: args.slice(1).map(symbol => ({symbol, price: 1, fetched: 1}))}}
                 : kind === "quote" ? result || {quote: {symbol: args[1], price: 1, marketState: "REGULAR"}}
                 : {chart: result || {symbol: args[1], range: args[2], points: [[1, 1], [2, 2]]}})
         },
@@ -123,7 +124,7 @@ function serverPool(context, size = 3) {
 const serverLane = {
     state: {serverWaiting: [], serverSerial: 0, serverFailures: 0, serverRestUntil: 0,
         hoveredRange: "", prefetched: null, searchQuery: "", completedQuery: "", searchError: "", results: []},
-    functions: ["serverRequests", "sendToServer", "requestChart", "requestQuote", "requestSearch", "pumpServer", "serverReplied", "serverLost", "serverHung",
+    functions: ["serverRequests", "sendToServer", "requestChart", "requestQuote", "requestSearch", "requestSearchQuotes", "pumpServer", "serverReplied", "serverLost", "serverHung",
         "serverFailed", "stopServer", "receiveChart", "receiveQuote", "receiveSearch", "search", "pending", "request",
         "hoverRange", "prefetchChart", "prefetchedFresh"],
     globals: () => ({prefetchTimer: {running: false, restart() { this.running = true }, stop() { this.running = false }},
