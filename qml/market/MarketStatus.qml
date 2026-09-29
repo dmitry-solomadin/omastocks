@@ -21,12 +21,14 @@ RowLayout {
         implicitWidth: Style.space(6)
         implicitHeight: Style.space(6)
         color: root.tone
-        SequentialAnimation on opacity {
-            running: root.session.opened && root.session.active
-            loops: Animation.Infinite
-            NumberAnimation { to: .25; duration: 900; easing.type: Easing.InOutSine }
-            NumberAnimation { to: 1; duration: 900; easing.type: Easing.InOutSine }
-            onStopped: led.opacity = 1
+        // Pulses from a Timer, not an animation: a looping animation in this window
+        // made Qt's animation clock, and so every QML Timer in the shell, run 16%
+        // fast (a 10 s Timer fired every 8.6 s).
+        readonly property bool pulsing: root.session.opened && root.session.active
+        onPulsingChanged: if (!pulsing) opacity = 1
+        Timer {
+            interval: 33; repeat: true; running: led.pulsing
+            onTriggered: led.opacity = .625 + .375 * Math.cos(Date.now() / 1800 * 2 * Math.PI)
         }
     }
     Label {
