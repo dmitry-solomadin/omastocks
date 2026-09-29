@@ -21,6 +21,7 @@ RangeGauge 1.0 components/RangeGauge.qml
 EventBadge 1.0 components/EventBadge.qml
 MarketLoading 1.0 components/MarketLoading.qml
 SessionHeader 1.0 components/SessionHeader.qml
+RollingNumber 1.0 components/RollingNumber.qml
 
 PriceChart 1.0 charts/PriceChart.qml
 ChartTools 1.0 charts/ChartTools.qml

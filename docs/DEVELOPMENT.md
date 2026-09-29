@@ -136,6 +136,12 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   duplicate of the chart already running or waiting unless the user refreshes,
   and emits `chartRequested`, on which comparison lines and the extended chart
   reload. They therefore follow the chart's pace and are never older than it.
+- When a new quote moves the header price, its changed digits roll to the new
+  value (`RollingNumber`), up on a rise and down on a fall; a new stock or a
+  placeholder just shows its price. The roll and the market-open dot are driven
+  by Timers against the wall clock, not QML animations: a running animation
+  hands Qt's animation clock to the renderer, and a looping one once made every
+  QML Timer in the shell run 16% fast.
 - The header's pre-market or after-hours price comes from the bulk quote
   (Yahoo's `preMarket*` and `postMarket*` fields), chosen by
   `StockStore.extendedQuote` once it is newer than the last regular trade, and

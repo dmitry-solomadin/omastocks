@@ -617,7 +617,17 @@ FloatingWindow {
                                 }
                                 RowLayout {
                                     spacing: Style.space(12)
-                                    Label { text: StockStore.price(window.quote.price); font.pixelSize: Style.space(48); font.bold: true }
+                                    // Rolls its changed digits when a new quote moves the price.
+                                    RollingNumber {
+                                        objectName: "headerPrice"
+                                        text: StockStore.price(window.quote.price)
+                                        value: window.quote.price || 0
+                                        key: StockStore.selected
+                                        font.family: Style.font.family
+                                        font.pixelSize: Style.space(48)
+                                        font.bold: true
+                                        font.features: { "tnum": 1 }
+                                    }
                                     Label { text: window.quote.currency || ""; color: Tone.muted; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: Style.space(8) }
                                 }
                                 Label {
