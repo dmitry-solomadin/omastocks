@@ -63,9 +63,10 @@ class ChartIntervals(unittest.TestCase):
             source["indicators"]["quote"][0]["close"].append(108)
             source["indicators"]["quote"][0]["volume"].append(0)
             return data
-        # Live price during the 13:30 bar, and the closing price after 15:30's.
-        for hours, quote, bar in ((range(9, 14), stamp(25, 13, 41), stamp(25, 13)),
-                                  (range(9, 16), stamp(25, 16, 0), stamp(25, 15))):
+        # Live price during the 13:30 bar, at the quote's time, and the closing
+        # price after 15:30's, at the close.
+        for hours, quote, bar in ((range(9, 14), stamp(25, 13, 41), stamp(25, 13, 41)),
+                                  (range(9, 16), stamp(25, 16, 0), stamp(25, 16, 0))):
             with self.subTest(quote=quote):
                 result = stocks.parse_chart(week(quote, hours), "AMD", "1W")
                 self.assertEqual(result["points"][-1], (bar, 108))
@@ -74,23 +75,32 @@ class ChartIntervals(unittest.TestCase):
                 self.assertEqual(len(result["dates"]), len(hours))
         # A quote past its bar, before the next bar arrives, has no volume of its own.
         result = stocks.parse_chart(week(stamp(25, 14, 5), range(9, 14)), "AMD", "1W")
-        self.assertEqual(result["points"][-1], (stamp(25, 14, 5), 108))
+        self.assertEqual(result["points"][-2:], [(stamp(25, 14, 0), 104), (stamp(25, 14, 5), 108)])
         self.assertIsNone(result["volumes"][-1])
         # A real zero-volume bar is not a quote.
         data = document()
         data["chart"]["result"][0]["indicators"]["quote"][0]["volume"][-1] = 0
         self.assertEqual(stocks.parse_chart(data, "AMD", "1W")["volumes"][-1], 0)
 
+    def test_week_bars_are_stamped_where_their_close_traded(self):
+        result = stocks.parse_chart(document(), "AMD", "1W")
+        # Yahoo's 9:30 bar closes at 10:00; the last, 15:30, ends at the 16:00 close.
+        self.assertEqual(result["points"][0], (stamp(25, 10, 0), 100))
+        self.assertEqual(result["points"][-1][0], stamp(25, 16, 0))
+        self.assertEqual(result["volumes"], [10] * 7)
+        self.assertEqual(result["dates"], ["2026-09-25"] * 7)
+
     def test_month_has_three_samples_per_full_session_with_volume_totals(self):
         data = document()
         result = stocks.parse_chart(data, "AMD", "1M")
         self.assertEqual([point[1] for point in result["points"]], [102, 104, 106])
-        self.assertEqual([point[0] for point in result["points"]], [stamp(25, 11), stamp(25, 13), stamp(25, 15)])
+        # Each at its last hourly bar's end; the 15:30 bar ends with the session.
+        self.assertEqual([point[0] for point in result["points"]], [stamp(25, 12), stamp(25, 14), stamp(25, 16, 0)])
         self.assertEqual(result["volumes"], [30, 20, 20])
         self.assertEqual(result["dates"], ["2026-09-25"] * 3)
         # An unfinished morning cannot shift existing groups into new slots.
         partial = stocks.parse_chart(document(hours=range(9, 11)), "AMD", "1M")
-        self.assertEqual(partial["points"], [(stamp(25, 10), 101)])
+        self.assertEqual(partial["points"], [(stamp(25, 11), 101)])
 
     def test_early_close_uses_its_own_session_and_keeps_the_closing_quote(self):
         data = document(end=13, hours=range(9, 13))

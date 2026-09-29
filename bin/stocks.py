@@ -31,7 +31,7 @@ SEED = [("AAPL", "Apple Inc."), ("MSFT", "Microsoft Corporation"),
         ("NVDA", "NVIDIA Corporation"), ("GOOGL", "Alphabet Inc."),
         ("AMZN", "Amazon.com, Inc.")]
 BASE = "https://query1.finance.yahoo.com"
-CHART_SCHEMA = 5
+CHART_SCHEMA = 6
 
 
 def number(value):
@@ -95,8 +95,8 @@ def fetch(path, **parameters):
         raise ValueError(f"Could not reach Yahoo Finance: {error}") from error
 
 
-def month_samples(points, volumes, meta, timezone):
-    """Three session-relative samples per day from Yahoo's hourly candles."""
+def trading_sessions(meta):
+    """Yahoo's regular sessions for the range, and today's."""
     sessions = []
 
     def collect(value):
@@ -110,25 +110,61 @@ def month_samples(points, volumes, meta, timezone):
 
     periods = meta.get("tradingPeriods") or []
     collect(periods.get("regular", []) if isinstance(periods, dict) else periods)
-    regular = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
-    collect(regular)
-    current_start, current_end = number(regular.get("start")), number(regular.get("end"))
+    collect((meta.get("currentTradingPeriod") or {}).get("regular") or {})
+    return sessions
+
+
+def session_of(stamp, sessions, meta, timezone):
+    """The regular session a bar or closing quote belongs to."""
+    session = next((bounds for bounds in sessions if bounds[0] <= stamp < bounds[1]), None)
+    if session is None:
+        # A trailing close quote belongs to the session that just ended.
+        session = next((bounds for bounds in sessions if stamp == bounds[1]), None)
+    if session is None:
+        regular = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
+        current_start, current_end = number(regular.get("start")), number(regular.get("end"))
+        day = datetime.fromtimestamp(stamp, timezone).replace(hour=0, minute=0, second=0, microsecond=0)
+        if current_start is not None and current_end is not None and current_end > current_start:
+            opening = datetime.fromtimestamp(current_start, timezone)
+            start = day.replace(hour=opening.hour, minute=opening.minute, second=opening.second).timestamp()
+            session = (start, start + current_end - current_start)
+        else:
+            session = (day.timestamp(), (day + timedelta(days=1)).timestamp())
+    return session
+
+
+def bar_ends(points, volumes, seconds, meta, timezone):
+    """Stamp each bar where its closing price traded: its end, the live quote's
+    time while it runs, or the session's close. Yahoo stamps bars by their start,
+    so a 30-minute bar's close would otherwise read as half an hour earlier."""
+    sessions = trading_sessions(meta)
+    live = number(meta.get("regularMarketTime"))
+    moved, totals = [], {}
+    for stamp, value in points:
+        start, close = session_of(stamp, sessions, meta, timezone)
+        # A trailing quote is already a moment, not a bar.
+        end = stamp if stamp in (live, close) else min(stamp + seconds, close)
+        if live is not None and stamp < live < end:
+            end = live
+        end = int(end)
+        if moved and end <= moved[-1][0]:
+            # A running bar capped at the quote that also trails it: one point.
+            moved[-1] = (moved[-1][0], value)
+            if totals[moved[-1][0]] is None:
+                totals[moved[-1][0]] = volumes.get(stamp)
+            continue
+        moved.append((end, value))
+        totals[end] = volumes.get(stamp)
+    return moved, totals
+
+
+def month_samples(points, volumes, meta, timezone):
+    """Three session-relative samples per day from Yahoo's hourly candles."""
+    sessions = trading_sessions(meta)
     groups = {}
     for point in points:
         stamp = point[0]
-        session = next((bounds for bounds in sessions if bounds[0] <= stamp < bounds[1]), None)
-        if session is None:
-            # A trailing close quote belongs to the session that just ended.
-            session = next((bounds for bounds in sessions if stamp == bounds[1]), None)
-        if session is None:
-            day = datetime.fromtimestamp(stamp, timezone).replace(hour=0, minute=0, second=0, microsecond=0)
-            if current_start is not None and current_end is not None and current_end > current_start:
-                opening = datetime.fromtimestamp(current_start, timezone)
-                start = day.replace(hour=opening.hour, minute=opening.minute, second=opening.second).timestamp()
-                session = (start, start + current_end - current_start)
-            else:
-                session = (day.timestamp(), (day + timedelta(days=1)).timestamp())
-        start, end = session
+        start, end = session_of(stamp, sessions, meta, timezone)
         slot = max(0, min(2, int((stamp - start) * 3 / (end - start))))
         group = groups.setdefault((start, slot), {"point": point, "volumes": []})
         group["point"] = point
@@ -180,8 +216,11 @@ def parse_chart(document, ticker, period):
             points[-2:] = [(points[-2][0], points[-1][1])]
         else:
             volumes[stamp] = None
+    if period == "1W":
+        points, volumes = bar_ends(points, volumes, 1800, meta, timezone)
     if period == "1M":
         points, volumes = month_samples(points, volumes, meta, timezone)
+        points, volumes = bar_ends(points, volumes, 3600, meta, timezone)
     dates = [datetime.fromtimestamp(stamp, timezone).date().isoformat() for stamp, _ in points]
     events = []
     for category, kind in (("dividends", "dividend"), ("splits", "split")):
