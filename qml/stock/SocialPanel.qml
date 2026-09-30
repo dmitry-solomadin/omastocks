@@ -28,16 +28,10 @@ ColumnLayout {
         spacing: Style.space(8)
         RowLayout {
             Layout.fillWidth: true
-            Label {
+            SectionHeading {
                 text: "REDDIT BUZZ · 24H"
+                hint: "Mentions measure attention, not sentiment"
                 Layout.fillWidth: true
-                color: Tone.muted
-                font.pixelSize: Style.font.bodySmall
-                HoverHandler { id: buzzHover }
-                Ui.PanelToolTip {
-                    visible: buzzHover.hovered
-                    text: "Mentions measure attention, not sentiment"
-                }
             }
             ActionButton {
                 text: "ApeWisdom ↗"

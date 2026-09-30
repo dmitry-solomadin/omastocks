@@ -9,8 +9,8 @@ ColumnLayout {
     property var verticalFlickable
     spacing: Style.space(12)
     function refresh() { overview.refresh(); calendar.refresh() }
-    Label { text: "OVERVIEW"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true }
+    SectionHeading { text: "OVERVIEW"; Layout.fillWidth: true }
     WatchlistOverview { id: overview; objectName: "watchlistOverviewSection"; Layout.fillWidth: true; verticalFlickable: root.verticalFlickable }
-    Label { text: "CALENDAR"; color: Tone.muted; font.pixelSize: Style.font.bodySmall; Layout.fillWidth: true; Layout.topMargin: Style.space(12) }
+    SectionHeading { text: "CALENDAR"; Layout.fillWidth: true; Layout.topMargin: Style.space(12) }
     EarningsCalendar { id: calendar; objectName: "watchlistCalendarSection"; Layout.fillWidth: true; verticalFlickable: root.verticalFlickable }
 }

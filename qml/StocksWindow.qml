@@ -134,9 +134,14 @@ FloatingWindow {
         id: content
         anchors.fill: parent
         focus: true
+        readonly property var chartRanges: ["1D", "1W", "1M", "3M", "YTD", "1Y", "2Y", "5Y", "ALL"]
+        function moveRange(step) {
+            if (StockStore.view !== "stock" || settingsMenu.opened || watchlistMenu.opened || rowMenu.opened || watchlistSelector.popupOpen) return
+            const index = chartRanges.indexOf(StockStore.period) + step
+            if (index >= 0 && index < chartRanges.length) StockStore.range(chartRanges[index])
+        }
         Shortcut { sequence: "Ctrl+S"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !watchlistMenu.opened; onActivated: { search.forceActiveFocus(); search.selectAll() } }
         Shortcut { sequence: "Ctrl+R"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.refresh() }
-        Shortcut { sequence: "Ctrl+W"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.visible = false }
         Shortcut { sequence: "Escape"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !watchlistMenu.opened && !watchlistSelector.popupOpen; onActivated: {
             if (list.dragSymbol) list.cancelDrag()
             else if (detailChart.hasSelection) detailChart.clearSelection()
@@ -145,6 +150,18 @@ FloatingWindow {
         } }
         Keys.onDownPressed: list.moveSelection(1)
         Keys.onUpPressed: list.moveSelection(-1)
+        Keys.onLeftPressed: content.moveRange(-1)
+        Keys.onRightPressed: content.moveRange(1)
+        // Typing an English letter or digit outside a text field starts a new
+        // search with it. Text fields take their own keys, so none reach here.
+        Keys.onPressed: event => {
+            if (event.modifiers & ~(Qt.ShiftModifier | Qt.KeypadModifier) || !/^[A-Za-z0-9]$/.test(event.text)) return
+            if (settingsMenu.opened || watchlistMenu.opened || rowMenu.opened || watchlistSelector.popupOpen) return
+            search.forceActiveFocus()
+            search.text = event.text
+            search.cursorPosition = search.text.length
+            event.accepted = true
+        }
         SettingsMenu { id: settingsMenu; parent: content; shell: window.shell }
         WatchlistMenu { id: watchlistMenu; parent: content }
         StockRowMenu { id: rowMenu; parent: content }
@@ -188,22 +205,14 @@ FloatingWindow {
                         StocksLogo { id: wordmark; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; anchors.verticalCenterOffset: -Style.space(1) }
                     }
                     IconButton { text: "󰑐"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.refreshing; onClicked: window.refresh() }
-                    IconButton { text: "󰒓"; hint: "Settings"; onClicked: settingsMenu.open() }
+                    IconButton { objectName: "openSettings"; text: "󰒓"; hint: "Settings"; onClicked: settingsMenu.open() }
                 }
                 WatchlistSelector { id: watchlistSelector; Layout.fillWidth: true; onEditRequested: watchlistMenu.open() }
-                Controls.TextField {
+                InputField {
                     id: search
                     objectName: "stockSearch"
                     Layout.fillWidth: true
-                    implicitHeight: Style.space(38)
-                    placeholderText: "Search stocks · Ctrl+S"
-                    color: Color.foreground
-                    placeholderTextColor: Tone.muted
-                    selectionColor: Util.alpha(Color.accent, .3)
-                    selectedTextColor: Color.foreground
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.body
-                    leftPadding: Style.space(12)
+                    placeholderText: "Type to search · Ctrl+S"
                     rightPadding: clearSearch.visible ? clearSearch.width + Style.space(8) : Style.space(12)
                     ActionButton {
                         id: clearSearch
@@ -220,14 +229,8 @@ FloatingWindow {
                         visible: !!search.text
                         onClicked: { search.clear(); search.forceActiveFocus() }
                     }
-                    background: Rectangle {
-                        color: Util.alpha(Color.foreground, .04)
-                        radius: Style.cornerRadius
-                        border.width: 1
-                        border.color: search.activeFocus ? Color.accent : Tone.border
-                    }
                     onTextChanged: { list.cancelDrag(); StockStore.search(text) }
-                    onAccepted: list.selectIndex(0)
+                    onAccepted: list.acceptIndex(0)
                     Keys.onDownPressed: list.selectIndex(0)
                     Keys.onUpPressed: list.selectIndex(list.count - 1)
                     Accessible.name: "Search stocks by name or ticker"
@@ -314,6 +317,18 @@ FloatingWindow {
                         forceActiveFocus()
                         positionViewAtIndex(index, ListView.Contain)
                         if (StockStore.selected !== rows[index].symbol || StockStore.view !== "stock") StockStore.select(rows[index].symbol)
+                    }
+                    function acceptIndex(index) {
+                        if (index < 0 || index >= rows.length) return
+                        const ticker = rows[index].symbol
+                        selectIndex(index)
+                        if (StockStore.searchQuery && StockStore.entries.some(entry => entry.symbol === ticker)) {
+                            search.clear()
+                            Qt.callLater(() => {
+                                list.currentIndex = list.rows.findIndex(row => row.symbol === ticker)
+                                if (list.currentIndex >= 0) list.positionViewAtIndex(list.currentIndex, ListView.Contain)
+                            })
+                        }
                     }
                     function moveSelection(step) {
                         const from = rows.findIndex(entry => entry.symbol === (keyTarget || StockStore.selected))
@@ -460,7 +475,8 @@ FloatingWindow {
                             Label { text: list.dragName; color: Tone.muted; font.pixelSize: Style.font.bodySmall; width: parent.width }
                         }
                     }
-                    Keys.onReturnPressed: if (currentItem) StockStore.select(currentItem.modelData.symbol)
+                    Keys.onReturnPressed: acceptIndex(currentIndex)
+                    Keys.onEnterPressed: acceptIndex(currentIndex)
                     Keys.onDownPressed: moveSelection(1)
                     Keys.onUpPressed: moveSelection(-1)
                     Keys.onDeletePressed: if (StockStore.tracked && !StockStore.editing) StockStore.remove()
@@ -675,7 +691,7 @@ FloatingWindow {
                             spacing: Style.space(3)
                             readonly property real cellWidth: Math.max(0, Math.floor((width - spacing * 8) / 9))
                             Repeater {
-                                model: ["1D", "1W", "1M", "3M", "YTD", "1Y", "2Y", "5Y", "ALL"]
+                                model: content.chartRanges
                                 ActionButton {
                                     required property string modelData
                                     required property int index

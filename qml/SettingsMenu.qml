@@ -23,6 +23,17 @@ Controls.Popup {
         else
             StockStore.barSettings = settings
     }
+    // Keyboard shortcuts, listed at the bottom of Settings.
+    readonly property var shortcuts: [
+        {keys: ["A–Z"], action: "Start a search by typing"},
+        {keys: ["Ctrl", "S"], action: "Focus search"},
+        {keys: ["↑", "↓"], action: "Previous or next stock"},
+        {keys: ["←", "→"], action: "Previous or next chart range"},
+        {keys: ["Enter"], action: "Open the selected result"},
+        {keys: ["Del"], action: "Remove the selected stock"},
+        {keys: ["Ctrl", "Z"], action: "Undo the last removal"},
+        {keys: ["Ctrl", "R"], action: "Refresh"}
+    ]
     component ThemedSwitch: Ui.ToggleSwitch {
         HoverHandler { cursorShape: Qt.PointingHandCursor }
         rounded: false
@@ -74,7 +85,7 @@ Controls.Popup {
             }
         }
         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
-        Label { text: "CHART"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
+        SectionHeading { text: "CHART" }
         RowLayout {
             Layout.fillWidth: true
             Label { text: "Volume bars"; Layout.fillWidth: true }
@@ -112,7 +123,7 @@ Controls.Popup {
                 Accessible.name: "Enable topbar widget"
             }
         }
-        Label { text: "WIDGET"; visible: menu.showStrip; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
+        SectionHeading { text: "WIDGET"; visible: menu.showStrip }
         Repeater {
             model: [
                 {key: "showPrice", label: "Price", defaultValue: false},
@@ -153,21 +164,69 @@ Controls.Popup {
             }
         }
         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
-        Label { text: "WATCHLIST"; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
-        Repeater {
-            model: [{value:"percent",label:"Display percentage change"}, {value:"change",label:"Display price change"}, {value:"marketCap",label:"Display market cap"}]
-            RowLayout {
-                id: displayOption
-                required property var modelData
-                Layout.fillWidth: true
-                Label { text: displayOption.modelData.label; Layout.fillWidth: true; wrapMode: Text.WordWrap }
-                ThemedSwitch {
-                    objectName: "watchlistDisplay_" + displayOption.modelData.value
-                    checked: StockStore.watchlistDisplay === displayOption.modelData.value
-                    enabled: menu.shell !== null
-                    Accessible.role: Accessible.RadioButton
-                    Accessible.name: displayOption.modelData.label
-                    onToggled: if (!checked) menu.saveSetting("watchlistDisplay", displayOption.modelData.value)
+        SectionHeading { text: "WATCHLIST" }
+        Label { text: "Beside each price"; Layout.fillWidth: true }
+        SegmentedControl {
+            objectName: "watchlistDisplay"
+            objectNamePrefix: "watchlistDisplay_"
+            Layout.fillWidth: true
+            enabled: menu.shell !== null
+            value: StockStore.watchlistDisplay
+            options: [
+                {value: "percent", label: "% change", hint: "Percentage change today"},
+                {value: "change", label: "$ change", hint: "Price change today"},
+                {value: "marketCap", label: "Market cap", hint: "Market capitalization"}
+            ]
+            onActivated: value => menu.saveSetting("watchlistDisplay", value)
+            Accessible.name: "Watchlist value beside each price"
+        }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
+        SectionHeading { text: "SHORTCUTS" }
+        GridLayout {
+            objectName: "shortcutList"
+            Layout.fillWidth: true
+            columns: 2
+            columnSpacing: Style.space(14)
+            rowSpacing: Style.space(8)
+            Repeater {
+                model: menu.shortcuts
+                delegate: RowLayout {
+                    id: shortcut
+                    required property var modelData
+                    required property int index
+                    // Each shortcut takes a grid row: key caps, then the action.
+                    Layout.row: index
+                    Layout.column: 0
+                    Layout.alignment: Qt.AlignTop
+                    spacing: Style.space(4)
+                    Repeater {
+                        model: shortcut.modelData.keys
+                        Rectangle {
+                            required property string modelData
+                            implicitWidth: Math.max(implicitHeight, cap.implicitWidth + Style.space(10))
+                            implicitHeight: cap.implicitHeight + Style.space(4)
+                            radius: Style.space(3)
+                            color: Util.alpha(Color.foreground, .05)
+                            border.width: 1
+                            border.color: Tone.border
+                            Label { id: cap; anchors.centerIn: parent; text: parent.modelData; font.pixelSize: Style.font.bodySmall }
+                        }
+                    }
+                }
+            }
+            Repeater {
+                model: menu.shortcuts.length
+                delegate: Label {
+                    required property int index
+                    Layout.row: index
+                    Layout.column: 1
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    text: menu.shortcuts[index].action
+                    color: Tone.muted
+                    font.pixelSize: Style.font.bodySmall
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideNone
                 }
             }
         }

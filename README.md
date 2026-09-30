@@ -48,7 +48,7 @@ benchmark, instrument or tile to open its Stock view.
   an overflowing ticker scrolls and pauses on hover. Hover a ticker for its day
   chart and range; click it to open that stock.
 - **Settings** controls the topbar widget, its fields and width, the sidebar's
-  displayed metric, chart volume and event markers.
+  displayed metric, chart volume and event markers, and lists the keyboard shortcuts.
 - Hover a chart for prices; drag to measure an interval. Moving averages are
   available on **1M and longer** ranges. **Extended** adds supported pre-/post-market
   sessions to 1D. Expand a research section to load its details.
@@ -57,11 +57,15 @@ benchmark, instrument or tile to open its Stock view.
 
 | Shortcut | Action |
 |---|---|
+| Letter or digit | Start a search with it, outside text fields |
 | `Ctrl+S` | Focus search |
 | `↑` / `↓` | Select the previous/next stock |
+| `←` / `→` | Select the previous/next chart range outside text fields |
+| `Enter` | Open a search result; if already in the current watchlist, clear search and highlight it there |
+| `Delete` | Remove the selected stock from the watchlist |
+| `Ctrl+Z` | Undo the last removal |
 | `Ctrl+R` | Refresh the current view |
 | `Escape` | Clear a chart selection, exit Compare, or clear search |
-| `Ctrl+W` | Close Stocks |
 
 ## Screenshots
 

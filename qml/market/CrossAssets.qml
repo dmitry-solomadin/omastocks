@@ -33,14 +33,13 @@ GridLayout {
             Layout.alignment: Qt.AlignTop
             Layout.preferredWidth: 1
             spacing: Style.space(2)
-            Label {
+            // Inset to line up with the rows' text.
+            SectionHeading {
                 text: group.modelData.title.toUpperCase()
-                color: Tone.muted
-                font.pixelSize: Style.font.bodySmall
+                hint: group.modelData.note || ""
                 Layout.fillWidth: true
-                Layout.bottomMargin: Style.space(4)
-                HoverHandler { id: titleHover; enabled: !!group.modelData.note }
-                Ui.PanelToolTip { visible: titleHover.hovered; text: group.modelData.note || "" }
+                Layout.leftMargin: Style.space(6)
+                Layout.rightMargin: Style.space(6)
             }
             Repeater {
                 model: group.modelData.assets

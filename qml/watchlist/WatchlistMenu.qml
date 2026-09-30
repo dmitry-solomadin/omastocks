@@ -65,6 +65,9 @@ Controls.Popup {
         anchors.fill: parent
         z: 100
         enabled: !!menu.editingId && !menu.pendingAction
+        // A MouseArea always carries an arrow cursor, even disabled, and the
+        // topmost one wins; hidden, it no longer masks the controls' hand cursor.
+        visible: enabled
         onPressed: mouse => {
             // Inspect the press, then pass it through to the original control.
             mouse.accepted = false
@@ -82,22 +85,9 @@ Controls.Popup {
         border.width: 1
         border.color: Util.alpha(Color.foreground, .2)
     }
-    component NameField: Controls.TextField {
+    component NameField: InputField {
         Layout.fillWidth: true
-        implicitHeight: Style.space(36)
         maximumLength: 40
-        color: Color.foreground
-        placeholderTextColor: Tone.muted
-        font.family: Style.font.family
-        font.pixelSize: Style.font.body
-        selectionColor: Util.alpha(Color.accent, .3)
-        selectedTextColor: Color.foreground
-        background: Rectangle {
-            color: Util.alpha(Color.foreground, .05)
-            radius: Style.cornerRadius
-            border.width: 1
-            border.color: parent.activeFocus ? Color.accent : Tone.muted
-        }
     }
     contentItem: ColumnLayout {
         id: popupContent
@@ -143,14 +133,7 @@ Controls.Popup {
                         readonly property bool editing: menu.editingId === modelData.id
                         objectName: "watchlistRow_" + modelData.id
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Style.space(36)
-                        HoverHandler { id: rowHover }
-                        Rectangle {
-                            objectName: "watchlistRowHighlight_" + row.modelData.id
-                            anchors.fill: parent
-                            radius: Style.cornerRadius
-                            color: rowHover.hovered || rowEdit.activeFocus ? Util.alpha(Color.foreground, .07) : "transparent"
-                        }
+                        Layout.preferredHeight: Style.space(38)
                         RowLayout {
                             anchors.fill: parent
                             spacing: Style.space(4)
@@ -160,14 +143,21 @@ Controls.Popup {
                                 visible: !row.editing
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
-                                implicitHeight: Style.space(36)
+                                implicitHeight: Style.space(38)
                                 activeFocusOnTab: true
+                                hoverEnabled: true
                                 enabled: !StockStore.busy
                                 Accessible.name: "Rename " + row.modelData.name
-                                HoverHandler { cursorShape: Qt.IBeamCursor }
+                                HoverHandler { cursorShape: Qt.PointingHandCursor }
+                                // Only the name highlights; the delete button has its own hover.
+                                background: Rectangle {
+                                    objectName: "watchlistRowHighlight_" + row.modelData.id
+                                    radius: Style.cornerRadius
+                                    color: rowEdit.hovered || rowEdit.activeFocus ? Util.alpha(Color.foreground, .07) : "transparent"
+                                }
                                 contentItem: Label {
                                     text: row.modelData.name
-                                    leftPadding: Style.space(8)
+                                    leftPadding: Style.space(12)
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 onClicked: { menu.editList(row.modelData.id); nameInput.forceActiveFocus(); nameInput.selectAll() }

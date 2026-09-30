@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 from stocks import fetch, parse_chart
 from urllib.parse import quote
+from yahoo_http import authenticated
 
 
 def performance(document, ticker):
@@ -36,3 +37,27 @@ def performance(document, ticker):
 
 def overview(ticker):
     return performance(fetch("/v8/finance/chart/" + quote(ticker, safe=""), range="2y", interval="1d"), ticker)
+
+
+def bulk(tickers, request=authenticated):
+    """Daily history for up to twenty symbols per Yahoo spark request."""
+    rows = {}
+    for start in range(0, len(tickers), 20):
+        batch = tickers[start:start + 20]
+        try:
+            response = request("/v7/finance/spark", symbols=",".join(batch), range="2y", interval="1d").get("spark") or {}
+            if response.get("error"):
+                raise ValueError("Watchlist history is unavailable.")
+            results = {item.get("symbol"): item for item in response.get("result") or []}
+            for ticker in batch:
+                try:
+                    document = {"chart": {"result": results.get(ticker, {}).get("response") or []}}
+                    rows[ticker] = performance(document, ticker)
+                except (ValueError, KeyError, TypeError) as error:
+                    rows[ticker] = {"symbol": ticker, "error": str(error)}
+        except (OSError, ValueError) as error:
+            rows.update({ticker: {"symbol": ticker, "error": str(error)} for ticker in batch})
+    errors = [row["error"] for row in rows.values() if row.get("error")]
+    if errors:
+        raise ValueError(errors[0])
+    return {"rows": rows, "overviewSchema": 2, "source": "Yahoo Finance"}

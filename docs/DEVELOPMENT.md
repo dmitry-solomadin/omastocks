@@ -169,7 +169,9 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   keep a one-hour cache.
 - Watchlist live quotes and market-wide quotes have separate bulk requests.
   Market quotes persist across watchlist/tab changes. Historical Overview
-  baselines refresh daily rather than with every live-price refresh.
+  baselines refresh daily rather than with every live-price refresh. Overview
+  fetches two years of daily history through Yahoo's bulk spark endpoint, in
+  batches of up to 20 symbols, with a daily cache keyed by the sorted watchlist.
 - The header's IPO banner comes from `bin/ipos.py`: NYSE listing ceremonies and
   Nasdaq's IPO calendar for the New York date, without SPACs, refreshed hourly while
   the window is open. Logos are NYSE's ceremony images or, for other IPOs, the
@@ -244,8 +246,8 @@ omarchy-shell io.github.dmitry-solomadin.omastocks status
 ```
 
 Check Stock, Market and Watchlist; test chart comparison, list selection and settings
-at compact and wide window sizes. Close/reopen using both the compositor and
-`Ctrl+W`. For new screenshots, capture the current rendered app after its data
+at compact and wide window sizes. Close and reopen it from the compositor.
+For new screenshots, capture the current rendered app after its data
 loads; keep the cover and gallery consistent with the current branch. Full-window
 captures are **1850 × 1400**; gallery thumbnails in `docs/screenshots/thumbs/` are
 600 pixels wide and link to the originals. The cover shows AMD in the initial

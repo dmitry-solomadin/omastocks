@@ -20,9 +20,11 @@ FastWheel 1.0 components/FastWheel.qml
 FeatureTable 1.0 components/FeatureTable.qml
 RangeGauge 1.0 components/RangeGauge.qml
 EventBadge 1.0 components/EventBadge.qml
+InputField 1.0 components/InputField.qml
 MarketLoading 1.0 components/MarketLoading.qml
 SessionHeader 1.0 components/SessionHeader.qml
 SectionHeading 1.0 components/SectionHeading.qml
+SegmentedControl 1.0 components/SegmentedControl.qml
 DisclosureRow 1.0 components/DisclosureRow.qml
 RollingNumber 1.0 components/RollingNumber.qml
 

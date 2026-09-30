@@ -19,17 +19,24 @@ ColumnLayout {
     function refresh() { batch.reload(true); quotes.reload(true) }
     readonly property var ordered: StockStore.sortedEntries
     readonly property var quotes: StockStore.watchlistQuotesRequest
-    WatchlistBatch { id: batch; active: StockStore.windowOpen && root.visible; action: "overview"; parameter: "--keep-baselines"; symbols: StockStore.entries.map(row => row.symbol) }
+    DataRequest {
+        id: batch
+        readonly property var rows: data.rows || ({})
+        arguments: StockStore.windowOpen && root.visible && StockStore.entries.length
+            ? ["overview-bulk", StockStore.entries.map(row => row.symbol).sort().join(","), "--keep-baselines"] : []
+    }
     Flow {
         Layout.fillWidth: true; spacing: Style.space(4)
+        ActionButton { text: "Table"; selected: !root.heatmap; onClicked: root.heatmap = false }
+        ActionButton { text: "Heatmap"; selected: root.heatmap; onClicked: root.heatmap = true }
         Repeater {
             model: root.periods
             ActionButton { required property string modelData; visible: root.heatmap; text: modelData; selected: root.heatmapPeriod === modelData; onClicked: root.heatmapPeriod = modelData; hint: "Show " + modelData + " heatmap returns" }
         }
-        ActionButton { text: root.heatmap ? "Table" : "Heatmap"; onClicked: root.heatmap = !root.heatmap }
         ActionButton { text: "↻"; enabled: !batch.busy && !quotes.busy; onClicked: root.refresh(); hint: "Refresh watchlist performance" }
     }
     Label { visible: !!quotes.data.error; text: quotes.data.error || ""; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted }
+    Label { visible: !!batch.data.error; text: batch.data.error || ""; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted }
     Label { visible: !StockStore.entries.length; text: "Add stocks to this watchlist to see their performance."; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Tone.muted }
     FeatureTable {
         visible: !root.heatmap && StockStore.entries.length > 0

@@ -294,6 +294,9 @@ def load(action, ticker, period):
     if action == "calendar":
         from earnings_calendar import calendar
         return calendar(ticker, nasdaq, parse_earnings)
+    if action == "overview-bulk":
+        from overview import bulk
+        return bulk(ticker.split(","))
     if action == "overview":
         from overview import overview
         return overview(ticker)
@@ -350,12 +353,12 @@ def load(action, ticker, period):
 
 def main(arguments):
     action = arguments[0]
-    if action in ("quotes", "calendar-bulk"):
+    if action in ("quotes", "calendar-bulk", "overview-bulk"):
         from market_bulk import symbols
         ticker = ",".join(symbols(arguments[1]))
     else:
         ticker = symbol(arguments[1])
-    if action not in CACHE_TTLS and action not in LIVE:
+    if action not in CACHE_TTLS and action not in LIVE and action != "overview-bulk":
         raise ValueError("Unknown research request.")
     if action == "buzz":
         ticker = "ALL"
@@ -373,19 +376,24 @@ def main(arguments):
     directory.mkdir(parents=True, exist_ok=True)
     key = hashlib.sha256(f"{action}:{ticker}:{period}".encode()).hexdigest()
     path = directory / (key + ".json")
-    ttl = CACHE_TTLS[action]
+    ttl = CACHE_TTLS["overview" if action == "overview-bulk" else action]
     with (directory / (key + ".lock")).open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         saved = read_json(path, {})
         now = time.time()
         schema = CACHE_SCHEMAS.get(action)
         current_schema = schema is None or saved.get(schema[0]) == schema[1]
+        if action == "overview-bulk":
+            rows = saved.get("rows") or {}
+            current_schema = saved.get("overviewSchema") == 2 and all(
+                rows.get(symbol, {}).get("baselineDay") == datetime.now(ZoneInfo(rows.get(symbol, {}).get("timezone", "UTC"))).date().isoformat()
+                for symbol in ticker.split(","))
         if action == "overview" and current_schema:
             current_schema = saved.get("baselineDay") == datetime.now(ZoneInfo(saved.get("timezone", "UTC"))).date().isoformat()
         # Overview refreshes live prices in bulk. Successful historical baselines
         # have a separate daily lifecycle; failed baseline downloads still retry.
         fresh = bool(saved.get("fetched")) and current_schema and not saved.get("stale", False) and saved["fetched"] + ttl > now
-        fixed_baselines = action == "overview" and "--keep-baselines" in arguments and fresh
+        fixed_baselines = action in ("overview", "overview-bulk") and "--keep-baselines" in arguments and fresh
         if fixed_baselines or ("--force" not in arguments and (saved.get("retryAfter", 0) > now or fresh)):
             return saved
         try:

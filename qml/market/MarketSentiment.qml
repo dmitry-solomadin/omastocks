@@ -53,7 +53,7 @@ ColumnLayout {
             id: sentimentBlock
             Layout.alignment: Qt.AlignTop
             spacing: Style.space(14)
-            Caption { text: "SENTIMENT" }
+            SectionHeading { text: "SENTIMENT" }
 
         // Gauge, score and history stay in the sentiment column.
         RowLayout {
@@ -162,7 +162,7 @@ ColumnLayout {
             Layout.minimumWidth: sentimentGrid.columns === 2 ? sentimentGrid.vixMinimum : 0
             Layout.alignment: Qt.AlignTop
             spacing: Style.space(6)
-            Caption { text: "VIX"; Layout.fillWidth: true }
+            SectionHeading { text: "VIX"; Layout.fillWidth: true }
             Label {
                 Layout.fillWidth: true
                 text: root.volatilityLevel
