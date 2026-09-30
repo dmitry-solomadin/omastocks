@@ -6,6 +6,8 @@ theme, fonts and scaling. No API keys or Python dependencies.
 
 ![Omastocks opening on AMD: daily chart, watchlist and stock research](preview.png)
 
+![A 25-second tour: extended hours, comparing stocks, search, the market overview, the watchlist heatmap and themes](docs/screenshots/tour.gif)
+
 ## Install
 
 Requires **Omarchy's Quickshell-based shell**, Python **3.10+**, and `tzdata`.

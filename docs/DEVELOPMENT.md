@@ -252,6 +252,8 @@ loads; keep the cover and gallery consistent with the current branch. Full-windo
 captures are **1850 × 1400**; gallery thumbnails in `docs/screenshots/thumbs/` are
 600 pixels wide and link to the originals. The cover shows AMD in the initial
 1D view after loading, with default chart controls and collapsed research sections.
+`docs/screenshots/tour.gif`, below the cover in the README, is a recorded walkthrough;
+replace it when the features it shows change.
 
 ### Text UI inspection
 
