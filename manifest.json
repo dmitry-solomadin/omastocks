@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.dmitry-solomadin.omastocks",
   "name": "Omastocks",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "dmitry-solomadin",
   "license": "MIT",
   "description": "A tileable stock watchlist with comparison charts, financial statements, earnings, news and an optional favorites ticker.",
