@@ -207,6 +207,60 @@ Network hosts: `query1.finance.yahoo.com`, `finance.yahoo.com`, `fc.yahoo.com`,
 source links open externally. The earnings-release helper resolves Google's
 redirect on demand. Yahoo's anonymous cookies and crumb stay in the local state directory.
 
+### Latest-move analysis
+
+`qml/stores/AnalysisStore.qml` keeps per-symbol/per-agent results, uses short
+`DataRequest` calls to `bin/move_analysis.py` (`status`, `start`, `cancel`, `notify`), and
+polls pending jobs plus a 30-second local cache check for saved visible-stock research.
+`status` reads local files only. Neither
+chart range selection nor quote refresh nor Ctrl+R starts paid generation.
+`qml/stock/MoveAnalysis.qml` shows a settings-style modal popup with source links
+directly after the paragraph. Popup visibility belongs to the window; closing it
+does not cancel a running research job. Switching stock or analysis agent closes it.
+“Notify when ready” registers against the job ID before closing the popup. The
+worker uses `notify-send` on completion or failure, independently of UI polling;
+registration and delivery are serialized by the job lock. Cancellation is silent.
+
+`bin/move_context.py` gathers a fresh quote, regular-session shape and daily
+baselines, headline leads, and time-aligned US benchmark/sector ETF quotes where
+available. Newer pre-/post-market quotes determine the scope independently of
+the chart's Extended toggle. Partial-session volume is never compared with
+whole-day volume. Historical quote units are normalized before computing returns.
+
+`bin/ai_runner.py` owns the adapters: Claude Code print/stream-JSON with structured
+output, Codex exec/JSON with an output schema and live search, and OpenCode V2
+run/JSON with a private runtime and a job-local web-research agent. Authentication,
+provider/model selection and subscriptions remain owned by the installed CLI.
+No credentials are read or copied by Stocks. The OpenCode adapter prefers
+`opencode2` when present. Claude Code is not run with `--bare`, which disables
+subscription authentication. The agent receives only the selected company's
+bounded market context, not the user's watchlists or other holdings.
+
+Results require a successful native completion event, a completed web research
+tool call, matching symbol/request IDs, a short single paragraph, and valid
+source references. These checks validate format and research activity, not the
+truth of every generated claim. The prompt distinguishes reported causes,
+inferences and unclear catalysts, and separates event dates from publication dates.
+Fresh search access depends on the selected agent's model, account and configuration.
+
+Jobs run outside the UI's 45-second request watchdog, with a five-minute overall
+deadline, a bounded CLI output stream and at most two concurrent workers. Cancel
+uses a request ID plus PID/start-time/boot identity, and only terminates that job.
+An obsolete worker cannot replace a newer result. Failure retains the last valid
+paragraph. Cache age is 15 minutes; explicit analysis Refresh bypasses it.
+Prior-session results are invalidated when cached exchange session boundaries or
+a newer regular-session trade establish that trading has reopened. The UI also
+resets its cached-result icon at the known opening boundary. Snapshot time, not
+completion time, determines expiry for research that spans the open. Closed days
+retain the previous result without inferring sessions from weekdays alone.
+
+State lives under `move-analysis/` in the normal app state directory: each
+symbol/agent has job metadata and its latest result, with request subdirectories
+containing the market context, prompt and CLI configuration/schema. Raw CLI output
+is consumed in memory. Research additionally contacts the configured AI provider,
+its search service and the article sites selected by the agent. For development,
+use `STOCKS_STATE_DIR` under `/tmp/opencode` to isolate jobs from live app state.
+
 ## Checks
 
 From the repository root:
@@ -227,6 +281,7 @@ node tests/test_yahoo_status.cjs
 node tests/test_watchlist_keys.cjs
 node tests/test_server_helper.cjs
 node tests/test_header_session.cjs
+node tests/test_move_analysis.cjs
 bash -n install install-launcher uninstall
 shellcheck install install-launcher uninstall
 omarchy plugin validate .

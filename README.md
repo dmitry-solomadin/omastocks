@@ -2,7 +2,8 @@
 
 A tileable stock research app for [Omarchy](https://omarchy.org), with an optional
 favorites ticker in the top bar. Built with Quickshell; follows your desktop's
-theme, fonts and scaling. No API keys or Python dependencies.
+theme, fonts and scaling. Market data needs no API keys or Python dependencies.
+Optional AI analysis uses your installed agent's existing account and model.
 
 ![Omastocks opening on AMD: daily chart, watchlist and stock research](preview.png)
 
@@ -34,6 +35,34 @@ the optional favorites ticker running.
 | **Market** | Index benchmarks, futures, commodities, crypto, rates and currencies; Fear & Greed and VIX sentiment; sector/index heatmaps; US economic releases and market news. |
 | **Watchlist** | Performance from 1D through 1Y, a heatmap, and an earnings calendar with EPS/revenue estimates and the latest surprises. |
 
+### Explain latest move
+
+Click **Explain move** at the left of the Extended/Compare row to open a popup with a concise paragraph
+about the likely catalysts, market context and what to watch next. It researches
+the latest quoted session (including newer pre-/post-market trading), independently
+of the selected chart range. Source links appear directly after the paragraph.
+
+In **Settings → AI**, choose **Use Omarchy default**, **Claude Code**,
+**Codex**, or **OpenCode** (V2). Install and sign in to the chosen agent first and
+configure its preferred model and web search. Stocks invokes that agent locally;
+it does not collect subscription credentials or require its own API key. Agent
+usage counts toward the account/plan configured in that agent. Other Omarchy agents
+are not yet supported by the background adapters.
+Sign-in/setup errors include instructions for the selected agent; complete its
+sign-in in a terminal, then retry the analysis.
+
+Analysis runs only when requested. Revisiting a stock shows its saved paragraph;
+**Notify when ready** closes the analysis popup and sends a standard desktop
+notification when research finishes, even if you switch stocks or close Stocks.
+Failed research also sends a notification; cancelled research does not.
+Saved research expires when exchange data shows a new regular trading session
+has opened. This also resets the white AI icon; closed days retain the last result.
+**Refresh** requests new research and **Cancel** stops the current job. Normal
+quote/chart refreshes never generate AI requests. Earlier snapshots are labeled
+after 15 minutes or a significant change in the displayed market context. A failed
+refresh preserves the previous paragraph. If web research is unavailable, the panel
+shows an error rather than an explanation generated from memory.
+
 On IPO days, the exchange in the page header hangs a banner for each new listing.
 
 Market maps cover the **S&P 500, Nasdaq 100, Dow Jones**, and **11 sectors**.
@@ -49,7 +78,7 @@ benchmark, instrument or tile to open its Stock view.
 - **Star** a stock to put it in the top bar. Favorites are shared across lists;
   an overflowing ticker scrolls and pauses on hover. Hover a ticker for its day
   chart and range; click it to open that stock.
-- **Settings** controls the topbar widget, its fields and width, the sidebar's
+- **Settings → General** controls the topbar widget, its fields and width, the sidebar's
   displayed metric, chart volume and event markers, and lists the keyboard shortcuts.
 - Hover a chart for prices; drag to measure an interval. Moving averages are
   available on **1M and longer** ranges. **Extended** adds supported pre-/post-market
@@ -129,7 +158,6 @@ docs/       Contributor guide and screenshot gallery
 
 See the [contributor guide](docs/DEVELOPMENT.md) for setting up a development
 checkout, architecture, checks and reload commands.
-The experimental **Brief me** AI feature lives on [`feature/brief-me`](https://github.com/dmitry-solomadin/omastocks/tree/feature/brief-me).
 
 ## License
 

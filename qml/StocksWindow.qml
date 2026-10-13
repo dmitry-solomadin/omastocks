@@ -18,6 +18,8 @@ FloatingWindow {
         color: Util.alpha(Color.foreground, .1)
     }
     property var shell: null
+    readonly property bool analysisOpen: moveAnalysisPopup.opened
+    readonly property Item analysisContent: moveAnalysisPopup.contentItem
     title: "Stocks"
     visible: false
     implicitWidth: Style.space(1100)
@@ -30,7 +32,7 @@ FloatingWindow {
     onVisibleChanged: {
         StockStore.windowOpen = visible
         if (visible) wordmark.play()
-        if (!visible) { settingsMenu.close(); watchlistMenu.close(); watchlistSelector.close(); list.cancelDrag() }
+        if (!visible) { settingsMenu.close(); moveAnalysisPopup.close(); watchlistMenu.close(); watchlistSelector.close(); list.cancelDrag() }
     }
     readonly property var quote: StockStore.quote
     // The session decides the header's caption: "At close" above the price out
@@ -136,13 +138,13 @@ FloatingWindow {
         focus: true
         readonly property var chartRanges: ["1D", "1W", "1M", "3M", "YTD", "1Y", "2Y", "5Y", "ALL"]
         function moveRange(step) {
-            if (StockStore.view !== "stock" || settingsMenu.opened || watchlistMenu.opened || rowMenu.opened || watchlistSelector.popupOpen) return
+            if (StockStore.view !== "stock" || settingsMenu.opened || moveAnalysisPopup.opened || watchlistMenu.opened || rowMenu.opened || watchlistSelector.popupOpen) return
             const index = chartRanges.indexOf(StockStore.period) + step
             if (index >= 0 && index < chartRanges.length) StockStore.range(chartRanges[index])
         }
-        Shortcut { sequence: "Ctrl+S"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !watchlistMenu.opened; onActivated: { search.forceActiveFocus(); search.selectAll() } }
+        Shortcut { sequence: "Ctrl+S"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !moveAnalysisPopup.opened && !watchlistMenu.opened; onActivated: { search.forceActiveFocus(); search.selectAll() } }
         Shortcut { sequence: "Ctrl+R"; context: Qt.ApplicationShortcut; enabled: content.Window.active; onActivated: window.refresh() }
-        Shortcut { sequence: "Escape"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !watchlistMenu.opened && !watchlistSelector.popupOpen; onActivated: {
+        Shortcut { sequence: "Escape"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !settingsMenu.opened && !moveAnalysisPopup.opened && !watchlistMenu.opened && !watchlistSelector.popupOpen; onActivated: {
             if (list.dragSymbol) list.cancelDrag()
             else if (detailChart.hasSelection) detailChart.clearSelection()
             else if (MarketStore.compareMode) MarketStore.closeComparison()
@@ -156,16 +158,17 @@ FloatingWindow {
         // search with it. Text fields take their own keys, so none reach here.
         Keys.onPressed: event => {
             if (event.modifiers & ~(Qt.ShiftModifier | Qt.KeypadModifier) || !/^[A-Za-z0-9]$/.test(event.text)) return
-            if (settingsMenu.opened || watchlistMenu.opened || rowMenu.opened || watchlistSelector.popupOpen) return
+            if (settingsMenu.opened || moveAnalysisPopup.opened || watchlistMenu.opened || rowMenu.opened || watchlistSelector.popupOpen) return
             search.forceActiveFocus()
             search.text = event.text
             search.cursorPosition = search.text.length
             event.accepted = true
         }
         SettingsMenu { id: settingsMenu; parent: content; shell: window.shell }
+        MoveAnalysis { id: moveAnalysisPopup; parent: content }
         WatchlistMenu { id: watchlistMenu; parent: content }
         StockRowMenu { id: rowMenu; parent: content }
-        Shortcut { sequence: "Ctrl+Z"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !!StockStore.lastRemoved && !search.activeFocus; onActivated: StockStore.undoRemove() }
+        Shortcut { sequence: "Ctrl+Z"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !moveAnalysisPopup.opened && !!StockStore.lastRemoved && !search.activeFocus; onActivated: StockStore.undoRemove() }
         Connections { target: StockStore; function onActiveWatchlistChanged() { search.clear(); list.cancelDrag() } }
         Connections {
             target: StockStore
@@ -738,14 +741,15 @@ FloatingWindow {
                             period: window.chartPeriod
                             lineColor: window.chartColor
                             note: StockStore.staleNote(window.series)
-                            reservedRight: chartOptions.visible ? chartOptions.width : 0
+                            reservedLeft: chartOptions.visible ? chartOptions.leftWidth : 0
+                            reservedRight: chartOptions.visible ? chartOptions.rightWidth : 0
                         }
-                        // On the readout's line at the chart's right edge, which stays put as
-                        // the price axis resizes to each range's labels; hidden while a
-                        // dragged selection's readout may need the width.
+                        // The chart's top line shares analysis on the left and tools on
+                        // the right; a dragged selection temporarily uses the whole line.
                         ChartOptions {
                             id: chartOptions
                             visible: !MarketStore.compareMode && !detailChart.hasSelection
+                            anchors.left: detailChart.left
                             anchors.right: detailChart.right
                             y: -Style.space(4)
                         }

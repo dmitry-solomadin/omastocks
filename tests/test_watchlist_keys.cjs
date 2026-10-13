@@ -63,7 +63,7 @@ function typed(text, modifiers = 0, open = {}) {
     const search = {text: "old query", cursorPosition: 0, focused: false, forceActiveFocus() { this.focused = true }}
     const event = {text, modifiers, accepted: false}
     const context = vm.createContext({event, search, Qt: {ShiftModifier: 0x02000000, KeypadModifier: 0x20000000},
-        settingsMenu: {opened: !!open.settings}, watchlistMenu: {opened: false}, rowMenu: {opened: false},
+        settingsMenu: {opened: !!open.settings}, moveAnalysisPopup: {opened: false}, watchlistMenu: {opened: false}, rowMenu: {opened: false},
         watchlistSelector: {popupOpen: false}})
     vm.runInContext(`(() => {\n${typing}\n})()`, context)
     return [search.focused ? search.text : null, event.accepted]

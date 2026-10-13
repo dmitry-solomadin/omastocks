@@ -82,9 +82,10 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
     const toggle = optionsSource.slice(optionsSource.indexOf('objectName: "extendedToggle"'))
     const binding = name => {
         const lines = toggle.split("\n")
-        const index = lines.findIndex(line => line.startsWith(`        ${name}: `))
-        let code = lines[index].slice(10 + name.length)
-        for (let line = index + 1; /^ {12}/.test(lines[line]); line++) code += "\n" + lines[line]
+        const index = lines.findIndex(line => new RegExp(`^ +${name}: `).test(line))
+        const indent = lines[index].match(/^ */)[0].length
+        let code = lines[index].slice(indent + 2 + name.length)
+        for (let line = index + 1; lines[line] && lines[line].match(/^ */)[0].length > indent; line++) code += "\n" + lines[line]
         return code
     }
     const button = vm.createContext({MarketStore: market, StockStore: stock})
@@ -92,7 +93,7 @@ function app({entries, marketState = "REGULAR", showExtended = false}) {
         const code = binding(name)
         Object.defineProperty(button, name, {get: () => vm.runInContext(code, button)})
     }
-    const click = toggle.match(/onClicked: \{([^]*?)\n {8}\}/)[1]
+    const click = toggle.match(/onClicked: \{([^]*?)\n +\}/)[1]
     const settle = () => [market.extendedRequest].concat(market.comparisonRequests).forEach(fake => fake.sync())
     // The window's series, with the chart last drawn held while a range loads.
     const view = load(qml("StocksWindow.qml"), {state: {drawnSeries: {}}, bindings: ["liveSeries", "holdingChart", "series"],

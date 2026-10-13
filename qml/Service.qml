@@ -53,7 +53,9 @@ Item {
         function status(): string {
             return JSON.stringify({open: window.visible, selected: StockStore.selected, range: StockStore.period,
                 entries: StockStore.entries.length, favorites: StockStore.favorites.map(entry => entry.symbol),
-                busy: StockStore.busy, editing: StockStore.editing, refreshing: StockStore.refreshing, error: StockStore.error, chartPoints: (StockStore.visibleChart.points || []).length})
+                busy: StockStore.busy, editing: StockStore.editing, refreshing: StockStore.refreshing, error: StockStore.error, chartPoints: (StockStore.visibleChart.points || []).length,
+                analysis: {active: AnalysisStore.active, open: window.analysisOpen, agent: AnalysisStore.preference,
+                    pending: AnalysisStore.report.pending === true, hasResult: !!AnalysisStore.report.summary, error: AnalysisStore.error}})
         }
         // Development: switch tabs and read or activate the UI as text.
         function view(name: string): string {
@@ -62,11 +64,11 @@ Item {
             return name
         }
         function dump(name: string): string {
-            const item = name ? Inspect.find(window.contentItem, name) : window.contentItem
+            const item = name ? Inspect.find(window.analysisContent, name) || Inspect.find(window.contentItem, name) : window.contentItem
             try { return item ? Inspect.text(item) : "no item " + name } catch (error) { return "dump failed: " + error }
         }
         function activate(name: string): string {
-            const item = Inspect.find(window.contentItem, name)
+            const item = Inspect.find(window.analysisContent, name) || Inspect.find(window.contentItem, name)
             return !item ? "no item " + name : Inspect.activate(item) ? "activated " + name : name + " is not activatable"
         }
     }
