@@ -95,6 +95,13 @@ class AdapterTests(unittest.TestCase):
         parser.feed({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "web1", "is_error": True}]}})
         self.assertFalse(parser.researched)
 
+    def test_claude_denied_tool_event_and_no_mcp_servers(self):
+        parser = ai_runner.Output("claude")
+        parser.feed({"type": "system", "subtype": "permission_denied", "tool_name": "mcp__broker__get_quotes",
+                     "message": "Permission to use mcp__broker__get_quotes has been denied."})
+        self.assertFalse(parser.failed)
+        self.assertIn("--strict-mcp-config", ai_runner.command({"id": "claude", "executable": "claude"}, None, {}))
+
     def test_opencode_reconciled_final_message_requires_successful_exit(self):
         parser = ai_runner.Output("opencode")
         parser.feed({"type": "tool_use", "part": {"tool": "webfetch", "state": {"status": "completed"}}})

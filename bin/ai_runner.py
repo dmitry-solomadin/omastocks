@@ -41,8 +41,10 @@ def resolve(preference):
 def command(agent, folder, schema, title="Stocks · Explain latest move", steps=16):
     executable, kind = agent["executable"], agent["id"]
     if kind == "claude":
+        # --tools limits only built-in tools; without --strict-mcp-config the user's
+        # MCP servers and claude.ai connectors (brokerage, mail) still load.
         return [executable, "-p", "--output-format", "stream-json", "--verbose",
-                "--no-session-persistence", "--permission-mode", "dontAsk",
+                "--no-session-persistence", "--permission-mode", "dontAsk", "--strict-mcp-config",
                 "--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch",
                 "--json-schema", json.dumps(schema)]
     if kind == "codex":
@@ -119,7 +121,9 @@ class Output:
             if kind in ("turn.failed", "error"):
                 self.failed = True
         else:
-            for block in (event.get("message") or {}).get("content") or []:
+            # System events such as permission_denied carry a plain-text message.
+            message = event.get("message")
+            for block in (message.get("content") if isinstance(message, dict) else None) or []:
                 if not isinstance(block, dict):
                     continue
                 if block.get("type") == "tool_use" and block.get("name") in ("WebSearch", "WebFetch"):
