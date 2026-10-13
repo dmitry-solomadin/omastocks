@@ -19,7 +19,7 @@ import ai_runner
 from stocks import read_json, state_directory, symbol, write_json
 
 
-PREFERENCES = ("default", "claude", "codex", "opencode")
+PREFERENCES = ("claude", "codex", "default")
 
 
 @dataclass(frozen=True)

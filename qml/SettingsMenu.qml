@@ -338,8 +338,8 @@ Controls.Popup {
                             Layout.fillWidth: true
                             spacing: Style.space(4)
                             Repeater {
-                                model: [{value: "default", label: "Use Omarchy default"}, {value: "claude", label: "Claude Code"},
-                                    {value: "codex", label: "Codex"}, {value: "opencode", label: "OpenCode"}]
+                                model: [{value: "claude", label: "Claude Code"}, {value: "codex", label: "Codex"},
+                                    {value: "default", label: "Use Omarchy default"}]
                                 ActionButton {
                                     required property var modelData
                                     objectName: "analysisAgent_" + modelData.value
@@ -350,6 +350,18 @@ Controls.Popup {
                                     onClicked: menu.saveSetting("analysisAgent", modelData.value)
                                 }
                             }
+                        }
+                        // Agents such as OpenCode fall back to an arbitrary catalog model
+                        // when none is configured, which may be too weak for research.
+                        Label {
+                            objectName: "omarchyAgentNote"
+                            visible: AnalysisStore.preference === "default"
+                            text: "Uses the agent set by omarchy default agent: Claude Code, Codex or OpenCode. Set a default model in that agent’s config, or it may fall back to one that cannot complete the research."
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            elide: Text.ElideNone
+                            color: Tone.muted
+                            font.pixelSize: Style.font.bodySmall
                         }
                     }
                 }

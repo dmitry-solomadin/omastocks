@@ -42,12 +42,15 @@ about the likely catalysts, market context and what to watch next. It researches
 the latest quoted session (including newer pre-/post-market trading), independently
 of the selected chart range. Source links appear directly after the paragraph.
 
-In **Settings → AI**, choose **Use Omarchy default**, **Claude Code**,
-**Codex**, or **OpenCode** (V2). Install and sign in to the chosen agent first and
-configure its preferred model and web search. Stocks invokes that agent locally;
-it does not collect subscription credentials or require its own API key. Agent
-usage counts toward the account/plan configured in that agent. Other Omarchy agents
-are not yet supported by the background adapters.
+In **Settings → AI**, choose **Claude Code** (the default), **Codex**, or **Use
+Omarchy default**, which runs the agent set by `omarchy default agent` when it is
+Claude Code, Codex or OpenCode (V2). Install and sign in to the chosen agent first
+and configure its web search. Set a default model in that agent's config: OpenCode
+without one falls back to an arbitrary catalog model that may not complete the
+research. Stocks invokes that agent locally; it does not collect subscription
+credentials or require its own API key. Agent usage counts toward the account/plan
+configured in that agent. Other Omarchy agents are not yet supported by the
+background adapters.
 Sign-in/setup errors include instructions for the selected agent; complete its
 sign-in in a terminal, then retry the analysis.
 **Enable AI features** at the top of that tab is on by default; turning it off

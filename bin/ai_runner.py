@@ -19,11 +19,12 @@ MAX_OUTPUT = 4 * 1024 * 1024
 def resolve(preference):
     if preference == "default":
         command = shutil.which("omarchy-default-agent")
-        if not command:
-            raise ValueError("Choose an analysis agent in Stocks settings, or set your Omarchy default agent.")
-        preference = subprocess.run([command], capture_output=True, text=True, check=True, timeout=5).stdout.strip()
+        preference = command and subprocess.run([command], capture_output=True, text=True, check=True, timeout=5).stdout.strip()
+        if not preference:
+            raise ValueError("Set your Omarchy default agent, or choose Claude Code or Codex in Settings → AI.")
     if preference not in AGENTS:
-        raise ValueError("Choose Claude Code, Codex or OpenCode in Stocks settings. Sign in using that agent first.")
+        raise ValueError("Stocks can run Claude Code, Codex or OpenCode. Choose Claude Code or Codex in Settings → AI, "
+                         "or change your Omarchy default agent.")
     executable = (shutil.which("opencode2") or shutil.which("opencode")) if preference == "opencode" else shutil.which(preference)
     if not executable:
         raise ValueError(AGENTS[preference] + " is not installed. Install and sign in to it, then retry.")

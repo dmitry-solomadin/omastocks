@@ -7,8 +7,9 @@ QtObject {
     // Settings → AI switches every AI feature off: no buttons, popups or requests.
     readonly property bool enabled: StockStore.barSettings.aiEnabled !== false
     readonly property bool active: enabled && MarketStore.companyResearchActive
-    readonly property string preference: ["default", "claude", "codex", "opencode"].indexOf(StockStore.barSettings.analysisAgent) >= 0
-        ? StockStore.barSettings.analysisAgent : "default"
+    // OpenCode and other agents are reached through the Omarchy default.
+    readonly property string preference: ["claude", "codex", "default"].indexOf(StockStore.barSettings.analysisAgent) >= 0
+        ? StockStore.barSettings.analysisAgent : "claude"
     readonly property string key: StockStore.selected + ":" + preference
     property var saved: ({})
     readonly property var rawReport: request.data.symbol === StockStore.selected && request.data.preference === preference ? request.data : saved[key] || ({})

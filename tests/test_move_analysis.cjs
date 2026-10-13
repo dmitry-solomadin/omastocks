@@ -16,32 +16,34 @@ const store = load(path.join(__dirname, "../qml/stores/AnalysisStore.qml"), {
 // Opening during the initial local status read must still enqueue generation.
 request.busy = true
 store.show()
-assert.deepEqual(submissions[0], [["start", "AMD", "default"], false])
+assert.deepEqual(submissions[0], [["start", "AMD", "claude"], false])
 assert.equal(submissions[0][0].includes("1Y"), false, "Chart range is never part of the analysis request")
 request.busy = false
-request.data = {symbol: "AMD", preference: "default", pending: true, job: "job1"}
+request.data = {symbol: "AMD", preference: "claude", pending: true, job: "job1"}
 store.generate(true)
 assert.equal(submissions.length, 1, "A pending job cannot be duplicated")
 store.cancel()
-assert.deepEqual(submissions[1], [["cancel", "AMD", "default", "job1"], false])
+assert.deepEqual(submissions[1], [["cancel", "AMD", "claude", "job1"], false])
 store.notifyWhenReady()
-assert.deepEqual(submissions[2], [["notify", "AMD", "default", "job1"], false])
+assert.deepEqual(submissions[2], [["notify", "AMD", "claude", "job1"], false])
 
-const result = {symbol: "AMD", preference: "default", summary: "AMD research", generated: 1500, session: {kind: "regular", updated: 1400, percent: 2}}
+const result = {symbol: "AMD", preference: "claude", summary: "AMD research", generated: 1500, session: {kind: "regular", updated: 1400, percent: 2}}
 request.data = result
 store.remember(result)
 StockStore.selected = "META"
 assert.equal(store.report.summary, undefined, "A late AMD reply never renders on META")
 store.remember(result)
-assert.equal(store.saved["META:default"], undefined)
+assert.equal(store.saved["META:claude"], undefined)
 StockStore.selected = "AMD"
 request.data = {}
 assert.equal(store.report.summary, "AMD research", "Previously visited stock displays its cache")
-StockStore.barSettings = {analysisAgent: "claude"}
+StockStore.barSettings = {analysisAgent: "codex"}
 request.data = result
 assert.equal(store.report.summary, undefined, "An old provider's result never displays under a new provider")
 store.remember(result)
-assert.equal(store.saved["AMD:claude"], undefined)
+assert.equal(store.saved["AMD:codex"], undefined)
+StockStore.barSettings = {analysisAgent: "opencode"}
+assert.equal(store.preference, "claude", "OpenCode is reached through the Omarchy default, not chosen directly")
 StockStore.barSettings = {}
 assert.equal(store.stale, false)
 store.now = 2500

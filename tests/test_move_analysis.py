@@ -116,6 +116,16 @@ class AdapterTests(unittest.TestCase):
             self.assertEqual(ai_runner.resolve("default")["executable"], "/missing/opencode2")
             with self.assertRaisesRegex(ValueError, "Choose Claude"):
                 ai_runner.resolve("gemini")
+        with patch.object(ai_runner.shutil, "which", side_effect=lambda value: "/missing/" + value), \
+             patch.object(ai_runner.subprocess, "run", return_value=Mock(stdout="pi\n")):
+            with self.assertRaisesRegex(ValueError, "change your Omarchy default agent"):
+                ai_runner.resolve("default")
+        with patch.object(ai_runner.shutil, "which", side_effect=lambda value: "/missing/" + value), \
+             patch.object(ai_runner.subprocess, "run", return_value=Mock(stdout="")):
+            with self.assertRaisesRegex(ValueError, "Set your Omarchy default agent"):
+                ai_runner.resolve("default")
+        with self.assertRaisesRegex(ValueError, "Unknown analysis agent"):
+            ai_jobs.directory(analysis.TASK, "AMD", "opencode")
 
     def test_actual_subprocess_stream_and_timeout(self):
         with tempfile.TemporaryDirectory() as folder:
