@@ -756,15 +756,14 @@ FloatingWindow {
                             period: window.chartPeriod
                             lineColor: window.chartColor
                             note: StockStore.staleNote(window.series)
-                            reservedLeft: chartOptions.visible ? chartOptions.leftWidth : 0
-                            reservedRight: chartOptions.visible ? chartOptions.rightWidth : 0
+                            reservedRight: chartOptions.visible ? chartOptions.width : 0
                         }
-                        // The chart's top line shares analysis on the left and tools on
-                        // the right; a dragged selection temporarily uses the whole line.
+                        // On the readout's line at the chart's right edge, which stays put as
+                        // the price axis resizes to each range's labels; hidden while a
+                        // dragged selection's readout may need the width.
                         ChartOptions {
                             id: chartOptions
                             visible: !MarketStore.compareMode && !detailChart.hasSelection
-                            anchors.left: detailChart.left
                             anchors.right: detailChart.right
                             y: -Style.space(4)
                         }

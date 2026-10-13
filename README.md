@@ -37,7 +37,7 @@ the optional favorites ticker running.
 
 ### Explain latest move
 
-Click **Explain move** at the left of the Extended/Compare row to open a popup with a concise paragraph
+Click **Explain move** at the right of the Extended/Compare row to open a popup with a concise paragraph
 about the likely catalysts, market context and what to watch next. It researches
 the latest quoted session (including newer pre-/post-market trading), independently
 of the selected chart range. Source links appear directly after the paragraph.

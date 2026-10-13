@@ -32,7 +32,6 @@ Item {
     // Why the line may be old, e.g. "As of 27 Sep 15:52 · refresh failed". It
     // follows the readout on the top line, short of the width kept at the right.
     property string note: ""
-    property real reservedLeft: 0
     property real reservedRight: 0
     readonly property bool comparing: !miniature && compareMode
     readonly property var normalized: comparing ? ChartMath.compareMany(
@@ -381,7 +380,7 @@ Item {
     Row {
         visible: !root.miniature && !root.comparing
         x: root.hasSelection ? Math.max(root.leftInset, Math.min(root.leftInset + root.plotWidth - implicitWidth,
-            root.pointX(root.selectionIndex) - implicitWidth / 2)) : root.leftInset + root.reservedLeft
+            root.pointX(root.selectionIndex) - implicitWidth / 2)) : root.leftInset
         y: 0
         spacing: Style.space(12)
         Label {
@@ -404,7 +403,7 @@ Item {
             objectName: "chartNote"
             visible: !!root.note && !root.hasSelection
             anchors.baseline: readout.baseline
-            width: Math.min(implicitWidth, Math.max(0, root.width - root.reservedLeft - root.reservedRight - root.leftInset - readout.implicitWidth - Style.space(24)))
+            width: Math.min(implicitWidth, Math.max(0, root.width - root.reservedRight - root.leftInset - readout.implicitWidth - Style.space(24)))
             text: root.note
             color: Tone.muted
             font.pixelSize: Style.font.bodySmall
