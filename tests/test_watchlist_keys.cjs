@@ -63,7 +63,7 @@ function typed(text, modifiers = 0, open = {}) {
     const search = {text: "old query", cursorPosition: 0, focused: false, forceActiveFocus() { this.focused = true }}
     const event = {text, modifiers, accepted: false}
     const context = vm.createContext({event, search, Qt: {ShiftModifier: 0x02000000, KeypadModifier: 0x20000000},
-        settingsMenu: {opened: !!open.settings}, moveAnalysisPopup: {opened: false}, watchlistMenu: {opened: false}, rowMenu: {opened: false},
+        settingsMenu: {opened: !!open.settings}, window: {reportOpen: !!open.report}, watchlistMenu: {opened: false}, rowMenu: {opened: false},
         watchlistSelector: {popupOpen: false}})
     vm.runInContext(`(() => {\n${typing}\n})()`, context)
     return [search.focused ? search.text : null, event.accepted]
@@ -74,6 +74,7 @@ assert.deepEqual(typed("7", 0x20000000), ["7", true], "From the keypad")
 assert.deepEqual(typed("r", 0x04000000), [null, false], "Not with Ctrl, so shortcuts still work")
 for (const text of ["é", "ж", " ", "-", ""]) assert.deepEqual(typed(text), [null, false], JSON.stringify(text))
 assert.deepEqual(typed("n", 0, {settings: true}), [null, false], "Not while a menu is open")
+assert.deepEqual(typed("n", 0, {report: true}), [null, false], "Not while an AI report is open")
 console.log("PASS: typing a letter or digit starts a search")
 
 // Accepting a tracked result restores its position in the unfiltered watchlist.

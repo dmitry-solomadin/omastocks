@@ -38,7 +38,7 @@ def resolve(preference):
     return {"id": preference, "name": AGENTS[preference], "executable": executable}
 
 
-def command(agent, folder, schema):
+def command(agent, folder, schema, title="Stocks · Explain latest move", steps=16):
     executable, kind = agent["executable"], agent["id"]
     if kind == "claude":
         return [executable, "-p", "--output-format", "stream-json", "--verbose",
@@ -54,13 +54,13 @@ def command(agent, folder, schema):
     # profile inherits the user's provider/model/search configuration and auth.
     write_json(folder / "opencode.json", {
         "$schema": "https://opencode.ai/config.json", "snapshots": False, "warming": False,
-        "agents": {"stock-research": {"mode": "primary", "steps": 16,
-            "description": "Explain a stock's latest move from fresh public research",
+        "agents": {"stock-research": {"mode": "primary", "steps": steps,
+            "description": "Research a stock from fresh public sources",
             "permissions": [{"action": "*", "resource": "*", "effect": "deny"},
                             {"action": "websearch", "resource": "*", "effect": "allow"},
                             {"action": "webfetch", "resource": "*", "effect": "allow"}]}}})
     return [executable, "run", "--standalone", "--format", "json", "--agent", "stock-research",
-            "--title", "Stocks · Explain latest move", "--file", str(folder / "prompt.txt"),
+            "--title", title, "--file", str(folder / "prompt.txt"),
             "Complete the stock research task in the attached file. Return only its requested JSON."]
 
 
@@ -145,10 +145,10 @@ class Output:
         return self.document if isinstance(self.document, dict) else json_document(self.text)
 
 
-def run(agent, prompt, schema, folder, timeout=210):
+def run(agent, prompt, schema, folder, timeout=210, title="Stocks · Explain latest move", steps=16):
     folder.mkdir(parents=True, exist_ok=True, mode=0o700)
     (folder / "prompt.txt").write_text(prompt)
-    args = command(agent, folder, schema)
+    args = command(agent, folder, schema, title, steps)
     environment = os.environ.copy()
     # OpenCode resolves its project from PWD before process.cwd(); subprocess
     # cwd alone would load the host app's project instead of this job's profile.

@@ -16,37 +16,22 @@ Item {
         implicitWidth: contentItem.implicitWidth + leftPadding + rightPadding
         font.pixelSize: Style.font.bodySmall
     }
-    SmallButton {
+    AiButton {
         id: explain
         objectName: "explainLatestMove"
-        visible: !StockStore.selectedIsNonCompany
+        visible: AnalysisStore.enabled && !StockStore.selectedIsNonCompany
         anchors.left: parent.left
-        implicitWidth: Math.ceil(aiIcon.implicitWidth + explainLabel.implicitWidth) + Style.space(5) + leftPadding + rightPadding
         width: implicitWidth
-        text: "Explain move"
+        implicitHeight: Style.space(24)
+        padding: Style.space(6)
         topPadding: 0
         bottomPadding: 0
+        font.pixelSize: Style.font.bodySmall
+        text: "Explain move"
         ink: Tone.muted
+        ready: !!AnalysisStore.report.summary
         hint: "Research the latest price move with your agent, independently of the chart range"
         onClicked: AnalysisStore.show()
-        contentItem: Row {
-            spacing: Style.space(5)
-            opacity: explain.enabled ? 1 : .4
-            AiIcon {
-                id: aiIcon
-                anchors.verticalCenter: parent.verticalCenter
-                color: AnalysisStore.report.summary ? "#ffffff" : explain.ink
-            }
-            Label {
-                id: explainLabel
-                anchors.verticalCenter: parent.verticalCenter
-                text: explain.text
-                elide: Text.ElideNone
-                color: explain.ink
-                font: explain.font
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
     }
     Row {
         id: controls

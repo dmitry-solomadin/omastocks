@@ -304,8 +304,20 @@ Controls.Popup {
                         width: aiScroll.availableWidth
                         spacing: Style.space(12)
                         SectionHeading { text: "AI ANALYSIS" }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Style.space(16)
+                            Label { text: "Enable AI features"; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                            ThemedSwitch {
+                                objectName: "aiEnabled"
+                                checked: AnalysisStore.enabled
+                                enabled: menu.shell !== null
+                                Accessible.name: "Enable AI features"
+                                onToggled: menu.saveSetting("aiEnabled", !checked)
+                            }
+                        }
                         Label {
-                            text: "AI features use your agent’s existing account and model. Sign in to the agent first. Some features also require web research."
+                            text: "AI features use your agent’s existing account and model. Sign in to the agent first."
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
                             elide: Text.ElideNone
@@ -324,7 +336,7 @@ Controls.Popup {
                                     Layout.fillWidth: true
                                     text: modelData.label
                                     selected: AnalysisStore.preference === modelData.value
-                                    enabled: menu.shell !== null
+                                    enabled: menu.shell !== null && AnalysisStore.enabled
                                     onClicked: menu.saveSetting("analysisAgent", modelData.value)
                                 }
                             }

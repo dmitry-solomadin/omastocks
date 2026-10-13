@@ -8,7 +8,7 @@ const request = {data: {}, busy: false, submit: (args, force) => submissions.pus
 const MarketStore = {companyResearchActive: true}
 const store = load(path.join(__dirname, "../qml/stores/AnalysisStore.qml"), {
     state: {saved: {}, now: 2000},
-    bindings: ["active", "preference", "key", "rawReport", "sessionExpired", "report", "error", "working", "stale", "notificationBusy"],
+    bindings: ["enabled", "active", "preference", "key", "rawReport", "sessionExpired", "report", "error", "working", "stale", "notificationBusy"],
     functions: ["show", "generate", "cancel", "notifyWhenReady", "remember", "contextChanged", "expiredSession"],
     globals: {StockStore, MarketStore, request, notificationRequest: request, openRequested() {}}
 })
@@ -48,6 +48,14 @@ store.now = 2500
 assert.equal(store.stale, true, "Age is checked even without another backend request")
 assert.equal(store.contextChanged(result, {updated: 1500, percent: -1}), true, "A material change marks the explanation as earlier context")
 
+StockStore.barSettings = {aiEnabled: false}
+assert.equal(store.active, false, "Turning AI features off stops the analysis store")
+const count = submissions.length
+store.show()
+store.generate(true)
+assert.equal(submissions.length, count, "No research starts while AI features are off")
+StockStore.barSettings = {}
+assert.equal(store.active, true, "AI features are on by default")
 console.log("PASS: latest-move requests, cache isolation, cancellation and stale context")
 StockStore.quote = {sessionStart: 3000}
 store.now = 2999

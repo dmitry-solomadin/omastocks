@@ -1,30 +1,19 @@
 #!/usr/bin/env python3
 """On-demand latest-move research jobs. Status never starts model or market calls."""
-from contextlib import contextmanager
 from datetime import datetime, timezone
-import fcntl
-import hashlib
 import json
-import os
-from pathlib import Path
 import re
-import signal
-import subprocess
-import sys
 import time
-import urllib.parse
-import uuid
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-import ai_runner
+import ai_jobs
 import move_context
-from stocks import read_json, state_directory, symbol, write_json
+from stocks import read_json, state_directory
 
 
 VERSION = 1
 TTL = 900
 TIMEOUT = 300
-PREFERENCES = ("default", "claude", "codex", "opencode")
 SCHEMA = {
     "type": "object", "additionalProperties": False,
     "required": ["symbol", "request", "researchStatus", "assessment", "sentences", "sources"],
@@ -102,9 +91,7 @@ def validate(document, job, context):
     for source in sources:
         if not isinstance(source, dict) or any(not isinstance(source.get(key), str) for key in ("id", "title", "url", "published", "evidence")):
             raise ValueError("The agent returned an invalid source.")
-        url = urllib.parse.urlsplit(source["url"])
-        if (url.scheme not in ("http", "https") or not url.hostname or url.username or url.password
-                or len(source["url"]) > 2048 or any(ord(char) < 32 for char in source["url"])):
+        if not ai_jobs.valid_url(source["url"]):
             raise ValueError("The agent returned an invalid source link.")
         if not re.fullmatch(r"[A-Za-z0-9_-]{1,40}", source["id"]) or source["id"] in known or not source["title"].strip() or not source["evidence"].strip():
             raise ValueError("The agent returned incomplete or duplicate sources.")
@@ -135,37 +122,6 @@ def validate(document, job, context):
             "session": context["latestMove"], "agent": job["agent"]["name"], "agentId": job["agent"]["id"]}
 
 
-def directory(ticker, preference):
-    if preference not in PREFERENCES:
-        raise ValueError("Unknown analysis agent.")
-    key = hashlib.sha256(f"{ticker}:{preference}".encode()).hexdigest()
-    path = state_directory() / "move-analysis" / key
-    path.mkdir(parents=True, exist_ok=True, mode=0o700)
-    return path
-
-
-@contextmanager
-def locked(path):
-    with (path / "lock").open("w") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        yield
-
-
-def process_identity(pid):
-    """A PID alone is unsafe after a reboot or process reuse."""
-    try:
-        fields = Path(f"/proc/{int(pid)}/stat").read_text().rsplit(")", 1)[1].split()
-        if fields[0] == "Z":
-            return ""
-        return Path("/proc/sys/kernel/random/boot_id").read_text().strip() + ":" + fields[19]
-    except (OSError, ValueError, IndexError):
-        return ""
-
-
-def alive(job):
-    return bool(job.get("processIdentity")) and process_identity(job.get("pid", 0)) == job["processIdentity"]
-
-
 def expired_session(result, ticker):
     # Spark sessions come from the exchange feed, so weekends, holidays and DST
     # do not require a guessed weekday/open-time schedule. Status stays local.
@@ -187,161 +143,24 @@ def expired_session(result, ticker):
     return False
 
 
-def reply(job, saved, ticker, preference):
-    result = dict(saved) if saved.get("symbol") == ticker and saved.get("version") == VERSION else {}
-    return {**result, "symbol": ticker, "preference": preference, "pending": job.get("state") == "running",
-            "stage": job.get("stage", ""), "job": job.get("id", ""),
-            "workingAgent": (job.get("agent") or {}).get("name", ""),
-            "error": job.get("error", ""),
-            "notifyRequested": job.get("notifyRequested", False),
-            "stale": bool(result) and time.time() - result.get("generated", 0) >= TTL}
+TASK = ai_jobs.Task(folder="move-analysis", version=VERSION, ttl=TTL, timeout=TIMEOUT,
+                    name="Analysis", action="Explain move", title="Stocks · Explain latest move",
+                    context=lambda ticker: move_context.build(ticker), prompt=prompt, schema=SCHEMA,
+                    validate=validate, expired=expired_session, stage="Researching latest catalysts")
+update = ai_jobs.update
 
 
-def notify_finished(path, job):
-    """Called under the job lock; notifications belong to a specific request."""
-    if not job.get("notifyRequested") or job.get("notified") or job.get("state") not in ("complete", "failed"):
-        return
-    ready = job["state"] == "complete"
-    title = f"{job['symbol']} · Analysis {'ready' if ready else 'failed'}"
-    body = ("Open Stocks and choose Explain move to read it." if ready
-            else "Research could not finish. Open Stocks and choose Explain move to retry.")
-    try:
-        subprocess.run(["notify-send", "--app-name=Stocks", "--icon=" + str(Path(__file__).resolve().parents[1] / "assets/icon.svg"),
-                        title, body], check=True, timeout=5, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except (OSError, subprocess.SubprocessError):
-        return
-    job["notified"] = True
-    write_json(path / "job.json", job)
+def directory(ticker, preference):
+    return ai_jobs.directory(TASK, ticker, preference)
 
 
 def main(arguments):
-    if len(arguments) < 3 or arguments[0] not in ("status", "start", "cancel", "notify"):
-        raise ValueError("Use status, start, cancel or notify with a symbol and agent.")
-    action, ticker, preference = arguments[:3]
-    ticker = symbol(ticker)
-    path = directory(ticker, preference)
-    with locked(path):
-        job, saved = read_json(path / "job.json", {}), read_json(path / "result.json", {})
-        if expired_session(saved, ticker):
-            saved = {}
-            write_json(path / "result.json", saved)
-        if job.get("state") == "running" and (not alive(job) or time.time() - job.get("started", 0) > TIMEOUT + 10):
-            if alive(job):
-                os.kill(job["pid"], signal.SIGTERM)
-            job.update(state="failed", error="The research job stopped or timed out. Retry the analysis.")
-            write_json(path / "job.json", job)
-        if action == "notify":
-            if len(arguments) > 3 and arguments[3] == job.get("id"):
-                job["notifyRequested"] = True
-                write_json(path / "job.json", job)
-            notify_finished(path, job)
-            return reply(job, saved, ticker, preference)
-        notify_finished(path, job)
-        if action == "cancel":
-            # The request ID prevents a delayed click from cancelling a new job.
-            if len(arguments) > 3 and arguments[3] == job.get("id") and job.get("state") == "running":
-                job.update(state="cancelled", error="Research cancelled.")
-                write_json(path / "job.json", job)
-                if alive(job):
-                    os.kill(job["pid"], signal.SIGTERM)
-            return reply(job, saved, ticker, preference)
-        if action == "status" or job.get("state") == "running":
-            return reply(job, saved, ticker, preference)
-        try:
-            agent = ai_runner.resolve(preference)
-            if ("--force" not in arguments and saved.get("version") == VERSION
-                    and saved.get("agentId") == agent["id"] and time.time() - saved.get("generated", 0) < TTL):
-                return reply({}, saved, ticker, preference)
-            identity = uuid.uuid4().hex
-            job = {"id": identity, "symbol": ticker, "preference": preference, "agent": agent,
-                   "started": time.time(), "state": "running", "stage": "Gathering market context", "error": ""}
-            # The child acquires this lock before reading; startup cannot race the
-            # parent's publication of its PID and identity.
-            process = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "worker", ticker, preference, identity],
-                                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                       start_new_session=True)
-            job.update(pid=process.pid, processIdentity=process_identity(process.pid))
-            write_json(path / "job.json", job)
-        except (ValueError, OSError, subprocess.SubprocessError) as error:
-            job = {"state": "failed", "error": str(error)}
-            write_json(path / "job.json", job)
-        return reply(job, saved, ticker, preference)
-
-
-def update(path, identity, **changes):
-    with locked(path):
-        job = read_json(path / "job.json", {})
-        if job.get("id") != identity or job.get("state") != "running":
-            return False
-        job.update(changes)
-        write_json(path / "job.json", job)
-        return True
-
-
-@contextmanager
-def capacity(root):
-    # Two simultaneous research jobs at most, across windows and symbols.
-    for slot in range(2):
-        lock = (root / f"worker-{slot}.lock").open("w")
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            lock.close()
-            continue
-        try:
-            yield
-        finally:
-            lock.close()
-        return
-    raise ValueError("Two analyses are already running. Wait for one to finish, then retry.")
+    return ai_jobs.main(TASK, __file__, arguments)
 
 
 def worker(ticker, preference, identity):
-    path = directory(symbol(ticker), preference)
-    if not re.fullmatch(r"[a-f0-9]{32}", identity):
-        return
-    def stop(*_):
-        raise InterruptedError("Research cancelled or timed out.")
-    signal.signal(signal.SIGTERM, stop)
-    signal.signal(signal.SIGALRM, stop)
-    signal.alarm(TIMEOUT)
-    try:
-        with locked(path):
-            job = read_json(path / "job.json", {})
-        if job.get("id") != identity or job.get("state") != "running":
-            return
-        with capacity(path.parent):
-            context = move_context.build(ticker)
-            if not update(path, identity, stage="Researching latest catalysts"):
-                return
-            folder = path / identity
-            folder.mkdir(mode=0o700)
-            write_json(folder / "context.json", context)
-            document = ai_runner.run(job["agent"], prompt(job, context), SCHEMA, folder)
-            result = validate(document, job, context)
-            if expired_session(result, ticker):
-                raise ValueError("A new trading session started during research. Retry for the latest move.")
-            with locked(path):
-                current = read_json(path / "job.json", {})
-                if current.get("id") == identity and current.get("state") == "running":
-                    write_json(path / "result.json", result)
-                    write_json(path / "job.json", {**current, "state": "complete", "stage": "", "error": ""})
-    except Exception as error:
-        update(path, identity, state="failed", stage="", error=str(error))
-    finally:
-        signal.alarm(0)
-        with locked(path):
-            current = read_json(path / "job.json", {})
-            if current.get("id") == identity:
-                notify_finished(path, current)
+    ai_jobs.worker(TASK, ticker, preference, identity)
 
 
 if __name__ == "__main__":
-    os.umask(0o077)
-    if len(sys.argv) == 5 and sys.argv[1] == "worker":
-        worker(*sys.argv[2:])
-    else:
-        try:
-            print(json.dumps(main(sys.argv[1:]), allow_nan=False))
-        except Exception as error:
-            print(json.dumps({"pending": False, "error": str(error)}))
+    ai_jobs.cli(TASK, __file__)

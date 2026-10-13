@@ -2,6 +2,7 @@
 singleton StockStore 1.0 stores/StockStore.qml
 singleton MarketStore 1.0 stores/MarketStore.qml
 singleton AnalysisStore 1.0 stores/AnalysisStore.qml
+singleton BullBearStore 1.0 stores/BullBearStore.qml
 singleton Tone 1.0 stores/Tone.qml
 
 Service 1.0 Service.qml
@@ -16,6 +17,7 @@ WatchlistBatch 1.0 data/WatchlistBatch.qml
 
 ActionButton 1.0 components/ActionButton.qml
 AiIcon 1.0 components/AiIcon.qml
+AiButton 1.0 components/AiButton.qml
 IconButton 1.0 components/IconButton.qml
 Label 1.0 components/Label.qml
 FastWheel 1.0 components/FastWheel.qml
@@ -37,6 +39,7 @@ MetricChart 1.0 charts/MetricChart.qml
 
 CompanyNews 1.0 stock/CompanyNews.qml
 MoveAnalysis 1.0 stock/MoveAnalysis.qml
+BullBearReport 1.0 stock/BullBearReport.qml
 SocialPanel 1.0 stock/SocialPanel.qml
 EarningsPanel 1.0 stock/EarningsPanel.qml
 FinancialsPanel 1.0 stock/FinancialsPanel.qml

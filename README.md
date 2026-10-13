@@ -50,6 +50,9 @@ usage counts toward the account/plan configured in that agent. Other Omarchy age
 are not yet supported by the background adapters.
 Sign-in/setup errors include instructions for the selected agent; complete its
 sign-in in a terminal, then retry the analysis.
+**Enable AI features** at the top of that tab is on by default; turning it off
+hides **Explain move** and **Bull & bear** and stops their requests. Saved
+results are kept for when you turn it back on.
 
 Analysis runs only when requested. Revisiting a stock shows its saved paragraph;
 **Notify when ready** closes the analysis popup and sends a standard desktop
@@ -62,6 +65,20 @@ quote/chart refreshes never generate AI requests. Earlier snapshots are labeled
 after 15 minutes or a significant change in the displayed market context. A failed
 refresh preserves the previous paragraph. If web research is unavailable, the panel
 shows an error rather than an explanation generated from memory.
+
+### Bull & bear case
+
+Click **Bull & bear** in the stock's header to have the same agent research the
+company and write both sides: a short summary of the debate, three to five sourced
+points each for the bull and the bear case, and what to watch next. The report
+opens inside Stocks, and is also saved as a self-contained HTML page: **Open in
+browser** shows it there, and **Save to Downloads** saves a copy
+(`AMD-bull-bear-2026-10-12.html`) to send to anyone. The page needs nothing but a
+browser, follows light or dark mode, and runs no scripts.
+
+A report is kept until you click **Refresh**; opening it again never starts new
+research. It notes when it was researched and flags reports older than a week.
+**Notify when ready** and **Cancel research** work as they do for Explain move.
 
 On IPO days, the exchange in the page header hangs a banner for each new listing.
 

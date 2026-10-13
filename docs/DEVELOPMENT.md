@@ -227,6 +227,15 @@ available. Newer pre-/post-market quotes determine the scope independently of
 the chart's Extended toggle. Partial-session volume is never compared with
 whole-day volume. Historical quote units are normalized before computing returns.
 
+The `aiEnabled` setting (Settings → AI, on by default) gates both features through
+`AnalysisStore.enabled`: off, their buttons hide, their stores go inactive (no
+status polling or starts) and open popups close. A job already running finishes.
+
+`bin/ai_jobs.py` holds the job machinery the AI features share: status, start,
+cancel and notify actions, job locks, the detached worker and its capacity, and
+notifications. Each feature (`move_analysis.py`, `bull_bear.py`) is a `Task`: its
+state folder, context, prompt, schema, validation and cache lifetime.
+
 `bin/ai_runner.py` owns the adapters: Claude Code print/stream-JSON with structured
 output, Codex exec/JSON with an output schema and live search, and OpenCode V2
 run/JSON with a private runtime and a job-local web-research agent. Authentication,
@@ -261,6 +270,28 @@ is consumed in memory. Research additionally contacts the configured AI provider
 its search service and the article sites selected by the agent. For development,
 use `STOCKS_STATE_DIR` under `/tmp/opencode` to isolate jobs from live app state.
 
+### Bull & bear case
+
+`bin/bull_bear.py` asks the agent, in a few lines, for the bull and bear case of
+the selected company; the schema carries the structure (summary, 2–6 points a side
+with source IDs, things to watch, sources). The context is a small snapshot (quote,
+valuation ratios, sector, the cached next earnings date) that also fills the
+report's header. Validation turns source IDs into numbers in listed order and
+rejects invented citations and non-HTTP(S) links. On completion the worker renders
+`report.html` beside `result.json`: one file with inline CSS, a `default-src 'none'`
+content security policy and every agent string escaped. `export` writes a copy to
+the XDG download folder, adding `-2`, `-3`… rather than replacing a different file.
+State lives under `bull-bear/`, laid out like `move-analysis/`.
+
+The app does not embed a web view: Qt WebEngine aborts Quickshell when loaded
+without its initialization (`base::CommandLine cannot be properly initialized`),
+and inside the Omarchy shell that would take the bar down with it.
+`qml/stock/BullBearReport.qml` draws the same result natively instead, so the popup
+and the HTML page show the same report. `qml/stores/BullBearStore.qml` mirrors
+`AnalysisStore` without session expiry: a report is kept until Refresh, and opening
+one only starts research when none exists. Both features use the agent chosen in
+Settings → AI, and their popups are reachable over the `dump`/`activate` IPC.
+
 ## Checks
 
 From the repository root:
@@ -282,6 +313,7 @@ node tests/test_watchlist_keys.cjs
 node tests/test_server_helper.cjs
 node tests/test_header_session.cjs
 node tests/test_move_analysis.cjs
+node tests/test_bull_bear.cjs
 bash -n install install-launcher uninstall
 shellcheck install install-launcher uninstall
 omarchy plugin validate .

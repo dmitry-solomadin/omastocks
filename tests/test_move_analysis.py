@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "bin"))
+import ai_jobs
 import ai_runner
 import move_analysis as analysis
 import move_context as context
@@ -167,12 +168,12 @@ class JobTests(unittest.TestCase):
 
     def test_background_notification_survives_worker_completion_and_is_sent_once(self):
         write_json(self.path / "job.json", {**JOB, "state": "running", "started": analysis.time.time()})
-        with patch.object(analysis, "alive", return_value=True), patch.object(analysis.subprocess, "run") as notify:
+        with patch.object(ai_jobs, "alive", return_value=True), patch.object(ai_jobs.subprocess, "run") as notify:
             analysis.main(["notify", "AMD", "default", "old-job"])
             self.assertFalse(read_json(self.path / "job.json", {}).get("notifyRequested", False))
             self.assertTrue(analysis.main(["notify", "AMD", "default", JOB["id"]])["notifyRequested"])
             notify.assert_not_called()
-            with patch.object(analysis.signal, "signal"), patch.object(analysis.signal, "alarm"), \
+            with patch.object(ai_jobs.signal, "signal"), patch.object(ai_jobs.signal, "alarm"), \
                  patch.object(context, "build", return_value=CONTEXT), patch.object(ai_runner, "run", return_value=response()):
                 analysis.worker("AMD", "default", JOB["id"])
             self.assertEqual(read_json(self.path / "job.json", {})["state"], "complete")
@@ -184,7 +185,7 @@ class JobTests(unittest.TestCase):
 
     def test_notification_registration_after_completion_and_failure_but_not_cancellation(self):
         for state in ("complete", "failed", "cancelled"):
-            with self.subTest(state=state), patch.object(analysis.subprocess, "run") as notify:
+            with self.subTest(state=state), patch.object(ai_jobs.subprocess, "run") as notify:
                 write_json(self.path / "job.json", {**JOB, "state": state})
                 analysis.main(["notify", "AMD", "default", JOB["id"]])
                 if state == "cancelled":
@@ -196,16 +197,16 @@ class JobTests(unittest.TestCase):
     def test_notification_failure_does_not_lose_completed_analysis(self):
         write_json(self.path / "result.json", self.saved)
         write_json(self.path / "job.json", {**JOB, "state": "complete"})
-        with patch.object(analysis.subprocess, "run", side_effect=OSError("No notification daemon")):
+        with patch.object(ai_jobs.subprocess, "run", side_effect=OSError("No notification daemon")):
             result = analysis.main(["notify", "AMD", "default", JOB["id"]])
         self.assertEqual(result["summary"], self.saved["summary"])
         self.assertFalse(read_json(self.path / "job.json", {}).get("notified", False))
 
     def test_start_deduplicates_and_cancel_only_targets_matching_job(self):
         with patch.object(ai_runner, "resolve", return_value=AGENT), \
-             patch.object(analysis.subprocess, "Popen", return_value=Mock(pid=12345)) as launch, \
-             patch.object(analysis, "process_identity", return_value="boot:123"), \
-             patch.object(analysis.os, "kill") as kill:
+             patch.object(ai_jobs.subprocess, "Popen", return_value=Mock(pid=12345)) as launch, \
+             patch.object(ai_jobs, "process_identity", return_value="boot:123"), \
+             patch.object(ai_jobs.os, "kill") as kill:
             first = analysis.main(["start", "AMD", "default"])
             second = analysis.main(["start", "AMD", "default", "--force"])
             self.assertEqual(first["job"], second["job"])
@@ -217,7 +218,7 @@ class JobTests(unittest.TestCase):
 
     def test_cached_analysis_and_failed_refresh_preserve_previous_result(self):
         write_json(self.path / "result.json", self.saved)
-        with patch.object(ai_runner, "resolve", return_value=AGENT), patch.object(analysis.subprocess, "Popen") as launch:
+        with patch.object(ai_runner, "resolve", return_value=AGENT), patch.object(ai_jobs.subprocess, "Popen") as launch:
             cached = analysis.main(["start", "AMD", "default"])
             self.assertEqual(cached["summary"], self.saved["summary"])
             launch.assert_not_called()
@@ -229,7 +230,7 @@ class JobTests(unittest.TestCase):
     def test_orphan_pid_reuse_never_kills_an_unrelated_process(self):
         write_json(self.path / "job.json", {**JOB, "state": "running", "pid": os.getpid(), "processIdentity": "old-boot:1", "started": 0})
         write_json(self.path / "result.json", self.saved)
-        with patch.object(analysis.os, "kill") as kill:
+        with patch.object(ai_jobs.os, "kill") as kill:
             result = analysis.main(["status", "AMD", "default"])
             self.assertFalse(result["pending"])
             self.assertEqual(result["summary"], self.saved["summary"])
@@ -239,7 +240,7 @@ class JobTests(unittest.TestCase):
     def test_worker_validation_failure_keeps_saved_result_and_late_worker_cannot_overwrite(self):
         write_json(self.path / "result.json", self.saved)
         write_json(self.path / "job.json", {**JOB, "state": "running"})
-        with patch.object(analysis.signal, "signal"), patch.object(analysis.signal, "alarm"), \
+        with patch.object(ai_jobs.signal, "signal"), patch.object(ai_jobs.signal, "alarm"), \
              patch.object(context, "build", return_value=CONTEXT), \
              patch.object(ai_runner, "run", return_value={**response(), "symbol": "META"}):
             analysis.worker("AMD", "default", JOB["id"])

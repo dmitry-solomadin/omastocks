@@ -4,7 +4,9 @@ import ".."
 
 QtObject {
     id: root
-    readonly property bool active: MarketStore.companyResearchActive
+    // Settings → AI switches every AI feature off: no buttons, popups or requests.
+    readonly property bool enabled: StockStore.barSettings.aiEnabled !== false
+    readonly property bool active: enabled && MarketStore.companyResearchActive
     readonly property string preference: ["default", "claude", "codex", "opencode"].indexOf(StockStore.barSettings.analysisAgent) >= 0
         ? StockStore.barSettings.analysisAgent : "default"
     readonly property string key: StockStore.selected + ":" + preference
@@ -32,6 +34,21 @@ QtObject {
         const percent = extended ? extended.percent : quote.percent
         return kind !== session.kind || updated - (session.updated || 0) > 21600
             || (Number.isFinite(percent) && Number.isFinite(session.percent) && Math.abs(percent - session.percent) >= 2)
+    }
+    // Setup and sign-in failures of any AI feature, answered with the agent's own steps.
+    function needsSignIn(message) {
+        return /sign.?in|log(?:ged)?.?in|logged.?out|authenticat|credentials?|needs setup|not installed/i.test(message)
+    }
+    function signInInstructions(agent, action) {
+        const name = agent || ({claude: "Claude Code", codex: "Codex", opencode: "OpenCode"})[preference] || ""
+        const retry = "Then return here and click " + action + "."
+        if (name === "Claude Code")
+            return "To sign in to Claude Code, run this in a terminal:\n\nclaude auth login\n\nComplete the browser sign-in with your Claude account. " + retry
+        if (name === "Codex")
+            return "To sign in to Codex, run this in a terminal:\n\ncodex login\n\nComplete the browser sign-in with your ChatGPT account. " + retry
+        if (name === "OpenCode")
+            return "To sign in, open OpenCode and enter /connect. Choose your provider and complete its sign-in flow. " + retry
+        return "Choose an agent in Settings → AI, then open that agent in a terminal and sign in. " + retry
     }
     function show() {
         if (!active) return

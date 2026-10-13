@@ -10,18 +10,8 @@ Controls.Popup {
     objectName: "moveAnalysisPopup"
     readonly property var report: AnalysisStore.report
     readonly property string requestKey: AnalysisStore.key
-    readonly property bool showSignInHelp: !report.pending && /sign.?in|log(?:ged)?.?in|logged.?out|authenticat|credentials?|needs setup|not installed/i.test(AnalysisStore.error)
-    readonly property string signInInstructions: {
-        const agent = report.workingAgent || ({claude: "Claude Code", codex: "Codex", opencode: "OpenCode"})[AnalysisStore.preference] || ""
-        const retry = "Then return here and click " + (report.summary ? "Refresh" : "Retry") + "."
-        if (agent === "Claude Code")
-            return "To sign in to Claude Code, run this in a terminal:\n\nclaude auth login\n\nComplete the browser sign-in with your Claude account. " + retry
-        if (agent === "Codex")
-            return "To sign in to Codex, run this in a terminal:\n\ncodex login\n\nComplete the browser sign-in with your ChatGPT account. " + retry
-        if (agent === "OpenCode")
-            return "To sign in, open OpenCode and enter /connect. Choose your provider and complete its sign-in flow. " + retry
-        return "Choose an agent in Settings → AI, then open that agent in a terminal and sign in. " + retry
-    }
+    readonly property bool showSignInHelp: !report.pending && AnalysisStore.needsSignIn(AnalysisStore.error)
+    readonly property string signInInstructions: AnalysisStore.signInInstructions(report.workingAgent, report.summary ? "Refresh" : "Retry")
     onRequestKeyChanged: close()
 
     function escapeHtml(value) {

@@ -15,7 +15,7 @@
     "aliases": ["omastocks", "stocks", "finance", "watchlist"],
     "allowMultiple": false,
     "defaultSection": "left",
-    "defaults": {"maxWidth": 360, "showStrip": true, "showPrice": false, "showPercent": true, "showChange": false, "showVolume": true, "showEvents": true, "watchlistDisplay": "percent", "analysisAgent": "default"},
+    "defaults": {"maxWidth": 360, "showStrip": true, "showPrice": false, "showPercent": true, "showChange": false, "showVolume": true, "showEvents": true, "watchlistDisplay": "percent", "analysisAgent": "default", "aiEnabled": true},
     "schema": [
       {"key": "maxWidth", "type": "integer", "label": "Strip width", "min": 40, "max": 800, "defaultValue": 360},
       {"key": "showStrip", "type": "boolean", "label": "Enable topbar widget", "defaultValue": true},
@@ -25,7 +25,8 @@
       {"key": "showVolume", "type": "boolean", "label": "Chart volume bars", "defaultValue": true},
       {"key": "showEvents", "type": "boolean", "label": "Chart event markers", "defaultValue": true},
       {"key": "watchlistDisplay", "type": "enum", "label": "Watchlist display", "options": ["percent", "change", "marketCap"], "defaultValue": "percent"},
-      {"key": "analysisAgent", "type": "enum", "label": "Analysis agent", "options": ["default", "claude", "codex", "opencode"], "defaultValue": "default"}
+      {"key": "analysisAgent", "type": "enum", "label": "Analysis agent", "options": ["default", "claude", "codex", "opencode"], "defaultValue": "default"},
+      {"key": "aiEnabled", "type": "boolean", "label": "AI features", "defaultValue": true}
     ]
   }
 }

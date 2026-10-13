@@ -44,6 +44,14 @@ Item {
         StockStore.refresh(false)
     }
     StocksWindow { id: window; shell: root.shell }
+    // Popups live outside the window's content; search them first.
+    function findItem(name) {
+        for (const item of window.popupContents.concat([window.contentItem])) {
+            const found = Inspect.find(item, name)
+            if (found) return found
+        }
+        return null
+    }
     Connections { target: StockStore; function onOpenRequested() { root.open() } }
     IpcHandler {
         target: "io.github.dmitry-solomadin.omastocks"
@@ -55,7 +63,9 @@ Item {
                 entries: StockStore.entries.length, favorites: StockStore.favorites.map(entry => entry.symbol),
                 busy: StockStore.busy, editing: StockStore.editing, refreshing: StockStore.refreshing, error: StockStore.error, chartPoints: (StockStore.visibleChart.points || []).length,
                 analysis: {active: AnalysisStore.active, open: window.analysisOpen, agent: AnalysisStore.preference,
-                    pending: AnalysisStore.report.pending === true, hasResult: !!AnalysisStore.report.summary, error: AnalysisStore.error}})
+                    pending: AnalysisStore.report.pending === true, hasResult: !!AnalysisStore.report.summary, error: AnalysisStore.error},
+                bullBear: {active: BullBearStore.active, open: window.bullBearOpen, pending: BullBearStore.report.pending === true,
+                    hasResult: BullBearStore.ready, html: BullBearStore.report.html || "", error: BullBearStore.error}})
         }
         // Development: switch tabs and read or activate the UI as text.
         function view(name: string): string {
@@ -64,11 +74,11 @@ Item {
             return name
         }
         function dump(name: string): string {
-            const item = name ? Inspect.find(window.analysisContent, name) || Inspect.find(window.contentItem, name) : window.contentItem
+            const item = name ? root.findItem(name) : window.contentItem
             try { return item ? Inspect.text(item) : "no item " + name } catch (error) { return "dump failed: " + error }
         }
         function activate(name: string): string {
-            const item = Inspect.find(window.analysisContent, name) || Inspect.find(window.contentItem, name)
+            const item = root.findItem(name)
             return !item ? "no item " + name : Inspect.activate(item) ? "activated " + name : name + " is not activatable"
         }
     }
