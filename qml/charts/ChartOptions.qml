@@ -2,7 +2,7 @@ import QtQuick
 import qs.Commons
 import ".."
 
-// Moving averages, extended hours, Compare and Explain move: occasional tools,
+// Explain move, moving averages, extended hours and Compare: occasional tools,
 // kept small at the right of the chart's top line rather than on rows of their own.
 Row {
     id: root
@@ -14,6 +14,22 @@ Row {
         implicitWidth: contentItem.implicitWidth + leftPadding + rightPadding
         font.pixelSize: Style.font.bodySmall
     }
+    AiButton {
+        id: explain
+        objectName: "explainLatestMove"
+        visible: AnalysisStore.enabled && !StockStore.selectedIsNonCompany
+        implicitHeight: Style.space(24)
+        padding: Style.space(6)
+        topPadding: 0
+        bottomPadding: 0
+        font.pixelSize: Style.font.bodySmall
+        text: "Explain move"
+        ink: Tone.muted
+        ready: !!AnalysisStore.report.summary
+        hint: "Research the latest price move with your agent, independently of the chart range"
+        onClicked: AnalysisStore.show()
+    }
+    Item { visible: explain.visible; width: Style.space(10); height: 1 }
     Label {
         visible: MarketStore.averagesAvailable
         anchors.verticalCenter: parent.verticalCenter
@@ -61,21 +77,5 @@ Row {
         ink: Tone.muted
         hint: "Compare with up to four other stocks"
         onClicked: MarketStore.compareMode = true
-    }
-    Item { visible: explain.visible; width: Style.space(10); height: 1 }
-    AiButton {
-        id: explain
-        objectName: "explainLatestMove"
-        visible: AnalysisStore.enabled && !StockStore.selectedIsNonCompany
-        implicitHeight: Style.space(24)
-        padding: Style.space(6)
-        topPadding: 0
-        bottomPadding: 0
-        font.pixelSize: Style.font.bodySmall
-        text: "Explain move"
-        ink: Tone.muted
-        ready: !!AnalysisStore.report.summary
-        hint: "Research the latest price move with your agent, independently of the chart range"
-        onClicked: AnalysisStore.show()
     }
 }
