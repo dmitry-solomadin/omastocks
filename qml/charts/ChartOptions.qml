@@ -29,7 +29,6 @@ Row {
         hint: "Research the latest price move with your agent, independently of the chart range"
         onClicked: AnalysisStore.show()
     }
-    Item { visible: explain.visible; width: Style.space(10); height: 1 }
     Label {
         visible: MarketStore.averagesAvailable
         anchors.verticalCenter: parent.verticalCenter
