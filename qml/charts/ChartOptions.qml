@@ -29,9 +29,13 @@ Row {
         hint: "Research the latest price move with your agent, independently of the chart range"
         onClicked: AnalysisStore.show()
     }
+    // The averages are a group, set apart on both sides like Compare after them.
+    // "MA" is plain text, so its left padding stands in for a button's.
+    Item { visible: explain.visible && MarketStore.averagesAvailable; width: Style.space(10); height: 1 }
     Label {
         visible: MarketStore.averagesAvailable
         anchors.verticalCenter: parent.verticalCenter
+        leftPadding: Style.space(6)
         rightPadding: Style.space(4)
         text: "MA"
         color: Tone.muted
