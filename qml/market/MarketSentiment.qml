@@ -23,6 +23,7 @@ ColumnLayout {
     readonly property var curve: Assets.volatility.map(point => Object.assign({}, point, {value: (StockStore.marketQuotes[point.symbol] || {}).price}))
     readonly property bool curveKnown: curve.every(point => Number.isFinite(point.value))
     readonly property real vix: Number.isFinite(curve[1].value) ? curve[1].value : -1
+    readonly property var vixQuote: StockStore.marketQuotes["^VIX"] || {}
     readonly property string volatilityLevel: vix < 0 ? "Volatility unavailable"
         : vix < 15 ? "Low expected volatility" : vix < 20 ? "Moderate expected volatility"
         : vix < 30 ? "Elevated expected volatility" : "High expected volatility"
@@ -163,13 +164,45 @@ ColumnLayout {
             Layout.alignment: Qt.AlignTop
             spacing: Style.space(6)
             SectionHeading { text: "VIX"; Layout.fillWidth: true }
-            Label {
+            // The current reading opens ^VIX in the Stock view, as the benchmarks do.
+            RowLayout {
                 Layout.fillWidth: true
-                text: root.volatilityLevel
-                color: root.volatilityTone
-                font.pixelSize: Style.font.bodySmall
-                font.bold: true
-                wrapMode: Text.WordWrap
+                spacing: Style.space(12)
+                Item {
+                    id: vixReading
+                    objectName: "vixReading"
+                    implicitWidth: reading.implicitWidth
+                    implicitHeight: reading.implicitHeight
+                    function activate() { StockStore.select("^VIX") }
+                    RowLayout {
+                        id: reading
+                        spacing: Style.space(8)
+                        Label { text: StockStore.price(root.vixQuote.price); font.bold: true }
+                        Label { text: StockStore.percent(root.vixQuote.percent); color: StockStore.direction(root.vixQuote.percent); font.bold: true }
+                    }
+                    MouseArea {
+                        id: vixMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: vixReading.activate()
+                    }
+                    Ui.PanelToolTip {
+                        visible: vixMouse.containsMouse
+                        text: StockStore.marketQuotesRequest.data.error || root.vixQuote.error
+                            || "Open ^VIX" + (root.vixQuote.updated ? " · " + Qt.formatDateTime(new Date(root.vixQuote.updated * 1000), "d MMM hh:mm") : "")
+                    }
+                    Accessible.role: Accessible.Button
+                    Accessible.name: "VIX " + StockStore.price(root.vixQuote.price) + " " + StockStore.percent(root.vixQuote.percent)
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: root.volatilityLevel
+                    color: root.volatilityTone
+                    font.pixelSize: Style.font.bodySmall
+                    font.bold: true
+                    wrapMode: Text.WordWrap
+                }
             }
             Item {
                 id: curveChart

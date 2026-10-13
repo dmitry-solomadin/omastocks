@@ -14,11 +14,12 @@ assert.equal(assets.price({format: "yield"}, 5.0664), "5.066%")
 assert.equal(assets.price({format: "fx"}, 1.139731), "1.1397")
 assert.equal(assets.price({}, null), "—")
 assert.equal(symbols.length, 39)
-const spx = assets.benchmarks[0], vix = assets.benchmarks[3]
+const spx = assets.benchmarks[0]
 assert.equal(assets.benchmark(spx, false).symbol, "^SPX")
 assert.equal(assets.benchmark(spx, true).symbol, "ES=F")
 assert.equal(assets.benchmark(spx, true).futures, true)
-assert.equal(assets.benchmark(vix, true).symbol, "^VIX")
+assert.equal(assets.benchmark({symbol: "^VIX", name: "VIX"}, true).symbol, "^VIX", "An asset without futures keeps its symbol")
+assert.deepEqual(Array.from(assets.benchmarks, asset => asset.symbol), ["^SPX", "^IXIC", "^DJI"], "VIX lives in the sentiment section")
 // Opening must clear the FUT badge/tooltip without losing the next overnight contract.
 for (const asset of assets.benchmarks) {
     const contract = asset.futures

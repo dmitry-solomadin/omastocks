@@ -5,8 +5,7 @@
 var benchmarks = [
     {symbol: "^SPX", name: "S&P 500", futures: {symbol: "ES=F", name: "S&P 500"}},
     {symbol: "^IXIC", name: "Nasdaq", futures: {symbol: "NQ=F", name: "Nasdaq 100"}},
-    {symbol: "^DJI", name: "Dow Jones", futures: {symbol: "YM=F", name: "Dow Jones"}},
-    {symbol: "^VIX", name: "VIX"}
+    {symbol: "^DJI", name: "Dow Jones", futures: {symbol: "YM=F", name: "Dow Jones"}}
 ]
 var groups = [
     {title: "Global", note: "Overseas benchmarks; Asia has usually closed by the US open.", assets: [
