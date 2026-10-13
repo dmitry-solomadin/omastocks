@@ -3,6 +3,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
 import qs.Ui as Ui
+import Quickshell.Io
 import "."
 
 Controls.Popup {
@@ -11,6 +12,15 @@ Controls.Popup {
     property var shell: null
     property string saveError: ""
     property string section: "general"
+    // The installed version, from the plugin manifest; shown in the corner.
+    property string version: ""
+    property FileView manifest: FileView {
+        path: decodeURIComponent(Qt.resolvedUrl("../manifest.json").toString().replace(/^file:\/\//, ""))
+        onLoaded: {
+            try { menu.version = JSON.parse(text()).version || "" }
+            catch (error) { menu.version = "" }
+        }
+    }
     // Widget settings stay live even while the strip is hidden.
     readonly property var barSettings: StockStore.barSettings
     readonly property bool showStrip: barSettings.showStrip !== false
@@ -351,6 +361,14 @@ Controls.Popup {
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
             color: Color.urgent
+        }
+        Label {
+            objectName: "appVersion"
+            visible: menu.version !== ""
+            text: "Omastocks " + menu.version
+            color: Tone.muted
+            font.pixelSize: Style.font.bodySmall
+            Layout.alignment: Qt.AlignRight
         }
     }
 }
