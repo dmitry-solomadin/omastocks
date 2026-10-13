@@ -39,6 +39,16 @@ Controls.ScrollView {
                 MarketStatus { session: marketHeader.session }
             }
             MarketIndexes { session: marketHeader.session; Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter }
+            AiButton {
+                objectName: "marketBrief"
+                visible: AnalysisStore.enabled
+                text: "Market brief"
+                hint: "Have your agent research today's market · Opens a shareable report"
+                backdrop: true
+                ready: MarketBriefStore.ready
+                Layout.alignment: Qt.AlignVCenter
+                onClicked: MarketBriefStore.show()
+            }
         }
         Label {
             visible: StockStore.view !== "market"

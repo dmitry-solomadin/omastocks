@@ -3,10 +3,12 @@ singleton StockStore 1.0 stores/StockStore.qml
 singleton MarketStore 1.0 stores/MarketStore.qml
 singleton AnalysisStore 1.0 stores/AnalysisStore.qml
 singleton BullBearStore 1.0 stores/BullBearStore.qml
+singleton MarketBriefStore 1.0 stores/MarketBriefStore.qml
 singleton Tone 1.0 stores/Tone.qml
 
 Service 1.0 Service.qml
 SettingsMenu 1.0 SettingsMenu.qml
+AgentReport 1.0 stores/AgentReport.qml
 StocksWindow 1.0 StocksWindow.qml
 BarWidget 1.0 BarWidget.qml
 
@@ -18,6 +20,8 @@ WatchlistBatch 1.0 data/WatchlistBatch.qml
 ActionButton 1.0 components/ActionButton.qml
 AiIcon 1.0 components/AiIcon.qml
 AiButton 1.0 components/AiButton.qml
+CitedText 1.0 components/CitedText.qml
+ReportPopup 1.0 components/ReportPopup.qml
 IconButton 1.0 components/IconButton.qml
 Label 1.0 components/Label.qml
 FastWheel 1.0 components/FastWheel.qml
@@ -68,6 +72,7 @@ SectorLeaders 1.0 market/SectorLeaders.qml
 EconomicCalendar 1.0 market/EconomicCalendar.qml
 MarketSession 1.0 market/MarketSession.qml
 MarketStatus 1.0 market/MarketStatus.qml
+MarketBrief 1.0 market/MarketBrief.qml
 
 PixelArt 1.0 art/PixelArt.qml
 CandleMark 1.0 art/CandleMark.qml

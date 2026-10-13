@@ -51,7 +51,7 @@ are not yet supported by the background adapters.
 Sign-in/setup errors include instructions for the selected agent; complete its
 sign-in in a terminal, then retry the analysis.
 **Enable AI features** at the top of that tab is on by default; turning it off
-hides **Explain move** and **Bull & bear** and stops their requests. Saved
+hides **Explain move**, **Bull & bear** and **Market brief** and stops their requests. Saved
 results are kept for when you turn it back on.
 
 Analysis runs only when requested. Revisiting a stock shows its saved paragraph;
@@ -79,6 +79,19 @@ browser, follows light or dark mode, and runs no scripts.
 A report is kept until you click **Refresh**; opening it again never starts new
 research. It notes when it was researched and flags reports older than a week.
 **Notify when ready** and **Cancel research** work as they do for Explain move.
+
+### Market brief
+
+Click **Market brief** in the Market view's header for the agent's take on the
+day's US market: a headline, what moved stocks and why, notable movers (click one
+to open it), and what to watch next. Before the open it covers the pre-market
+setup; after the close, the session that just ended. Like Bull & bear, it opens
+inside Stocks and is also a self-contained HTML page with the indexes, assets and
+sector moves of that moment, for the browser or Downloads.
+
+A brief belongs to its trading day. It stays until you click **Refresh**, and once
+the S&P 500 trades on a later New York date, opening it researches a new one.
+Weekends and holidays keep the last brief.
 
 On IPO days, the exchange in the page header hangs a banner for each new listing.
 

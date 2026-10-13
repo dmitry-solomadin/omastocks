@@ -33,6 +33,6 @@ jobs:
       - run: node tests/test_header_session.cjs
       - run: node tests/test_rolling_number.cjs
       - run: node tests/test_move_analysis.cjs
-      - run: node tests/test_bull_bear.cjs
+      - run: node tests/test_agent_report.cjs
       - run: bash -n install install-launcher uninstall
       - run: shellcheck install install-launcher uninstall

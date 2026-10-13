@@ -5,6 +5,7 @@ from pathlib import Path
 import signal
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import Mock, patch
 
@@ -121,6 +122,22 @@ class AdapterTests(unittest.TestCase):
             with patch.object(ai_runner, "command", return_value=[sys.executable, "-c", "import time; time.sleep(30)"]):
                 with self.assertRaisesRegex(ValueError, "timed out"):
                     ai_runner.run(AGENT, "test", analysis.SCHEMA, path, timeout=.1)
+
+    def test_cancel_signal_stops_a_running_agent(self):
+        # The worker's handler must not raise InterruptedError, which selectors
+        # swallow: the agent would run on after Cancel.
+        previous = signal.signal(signal.SIGALRM, ai_jobs.stop)
+        try:
+            with tempfile.TemporaryDirectory() as folder, \
+                 patch.object(ai_runner, "command", return_value=[sys.executable, "-c", "import time; time.sleep(30)"]):
+                signal.setitimer(signal.ITIMER_REAL, .3)
+                started = time.monotonic()
+                with self.assertRaises(ai_jobs.Stopped):
+                    ai_runner.run(AGENT, "test", analysis.SCHEMA, Path(folder), timeout=20)
+                self.assertLess(time.monotonic() - started, 5)
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, previous)
 
 
 class JobTests(unittest.TestCase):

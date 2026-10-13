@@ -25,7 +25,7 @@ Flow {
             height: lines.implicitHeight + Style.space(12)
             radius: Style.cornerRadius
             // A soft backdrop lifts the readout off the sky scene behind the header.
-            color: mouse.containsMouse ? Qt.tint(Util.alpha(Color.background, .7), Util.alpha(Color.foreground, .07)) : Util.alpha(Color.background, .55)
+            color: mouse.containsMouse ? Tone.backdropHovered : Tone.backdrop
             ColumnLayout {
                 id: lines
                 anchors.centerIn: parent

@@ -10,6 +10,8 @@ Controls.Button {
     property bool selected: false
     property string hint: ""
     property color ink: selected ? Color.accent : Color.foreground
+    // On a page header's sky, the same backdrop as the benchmark tiles.
+    property bool backdrop: false
     implicitHeight: Style.space(34)
     implicitWidth: label.implicitWidth + Style.space(24)
     padding: Style.space(10)
@@ -20,7 +22,9 @@ Controls.Button {
     Accessible.name: hint || text
     background: Rectangle {
         radius: Style.cornerRadius
-        color: root.down ? Util.alpha(Color.foreground, .16) : root.selected ? Util.alpha(Color.accent, .12) : root.hovered ? Util.alpha(Color.foreground, .07) : "transparent"
+        color: root.down ? Util.alpha(Color.foreground, .16) : root.selected ? Util.alpha(Color.accent, .12)
+            : root.hovered ? (root.backdrop ? Tone.backdropHovered : Util.alpha(Color.foreground, .07))
+            : root.backdrop ? Tone.backdrop : "transparent"
     }
     contentItem: Label {
         id: label

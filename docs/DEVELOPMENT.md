@@ -227,14 +227,17 @@ available. Newer pre-/post-market quotes determine the scope independently of
 the chart's Extended toggle. Partial-session volume is never compared with
 whole-day volume. Historical quote units are normalized before computing returns.
 
-The `aiEnabled` setting (Settings → AI, on by default) gates both features through
+The `aiEnabled` setting (Settings → AI, on by default) gates every AI feature through
 `AnalysisStore.enabled`: off, their buttons hide, their stores go inactive (no
 status polling or starts) and open popups close. A job already running finishes.
 
 `bin/ai_jobs.py` holds the job machinery the AI features share: status, start,
 cancel and notify actions, job locks, the detached worker and its capacity, and
-notifications. Each feature (`move_analysis.py`, `bull_bear.py`) is a `Task`: its
-state folder, context, prompt, schema, validation and cache lifetime.
+notifications. Each feature (`move_analysis.py`, `bull_bear.py`, `market_brief.py`)
+is a `Task`: its state folder, context, prompt, schema, validation and cache
+lifetime. Cancel and the job deadline reach the worker as signals whose handler
+raises `ai_jobs.Stopped`. It must not be an `InterruptedError`: `selectors` treats
+that as "nothing ready", and the agent would carry on after a cancel.
 
 `bin/ai_runner.py` owns the adapters: Claude Code print/stream-JSON with structured
 output, Codex exec/JSON with an output schema and live search, and OpenCode V2
@@ -270,6 +273,23 @@ is consumed in memory. Research additionally contacts the configured AI provider
 its search service and the article sites selected by the agent. For development,
 use `STOCKS_STATE_DIR` under `/tmp/opencode` to isolate jobs from live app state.
 
+### AI reports
+
+`bin/reports.py` holds what the HTML reports share: source and point validation,
+the page (inline CSS, a `default-src 'none'` content security policy, every agent
+string escaped), `publish` beside the result and `export` to Downloads. In QML,
+`stores/AgentReport.qml` is the store both reports instantiate as singletons and
+`components/ReportPopup.qml` the popup frame they fill; `CitedText` is text with
+its numbered source links.
+
+The app does not embed a web view: Qt WebEngine aborts Quickshell when loaded
+without its initialization (`base::CommandLine cannot be properly initialized`),
+and inside the Omarchy shell that would take the bar down with it. The popups draw
+each result natively instead, so the popup and the HTML page show the same report.
+A report is kept until Refresh (or, for the market brief, its trading day), and
+opening one starts research only when there is none. Both use the agent chosen in
+Settings → AI, and their popups are reachable over the `dump`/`activate` IPC.
+
 ### Bull & bear case
 
 `bin/bull_bear.py` asks the agent, in a few lines, for the bull and bear case of
@@ -283,14 +303,18 @@ content security policy and every agent string escaped. `export` writes a copy t
 the XDG download folder, adding `-2`, `-3`… rather than replacing a different file.
 State lives under `bull-bear/`, laid out like `move-analysis/`.
 
-The app does not embed a web view: Qt WebEngine aborts Quickshell when loaded
-without its initialization (`base::CommandLine cannot be properly initialized`),
-and inside the Omarchy shell that would take the bar down with it.
-`qml/stock/BullBearReport.qml` draws the same result natively instead, so the popup
-and the HTML page show the same report. `qml/stores/BullBearStore.qml` mirrors
-`AnalysisStore` without session expiry: a report is kept until Refresh, and opening
-one only starts research when none exists. Both features use the agent chosen in
-Settings → AI, and their popups are reachable over the `dump`/`activate` IPC.
+### Market brief
+
+`bin/market_brief.py` asks for today's US market in the same way, with a snapshot
+of indexes, futures, VIX, rates, dollar, oil, gold, bitcoin and sector ETFs from one
+bulk quote, plus the Market view's cached Fear & Greed, the next three days of
+economic releases and market headlines (leads, not sources). The result adds a
+headline, drivers and movers, whose tickers are validated and open the Stock view.
+Its subject is `MARKET`, so jobs live under `market-brief/` like any other.
+`MarketBriefStore` expires a brief once the S&P 500's last regular trade falls on a
+later New York date than the brief's snapshot: a pre-market brief lasts its day,
+and a closed day keeps the last one. An expired brief is hidden and the next open
+starts research with `--force`.
 
 ## Checks
 
@@ -313,7 +337,7 @@ node tests/test_watchlist_keys.cjs
 node tests/test_server_helper.cjs
 node tests/test_header_session.cjs
 node tests/test_move_analysis.cjs
-node tests/test_bull_bear.cjs
+node tests/test_agent_report.cjs
 bash -n install install-launcher uninstall
 shellcheck install install-launcher uninstall
 omarchy plugin validate .

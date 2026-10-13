@@ -34,4 +34,7 @@ QtObject {
     // Input and control outlines, which the theme's faint borders leave nearly
     // invisible on light backgrounds.
     readonly property color border: Util.alpha(Color.foreground, light ? .3 : .12)
+    // A soft backdrop that lifts controls off the sky scene behind page headers.
+    readonly property color backdrop: Util.alpha(Color.background, .55)
+    readonly property color backdropHovered: Qt.tint(Util.alpha(Color.background, .7), Util.alpha(Color.foreground, .07))
 }

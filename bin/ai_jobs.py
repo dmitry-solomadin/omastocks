@@ -42,6 +42,15 @@ class Task:
     steps: int = 16
 
 
+class Stopped(Exception):
+    """Cancel or the job's deadline. Not an InterruptedError: selectors swallow that,
+    and the agent run would carry on after a cancel."""
+
+
+def stop(*_):
+    raise Stopped("Research cancelled or timed out.")
+
+
 def valid_url(url):
     parts = urllib.parse.urlsplit(url)
     return (parts.scheme in ("http", "https") and bool(parts.hostname) and not parts.username and not parts.password
@@ -193,8 +202,6 @@ def worker(task, ticker, preference, identity):
     path = directory(task, symbol(ticker), preference)
     if not re.fullmatch(r"[a-f0-9]{32}", identity):
         return
-    def stop(*_):
-        raise InterruptedError("Research cancelled or timed out.")
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGALRM, stop)
     signal.alarm(int(task.timeout))

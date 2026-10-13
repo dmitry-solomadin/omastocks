@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "bin"))
 import ai_jobs
 import ai_runner
 import bull_bear
+import reports
 from stocks import read_json, write_json
 
 
@@ -122,7 +123,7 @@ class JobTests(unittest.TestCase):
         self.assertIn("no report", bull_bear.main(["export", "AMD", "default"])["error"])
         result = {**bull_bear.validate(response(), JOB, CONTEXT), "generated": 1791849600}
         write_json(self.path / "result.json", result)
-        with patch.object(bull_bear, "downloads", return_value=downloads):
+        with patch.object(reports, "downloads", return_value=downloads):
             first = bull_bear.main(["export", "AMD", "default"])
             self.assertEqual(Path(first["file"]).name, "AMD-bull-bear-" + bull_bear.datetime.fromtimestamp(1791849600).date().isoformat() + ".html")
             self.assertEqual(bull_bear.main(["export", "AMD", "default"])["file"], first["file"])

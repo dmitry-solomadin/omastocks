@@ -65,7 +65,9 @@ Item {
                 analysis: {active: AnalysisStore.active, open: window.analysisOpen, agent: AnalysisStore.preference,
                     pending: AnalysisStore.report.pending === true, hasResult: !!AnalysisStore.report.summary, error: AnalysisStore.error},
                 bullBear: {active: BullBearStore.active, open: window.bullBearOpen, pending: BullBearStore.report.pending === true,
-                    hasResult: BullBearStore.ready, html: BullBearStore.report.html || "", error: BullBearStore.error}})
+                    hasResult: BullBearStore.ready, html: BullBearStore.report.html || "", error: BullBearStore.error},
+                marketBrief: {active: MarketBriefStore.active, open: window.marketBriefOpen, pending: MarketBriefStore.report.pending === true,
+                    hasResult: MarketBriefStore.ready, expired: MarketBriefStore.expired, html: MarketBriefStore.report.html || "", error: MarketBriefStore.error}})
         }
         // Development: switch tabs and read or activate the UI as text.
         function view(name: string): string {

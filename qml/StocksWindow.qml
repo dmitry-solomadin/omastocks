@@ -20,9 +20,10 @@ FloatingWindow {
     property var shell: null
     readonly property bool analysisOpen: moveAnalysisPopup.opened
     readonly property bool bullBearOpen: bullBearPopup.opened
+    readonly property bool marketBriefOpen: marketBriefPopup.opened
     // AI reports are modal: keys and shortcuts stay with them while one is open.
-    readonly property bool reportOpen: analysisOpen || bullBearOpen
-    readonly property var popupContents: [settingsMenu.contentItem, moveAnalysisPopup.contentItem, bullBearPopup.contentItem]
+    readonly property bool reportOpen: analysisOpen || bullBearOpen || marketBriefOpen
+    readonly property var popupContents: [settingsMenu.contentItem, moveAnalysisPopup.contentItem, bullBearPopup.contentItem, marketBriefPopup.contentItem]
     title: "Stocks"
     visible: false
     implicitWidth: Style.space(1100)
@@ -35,7 +36,7 @@ FloatingWindow {
     onVisibleChanged: {
         StockStore.windowOpen = visible
         if (visible) wordmark.play()
-        if (!visible) { settingsMenu.close(); moveAnalysisPopup.close(); bullBearPopup.close(); watchlistMenu.close(); watchlistSelector.close(); list.cancelDrag() }
+        if (!visible) { settingsMenu.close(); moveAnalysisPopup.close(); bullBearPopup.close(); marketBriefPopup.close(); watchlistMenu.close(); watchlistSelector.close(); list.cancelDrag() }
     }
     readonly property var quote: StockStore.quote
     // The session decides the header's caption: "At close" above the price out
@@ -170,6 +171,7 @@ FloatingWindow {
         SettingsMenu { id: settingsMenu; parent: content; shell: window.shell }
         MoveAnalysis { id: moveAnalysisPopup; parent: content }
         BullBearReport { id: bullBearPopup; parent: content }
+        MarketBrief { id: marketBriefPopup; parent: content }
         WatchlistMenu { id: watchlistMenu; parent: content }
         StockRowMenu { id: rowMenu; parent: content }
         Shortcut { sequence: "Ctrl+Z"; context: Qt.ApplicationShortcut; enabled: content.Window.active && !window.reportOpen && !!StockStore.lastRemoved && !search.activeFocus; onActivated: StockStore.undoRemove() }
@@ -620,16 +622,17 @@ FloatingWindow {
                         Label { text: StockStore.selected; font.pixelSize: Style.space(22); font.bold: true; Layout.fillWidth: true }
                         MarketStatus { session: stockHeader.session }
                     }
-                    ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Color.accent : Color.foreground; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
+                    ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Color.accent : Color.foreground; backdrop: true; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
                     AiButton {
                         objectName: "bullBearCase"
                         visible: AnalysisStore.enabled && !!StockStore.selected && !StockStore.selectedIsNonCompany
                         text: "Bull & bear"
                         hint: "Research the bull and bear case with your agent · Opens a shareable report"
+                        backdrop: true
                         ready: BullBearStore.ready
                         onClicked: BullBearStore.show()
                     }
-                    ActionButton { text: StockStore.tracked ? "Remove" : "+ Watchlist"; hint: StockStore.tracked ? "Remove from watchlist" : "Add to watchlist"; visible: !!StockStore.selected; enabled: !StockStore.editing; onClicked: StockStore.tracked ? StockStore.remove() : StockStore.add() }
+                    ActionButton { text: StockStore.tracked ? "Remove" : "+ Watchlist"; hint: StockStore.tracked ? "Remove from watchlist" : "Add to watchlist"; backdrop: true; visible: !!StockStore.selected; enabled: !StockStore.editing; onClicked: StockStore.tracked ? StockStore.remove() : StockStore.add() }
                 }
                 ColumnLayout {
                     visible: !!StockStore.selected
