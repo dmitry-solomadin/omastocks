@@ -34,5 +34,6 @@ jobs:
       - run: node tests/test_rolling_number.cjs
       - run: node tests/test_move_analysis.cjs
       - run: node tests/test_agent_report.cjs
+      - run: node tests/test_input_edit.cjs
       - run: bash -n install install-launcher uninstall
       - run: shellcheck install install-launcher uninstall

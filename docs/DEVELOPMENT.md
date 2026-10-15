@@ -393,6 +393,12 @@ Everything clickable shows a pointing-hand cursor. `ActionButton` provides this
 itself; a `MouseArea`, `ItemDelegate` or menu item needs its own `cursorShape`
 (or a `HoverHandler` with one), and an inline link switches on `hoveredLink`.
 
+Text inputs use `InputField`, which stays read-only to Qt: on released Qt an
+editable `TextInput` reads the whole clipboard on every change, unbounded, inside
+the shared shell. The field applies typing itself (`InputEdit.js`) and pastes
+through `wl-paste`, capped at `pasteLimit` bytes and stopped after 2 seconds.
+`tests/test_input_edit.cjs` fails if any other Qt text input appears.
+
 Text inspection covers behavioral checks. Screenshots cover layout, spacing,
 color, theming, clipping and elision; `grim` can capture the window at its
 `hyprctl clients` geometry.

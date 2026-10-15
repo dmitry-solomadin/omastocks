@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
 import ".."
@@ -11,21 +10,14 @@ RowLayout {
     property var chart: null
     spacing: Style.space(8)
     onVisibleChanged: if (visible) compareInput.forceActiveFocus()
-    Controls.TextField {
+    InputField {
         id: compareInput
         objectName: "compareInput"
         Layout.fillWidth: true
         implicitHeight: Style.space(34)
         enabled: MarketStore.compareSymbols.length < 4
         placeholderText: enabled ? "Add ticker, e.g. MSFT or SPY" : "Five stocks selected"
-        color: Color.foreground
-        placeholderTextColor: Tone.muted
-        selectionColor: Util.alpha(Color.accent, .3)
-        selectedTextColor: Color.foreground
-        font.family: Style.font.family
-        font.pixelSize: Style.font.body
         leftPadding: Style.space(10)
-        background: Rectangle { color: Util.alpha(Color.foreground, .04); radius: Style.cornerRadius; border.width: 1; border.color: compareInput.activeFocus ? Color.accent : Tone.border }
         onAccepted: if (MarketStore.compare(text)) clear()
         onTextEdited: MarketStore.compareValidation = ""
         Accessible.name: "Comparison ticker symbol"
