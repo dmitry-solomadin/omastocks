@@ -77,7 +77,8 @@ class ReportTests(unittest.TestCase):
         self.assertIn('<a href="#source-1">1</a>, <a href="#source-2">2</a>', page)
 
     def test_context_snapshot_from_cached_market_data(self):
-        stamp = datetime(2026, 10, 12, 20, 0).timestamp()
+        # The calendar keeps the next three days from now, so the snapshot is now.
+        stamp = datetime.now().timestamp()
         rows = {"^SPX": {"price": 7807.237, "change": -4.29980, "percent": -0.055044, "updated": stamp, "marketState": "POST"},
                 "XLE": {"price": 90, "percent": 1.2}, "XLK": {"price": 250, "percent": -0.8}}
         leads = {"sentiment": {"score": 45.7, "rating": "neutral", "previousClose": 45},
