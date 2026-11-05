@@ -22,6 +22,7 @@ jobs:
       - run: node tests/test_watchlist_order.cjs
       - run: node tests/test_pixel_art.cjs
       - run: node tests/test_market_assets.cjs
+      - run: node tests/test_margin_chart.cjs
       - run: node tests/test_banner.cjs
       - run: node tests/test_quote_retry.cjs
       - run: node tests/test_chart_refresh.cjs

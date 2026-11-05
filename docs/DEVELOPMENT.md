@@ -193,6 +193,15 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   bar before the cash close instead, with one spark request per quote refresh, taking
   the close from `^SPX`'s last trade so holidays need no calendar. If that fails, the
   tile shows Yahoo's change and its tooltip says so.
+- The Market tab's margin debt comes from `bin/margin_debt.py`: FINRA's Excel file,
+  which FINRA publishes about three weeks after each month ends and offers no feed for,
+  checked daily through the bounded download in `bin/remote_images.py`. Debt alone is
+  nearly always near a record, so the level is its share of the Wilshire 5000 (`^W5000`
+  monthly from Yahoo), ranked against every month since 1997. Falling prices raise that
+  share, so the year's change reads beside it, and the headline combines the two. Margin
+  account credit is reported separately only from February 2010, so the cash cushion
+  ranks from there. The archive is read within a size limit and its XML takes no DTD. A
+  failure in either source keeps the last good report.
 - Market memberships are local snapshots. Index/sector maps use bulk requests;
   they never fan an entire membership into per-symbol charts. Research batches
   have four workers. Market pages stay mounted after the first visit and poll
@@ -218,7 +227,7 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
 Network hosts: `query1.finance.yahoo.com`, `finance.yahoo.com`, `fc.yahoo.com`,
 `api.nasdaq.com`, `www.nyse.com`, `scanner.tradingview.com`, `economic-calendar.tradingview.com`,
 `production.dataviz.cnn.io`, `news.google.com`, `www.google.com`,
-`api.stocktwits.com`, and `apewisdom.io`; Google's site icons redirect to
+`api.stocktwits.com`, `www.finra.org`, and `apewisdom.io`; Google's site icons redirect to
 `*.gstatic.com`. Thumbnails use provider-supplied image URLs, downloaded by
 `bin/remote_images.py`;
 source links open externally. The earnings-release helper resolves Google's
@@ -345,6 +354,7 @@ node tests/test_watchlist_order.cjs
 node tests/test_quote_retry.cjs
 node tests/test_pixel_art.cjs
 node tests/test_market_assets.cjs
+node tests/test_margin_chart.cjs
 node tests/test_banner.cjs
 node tests/test_chart_refresh.cjs
 node tests/test_research_refresh.cjs

@@ -19,7 +19,7 @@ ColumnLayout {
     property bool started: false
     onActiveChanged: if (active) { if (started) reloadAll(false); started = true }
     Component.onCompleted: if (active) started = true
-    function reloadAll(force) { request.reload(force); news.reload(force); sentiment.reload(force); economy.reload(force) }
+    function reloadAll(force) { request.reload(force); news.reload(force); sentiment.reload(force); economy.reload(force); margin.reload(force) }
     readonly property var report: request.data
     readonly property var group: (catalog.data.sectors || []).find(row => row.value === root.sector) || ({})
     readonly property var displayedRows: {
@@ -34,6 +34,7 @@ ColumnLayout {
     DataRequest { id: news; arguments: root.started ? ["market-news", "ALL"] : []; refreshInterval: root.active ? 600000 : 0 }
     DataRequest { id: sentiment; arguments: root.started ? ["sentiment", "ALL"] : []; refreshInterval: root.active ? 1800000 : 0 }
     DataRequest { id: economy; arguments: root.started ? ["economic-calendar", "ALL"] : []; refreshInterval: root.active ? 900000 : 0 }
+    DataRequest { id: margin; arguments: root.started ? ["margin-debt", "ALL"] : []; refreshInterval: root.active ? 3600000 : 0 }
     CrossAssets { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20) }
     MarketSentiment { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20); report: sentiment.data }
     // The heatmap section: today's sector leaders and laggards, then the
@@ -106,6 +107,7 @@ ColumnLayout {
     SectorHeatmap { Layout.fillWidth: true; rows: root.displayedRows; period: root.period; busy: request.busy || catalog.busy || !root.started; error: root.report.error || "" }
     SectionHeading { text: "ECONOMIC CALENDAR"; Layout.topMargin: Style.space(20) }
     EconomicCalendar { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20); report: economy.data; limit: 8 }
+    MarginDebt { Layout.fillWidth: true; Layout.bottomMargin: Style.space(20); report: margin.data; busy: margin.busy }
     SectionHeading { text: "MARKET NEWS" }
     CompanyNews { Layout.fillWidth: true; report: news.data; busy: news.busy; subject: "market" }
 }

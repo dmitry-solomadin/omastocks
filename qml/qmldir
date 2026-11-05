@@ -69,6 +69,7 @@ DenseHeatmap 1.0 market/DenseHeatmap.qml
 MarketIndexes 1.0 market/MarketIndexes.qml
 CrossAssets 1.0 market/CrossAssets.qml
 MarketSentiment 1.0 market/MarketSentiment.qml
+MarginDebt 1.0 market/MarginDebt.qml
 SectorLeaders 1.0 market/SectorLeaders.qml
 EconomicCalendar 1.0 market/EconomicCalendar.qml
 MarketSession 1.0 market/MarketSession.qml

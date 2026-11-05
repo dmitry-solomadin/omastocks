@@ -40,6 +40,7 @@ MAX_FILES = 256
 MAX_DISK = 64 * 1024 * 1024
 
 SCHEME = "https"
+PICTURE_HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "image/png,image/jpeg"}
 REDIRECTS = {301, 302, 303, 307, 308}
 # Built by hand to leave out urllib's redirect handler, which reads a redirect's whole
 # body before following it, and its handlers for other schemes.
@@ -139,11 +140,11 @@ def clean(data):
     raise ValueError("Only PNG and JPEG pictures are shown.")
 
 
-def download(url):
+def download(url, headers=PICTURE_HEADERS):
     for _ in range(MAX_REDIRECTS + 1):
         if urllib.parse.urlsplit(url).scheme != SCHEME:
             raise ValueError("Pictures download over HTTPS only.")
-        request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "image/png,image/jpeg"})
+        request = urllib.request.Request(url, headers=headers)
         try:
             with OPENER.open(request, timeout=SOCKET_TIMEOUT) as response:
                 body = response.read(MAX_BYTES + 1)

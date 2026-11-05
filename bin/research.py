@@ -28,7 +28,7 @@ CACHE_TTLS = {
     "sectors": 86400, "sector": 900, "market-index": 900, "market-news": 600,
     "sentiment": 1800, "economic-calendar": 900, "quotes": 300, "calendar-bulk": 21600,
     "calendar": 21600, "overview": 86400, "fundamentals": 3600, "insiders": 3600,
-    "ownership": 86400, "ipos": 3600,
+    "ownership": 86400, "ipos": 3600, "margin-debt": 86400,
     # A past quarter's release does not move.
     "release": 2592000,
 }
@@ -40,6 +40,7 @@ CACHE_SCHEMAS = {
     "calendar-bulk": ("calendarSchema", 2), "news": ("newsSchema", 6),
     "insiders": ("insiderSchema", 2), "overview": ("overviewSchema", 2),
     "financials": ("financialsSchema", 2), "ownership": ("ownershipSchema", 2), "valuation": ("valuationSchema", 2), "ipos": ("ipoSchema", 1),
+    "margin-debt": ("marginSchema", 1),
 }
 
 
@@ -278,6 +279,9 @@ def load(action, ticker, period):
     if action == "release":
         from release_link import resolve
         return resolve(ticker, period)
+    if action == "margin-debt":
+        from margin_debt import margin_debt
+        return margin_debt()
     if action == "market-news":
         from market_news import news
         return news()
