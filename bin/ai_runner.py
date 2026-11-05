@@ -39,7 +39,8 @@ def resolve(preference):
     return {"id": preference, "name": AGENTS[preference], "executable": executable}
 
 
-def command(agent, folder, schema, title="Stocks · Explain latest move", steps=16):
+def command(agent, folder, schema, title="Stocks · Explain latest move", steps=16, effort=""):
+    """`effort` overrides the agent's own reasoning effort where it has one; empty keeps it."""
     executable, kind = agent["executable"], agent["id"]
     if kind == "claude":
         # --tools limits only built-in tools; without --strict-mcp-config the user's
@@ -47,11 +48,12 @@ def command(agent, folder, schema, title="Stocks · Explain latest move", steps=
         return [executable, "-p", "--output-format", "stream-json", "--verbose",
                 "--no-session-persistence", "--permission-mode", "dontAsk", "--strict-mcp-config",
                 "--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch",
-                "--json-schema", json.dumps(schema)]
+                *(["--effort", effort] if effort else []), "--json-schema", json.dumps(schema)]
     if kind == "codex":
         write_json(folder / "schema.json", schema)
         return [executable, "exec", "--skip-git-repo-check", "--ephemeral", "--json",
                 "--sandbox", "read-only", "-c", 'approval_policy="never"',
+                *(["-c", f'model_reasoning_effort="{effort}"'] if effort else []),
                 "-c", 'web_search="live"', "--output-schema", str(folder / "schema.json"), "-"]
     # A private run cannot interrupt another OpenCode conversation. The local
     # profile inherits the user's provider/model/search configuration and auth.
@@ -150,10 +152,10 @@ class Output:
         return self.document if isinstance(self.document, dict) else json_document(self.text)
 
 
-def run(agent, prompt, schema, folder, timeout=210, title="Stocks · Explain latest move", steps=16):
+def run(agent, prompt, schema, folder, timeout=210, title="Stocks · Explain latest move", steps=16, effort=""):
     folder.mkdir(parents=True, exist_ok=True, mode=0o700)
     (folder / "prompt.txt").write_text(prompt)
-    args = command(agent, folder, schema, title, steps)
+    args = command(agent, folder, schema, title, steps, effort)
     environment = os.environ.copy()
     # OpenCode resolves its project from PWD before process.cwd(); subprocess
     # cwd alone would load the host app's project instead of this job's profile.

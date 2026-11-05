@@ -58,6 +58,7 @@ def prompt(job, context):
 Search the web for today's market news. Explain how stocks did and why: the indexes, sectors and notable movers, and what drove them (economic data, the Fed, earnings, news).
 If the market hasn't opened yet, cover the pre-market setup; if it has closed, cover the session that just ended.
 Use the snapshot's numbers, and cite the sources behind each point by ID. The headlines are leads, not sources.
+Work quickly and finish within three minutes: run 2-4 targeted searches and read at most 3 articles (search results often carry enough), don't look up numbers the snapshot already has, and write as soon as you can explain the day's main moves.
 
 It's {context['newYork']} in New York. Market snapshot from the Stocks app: {json.dumps(snapshot, ensure_ascii=False)}
 Return only JSON matching this schema: {json.dumps(SCHEMA)}
@@ -168,7 +169,7 @@ TASK = ai_jobs.Task(folder="market-brief", version=VERSION, ttl=TTL, timeout=TIM
                     name="Market brief", action="Market brief", title="Stocks · Market brief",
                     context=lambda subject: context(subject), prompt=prompt, schema=SCHEMA, validate=validate,
                     publish=lambda path, result: reports.publish(path, result, render),
-                    stage="Researching today's market", steps=30)
+                    stage="Researching today's market", steps=16, effort="medium")
 
 
 def main(arguments):
