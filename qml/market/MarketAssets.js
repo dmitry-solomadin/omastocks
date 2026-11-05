@@ -47,6 +47,12 @@ function benchmark(asset, offHours) {
     return offHours && asset.futures ? Object.assign({futures: true}, asset.futures) : Object.assign({}, asset, {futures: false})
 }
 
+// The change a benchmark tile shows. A contract's own change runs from the previous
+// settlement, so after the close it would repeat the day's move.
+function benchmarkPercent(asset, quote) {
+    return asset.futures && Number.isFinite(quote.sinceClose) ? quote.sinceClose : quote.percent
+}
+
 function symbols() {
     const futures = benchmarks.filter(asset => asset.futures).map(asset => asset.futures)
     return Array.from(new Set(benchmarks.concat(futures, ...groups.map(group => group.assets), volatility, sectors).map(asset => asset.symbol))).sort()

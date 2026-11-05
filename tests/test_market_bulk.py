@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 import urllib.error
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "bin"))
 import calendar_bulk
@@ -82,6 +83,70 @@ class BulkData(unittest.TestCase):
             result = market_bulk.parse_quotes({"quoteResponse": {"result": [{"symbol": "^SPX", "marketState": state}]}}, ["^SPX"])
             self.assertEqual(result["rows"]["^SPX"]["marketState"], expected)
 
+    def futures_quotes(self, state, updated, price=26689.5, bars=None, spark=None):
+        """Quotes for ^SPX and NQ=F, with `bars` as NQ=F's (stamp, close) spark rows."""
+        calls = []
+
+        def request(path, **parameters):
+            calls.append((path, parameters))
+            if path == "/v7/finance/quote":
+                return {"quoteResponse": {"result": [
+                    {"symbol": "^SPX", "regularMarketPrice": 7353.73, "marketState": state, "regularMarketTime": updated},
+                    {"symbol": "NQ=F", "regularMarketPrice": price, "regularMarketChangePercent": -6.57, "marketState": "REGULAR"}]}}
+            if isinstance(spark, Exception):
+                raise spark
+            if spark is not None:
+                return spark
+            return {"spark": {"result": [{"symbol": "NQ=F", "response": [{
+                "timestamp": [stamp for stamp, _ in bars], "indicators": {"quote": [{"close": [value for _, value in bars]}]}}]}]}}
+        return market_bulk.quotes(["^SPX", "NQ=F"], request)["rows"], calls
+
+    def eastern(self, *moment):
+        return datetime(*moment, tzinfo=ZoneInfo("America/New_York")).timestamp()
+
+    def test_futures_change_runs_from_the_bar_ending_at_the_cash_close(self):
+        bars = [(self.eastern(2026, 11, 5, 15, 50), 27000.0), (self.eastern(2026, 11, 5, 15, 55), 26746.5),
+                (self.eastern(2026, 11, 5, 16, 0), 26686.25), (self.eastern(2026, 11, 5, 16, 35), 26689.5)]
+        rows, calls = self.futures_quotes("POST", self.eastern(2026, 11, 5, 16, 34), bars=bars)
+        self.assertAlmostEqual(rows["NQ=F"]["sinceClose"], (26689.5 / 26746.5 - 1) * 100)
+        self.assertEqual(rows["NQ=F"]["percent"], -6.57, "Yahoo's own change stays for everything else")
+        self.assertNotIn("sinceClose", rows["^SPX"])
+        self.assertEqual(calls[1][1], {"symbols": "NQ=F", "range": "2d", "interval": "5m"})
+
+    def test_overnight_and_weekend_keep_the_last_close(self):
+        bars = [(self.eastern(2026, 11, 6, 15, 55), 100.0), (self.eastern(2026, 11, 6, 16, 55), 101.0),
+                (self.eastern(2026, 11, 8, 18, 0), 102.0), (self.eastern(2026, 11, 9, 8, 0), 110.0)]
+        # A Monday morning: the index last traded on Friday afternoon.
+        rows, _ = self.futures_quotes("PRE", self.eastern(2026, 11, 6, 16, 20), price=110.0, bars=bars)
+        self.assertAlmostEqual(rows["NQ=F"]["sinceClose"], 10.0)
+
+    def test_a_short_session_ends_at_the_indexs_last_trade(self):
+        bars = [(self.eastern(2026, 11, 27, 12, 55), 100.0), (self.eastern(2026, 11, 27, 13, 0), 200.0)]
+        rows, _ = self.futures_quotes("CLOSED", self.eastern(2026, 11, 27, 13, 2), price=110.0, bars=bars)
+        self.assertAlmostEqual(rows["NQ=F"]["sinceClose"], 10.0)
+
+    def test_a_bar_still_open_at_the_close_or_without_a_price_is_skipped(self):
+        bars = [(self.eastern(2026, 11, 5, 15, 50), 100.0), (self.eastern(2026, 11, 5, 15, 55), None),
+                (self.eastern(2026, 11, 5, 15, 58), 200.0)]
+        rows, _ = self.futures_quotes("POST", self.eastern(2026, 11, 5, 16, 30), price=110.0, bars=bars)
+        self.assertAlmostEqual(rows["NQ=F"]["sinceClose"], 10.0)
+
+    def test_the_regular_session_makes_no_extra_request(self):
+        rows, calls = self.futures_quotes("REGULAR", self.eastern(2026, 11, 5, 11, 0), bars=[])
+        self.assertEqual(len(calls), 1)
+        self.assertNotIn("sinceClose", rows["NQ=F"])
+
+    def test_without_a_baseline_the_quotes_survive_unchanged(self):
+        after = self.eastern(2026, 11, 5, 16, 30)
+        cases = [{"bars": [(self.eastern(2026, 11, 5, 17, 0), 100.0)]}, {"bars": []}, {"spark": ValueError("Rate limited")},
+                 {"spark": OSError("Offline")}, {"spark": {"spark": {"error": "bad"}}}, {"spark": {}}, {"spark": {"spark": {"result": None}}},
+                 {"spark": {"spark": {"result": [{"symbol": "NQ=F", "response": []}]}}},
+                 {"spark": {"spark": {"result": [{"symbol": "NQ=F", "response": [{"timestamp": None, "indicators": {}}]}]}}}]
+        for case in cases:
+            rows, _ = self.futures_quotes("POST", after, **case)
+            self.assertNotIn("sinceClose", rows["NQ=F"], case)
+            self.assertEqual(rows["NQ=F"]["percent"], -6.57)
+
     def test_empty_or_unrelated_quote_response_cannot_replace_saved_prices(self):
         for rows in ([], [{"symbol": "OTHER", "regularMarketPrice": 1}]):
             with self.subTest(rows=rows), self.assertRaises(ValueError):
@@ -147,7 +212,7 @@ class BulkCaching(unittest.TestCase):
         context.start(); self.addCleanup(context.stop)
 
     def test_semantic_symbol_set_shares_cache_and_manual_refresh_bypasses_it(self):
-        with patch.object(research, "load", return_value={"quotesSchema": 3, "rows": {"AAA": {"price": 1}}}) as load:
+        with patch.object(research, "load", return_value={"quotesSchema": 4, "rows": {"AAA": {"price": 1}}}) as load:
             research.main(["quotes", "BBB,AAA,AAA"])
             research.main(["quotes", "AAA,BBB"])
             self.assertEqual(load.call_count, 1)
@@ -155,7 +220,7 @@ class BulkCaching(unittest.TestCase):
             self.assertEqual(load.call_count, 2)
 
     def test_failed_bulk_refresh_retains_all_saved_rows_and_force_retries(self):
-        with patch.object(research, "load", return_value={"quotesSchema": 3, "rows": {"AAA": {"price": 1}, "BBB": {"price": 2}}}) as load:
+        with patch.object(research, "load", return_value={"quotesSchema": 4, "rows": {"AAA": {"price": 1}, "BBB": {"price": 2}}}) as load:
             research.main(["quotes", "AAA,BBB"])
             load.side_effect = ValueError("Unavailable")
             result = research.main(["quotes", "AAA,BBB", "--force"])
@@ -168,7 +233,7 @@ class BulkCaching(unittest.TestCase):
 
     def test_failed_refresh_retries_after_cooldown_before_original_ttl(self):
         with patch.object(research.time, "time", return_value=1000) as clock, \
-                patch.object(research, "load", return_value={"quotesSchema": 3, "rows": {"AAA": {"price": 1}}}) as load:
+                patch.object(research, "load", return_value={"quotesSchema": 4, "rows": {"AAA": {"price": 1}}}) as load:
             research.main(["quotes", "AAA"])
             load.side_effect = ValueError("offline")
             research.main(["quotes", "AAA", "--force"])

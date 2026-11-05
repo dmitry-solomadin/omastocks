@@ -1,8 +1,14 @@
 """Bulk sector snapshots and quotes. Never expand sectors into chart requests."""
+from datetime import datetime
 import json
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from stocks import number, parse_chart, quote_units, symbol
 from yahoo_http import authenticated
+
+EASTERN = ZoneInfo("America/New_York")
+INDEX_FUTURES = ("ES=F", "NQ=F", "YM=F")
+BAR_SECONDS = 300
 
 
 def presets():
@@ -87,11 +93,42 @@ def parse_quotes(document, tickers):
         raise ValueError("Yahoo returned no quotes for the requested symbols.")
     for ticker in tickers:
         rows.setdefault(ticker, {"symbol": ticker, "price": None, "percent": None, "error": "Bulk quote unavailable"})
-    return {"rows": rows, "source": "Yahoo Finance", "quotesSchema": 3}
+    return {"rows": rows, "source": "Yahoo Finance", "quotesSchema": 4}
+
+
+def add_since_close(rows, request):
+    """Adds each index future's change since the last cash close, as `sinceClose`.
+
+    Futures trade on after the close, but Yahoo's change stays against the previous
+    settlement, which would repeat the day's whole move as if it were after-hours."""
+    index = rows.get("^SPX") or {}
+    wanted = [ticker for ticker in INDEX_FUTURES if (rows.get(ticker) or {}).get("price")]
+    if not wanted or not index.get("updated") or index.get("marketState") in (None, "", "REGULAR"):
+        return
+    # The index stops trading on the close, so a holiday or weekend needs no calendar.
+    # Its prints run on for a while after the bell; a short day ends before 16:00.
+    last = datetime.fromtimestamp(index["updated"], EASTERN)
+    close = min(index["updated"], last.replace(hour=16, minute=0, second=0, microsecond=0).timestamp())
+    try:
+        results = request("/v7/finance/spark", symbols=",".join(wanted), range="2d", interval=f"{BAR_SECONDS // 60}m")["spark"]["result"]
+        for result in results:
+            ticker = result["symbol"]
+            if ticker not in wanted:
+                continue
+            bars = result["response"][0]
+            closes = bars["indicators"]["quote"][0]["close"]
+            before = [value for stamp, value in zip(bars["timestamp"], closes) if value and stamp + BAR_SECONDS <= close]
+            if before:
+                rows[ticker]["sinceClose"] = (rows[ticker]["price"] / before[-1] - 1) * 100
+    except (OSError, ValueError, KeyError, TypeError, IndexError):
+        # The tile falls back to Yahoo's change, and says so.
+        return
 
 
 def quotes(tickers, request=authenticated):
-    return parse_quotes(request("/v7/finance/quote", symbols=",".join(tickers)), tickers)
+    result = parse_quotes(request("/v7/finance/quote", symbols=",".join(tickers)), tickers)
+    add_since_close(result["rows"], request)
+    return result
 
 
 def parse_sparks(document, tickers):

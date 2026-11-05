@@ -187,6 +187,12 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   directory, are checked again before reuse and are pruned to the 256 most recently
   used and 64 MiB. `tests/test_remote_images.py` fails if QML loads a picture any
   other way.
+- Outside the regular session the Dow, S&P and Nasdaq tiles show their futures. Yahoo's
+  change for a contract runs from the previous settlement, so right after the close it
+  repeats the day's move. `market_bulk.add_since_close` measures from the last 5-minute
+  bar before the cash close instead, with one spark request per quote refresh, taking
+  the close from `^SPX`'s last trade so holidays need no calendar. If that fails, the
+  tile shows Yahoo's change and its tooltip says so.
 - Market memberships are local snapshots. Index/sector maps use bulk requests;
   they never fan an entire membership into per-symbol charts. Research batches
   have four workers. Market pages stay mounted after the first visit and poll

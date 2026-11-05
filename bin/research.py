@@ -36,7 +36,7 @@ CACHE_TTLS = {
 LIVE = {"compare", "extended"}
 CACHE_SCHEMAS = {
     "events": ("earningsSchema", 3), "sectors": ("catalogSchema", 4),
-    "market-news": ("marketNewsSchema", 3), "quotes": ("quotesSchema", 3),
+    "market-news": ("marketNewsSchema", 3), "quotes": ("quotesSchema", 4),
     "calendar-bulk": ("calendarSchema", 2), "news": ("newsSchema", 6),
     "insiders": ("insiderSchema", 2), "overview": ("overviewSchema", 2),
     "financials": ("financialsSchema", 2), "ownership": ("ownershipSchema", 2), "valuation": ("valuationSchema", 2), "ipos": ("ipoSchema", 1),
