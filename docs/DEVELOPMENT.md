@@ -177,6 +177,16 @@ tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across 
   the window is open. Logos are NYSE's ceremony images or, for other IPOs, the
   company site's icon via Google; `qml/art/Banner.js` trims and averages them into
   half-size facade cells.
+- QML never gives Qt a remote picture, because Qt buffers the whole response inside
+  the shell before decoding it. `qml/data/LocalImages.qml` passes news thumbnails and
+  banner logos to `bin/remote_images.py`, which downloads them in its own process:
+  HTTPS only, up to three redirects whose bodies are never read, 4 MiB a picture and
+  20 seconds a run. It saves a PNG or JPEG of up to 4 megapixels and 32 scans, with a
+  PNG cut down to the chunks that draw it, because compressed metadata expands inside
+  the decoder. Anything else isn't shown. Files live in `images/` in the state
+  directory, are checked again before reuse and are pruned to the 256 most recently
+  used and 64 MiB. `tests/test_remote_images.py` fails if QML loads a picture any
+  other way.
 - Market memberships are local snapshots. Index/sector maps use bulk requests;
   they never fan an entire membership into per-symbol charts. Research batches
   have four workers. Market pages stay mounted after the first visit and poll
@@ -203,7 +213,8 @@ Network hosts: `query1.finance.yahoo.com`, `finance.yahoo.com`, `fc.yahoo.com`,
 `api.nasdaq.com`, `www.nyse.com`, `scanner.tradingview.com`, `economic-calendar.tradingview.com`,
 `production.dataviz.cnn.io`, `news.google.com`, `www.google.com`,
 `api.stocktwits.com`, and `apewisdom.io`; Google's site icons redirect to
-`*.gstatic.com`. Thumbnails use provider-supplied image URLs;
+`*.gstatic.com`. Thumbnails use provider-supplied image URLs, downloaded by
+`bin/remote_images.py`;
 source links open externally. The earnings-release helper resolves Google's
 redirect on demand. Yahoo's anonymous cookies and crumb stay in the local state directory.
 
