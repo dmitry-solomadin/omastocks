@@ -48,7 +48,6 @@ Controls.Popup {
     ]
     component ThemedSwitch: Ui.ToggleSwitch {
         HoverHandler { cursorShape: Qt.PointingHandCursor }
-        rounded: false
         cursorPad: Style.space(4)
         activeFocusOnTab: true
         hasCursor: activeFocus
