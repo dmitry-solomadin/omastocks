@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import Quickshell.Io
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 import "InputEdit.js" as Edit
 
@@ -23,19 +24,19 @@ Controls.TextField {
     cursorVisible: activeFocus
     property int pasteLimit: 1024
     implicitHeight: Style.space(38)
-    color: Color.foreground
+    color: Commons.Color.foreground
     placeholderTextColor: Tone.muted
-    selectionColor: Util.alpha(Color.accent, .3)
-    selectedTextColor: Color.foreground
+    selectionColor: Util.alpha(Commons.Color.accent, .3)
+    selectedTextColor: Commons.Color.foreground
     font.family: Style.font.family
     font.pixelSize: Style.font.body
     leftPadding: Style.space(12)
     rightPadding: Style.space(12)
     background: Rectangle {
-        color: Util.alpha(Color.foreground, .04)
+        color: Util.alpha(Commons.Color.foreground, .04)
         radius: Style.cornerRadius
         border.width: 1
-        border.color: root.activeFocus ? Color.accent : Tone.border
+        border.color: root.activeFocus ? Commons.Color.accent : Tone.border
     }
     // Own edits announce themselves as Qt's would, for `onTextEdited` handlers.
     function apply(edit) {

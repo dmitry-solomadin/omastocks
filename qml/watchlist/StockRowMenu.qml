@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as Controls
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -23,19 +24,19 @@ Controls.Menu {
     }
 
     component Surface: Ui.BorderSurface {
-        color: Color.popups.background
-        borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Style.normalBorderWidth)
+        color: Commons.Color.popups.background
+        borderSpec: Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Style.normalBorderWidth)
         radius: Style.cornerRadius
     }
     component Entry: Controls.MenuItem {
         id: option
-        property color ink: Color.popups.text
+        property color ink: Commons.Color.popups.text
         HoverHandler { cursorShape: Qt.PointingHandCursor }
         implicitHeight: Style.space(34)
         enabled: !StockStore.busy
         contentItem: Label {
             text: option.text
-            color: option.highlighted ? Style.hoverStateColor(option.ink, Color.accent) : option.ink
+            color: option.highlighted ? Style.hoverStateColor(option.ink, Commons.Color.accent) : option.ink
             opacity: option.enabled ? 1 : .5
             verticalAlignment: Text.AlignVCenter
             leftPadding: Style.space(8)
@@ -46,11 +47,11 @@ Controls.Menu {
             anchors.verticalCenter: parent.verticalCenter
             visible: !!option.subMenu
             text: "›"
-            color: Color.popups.text
+            color: Commons.Color.popups.text
         }
         background: Rectangle {
             radius: Style.cornerRadius
-            color: option.highlighted ? Style.hoverFillFor(option.ink, Color.accent) : "transparent"
+            color: option.highlighted ? Style.hoverFillFor(option.ink, Commons.Color.accent) : "transparent"
         }
     }
 
@@ -82,7 +83,7 @@ Controls.Menu {
         }
     }
     Controls.MenuSeparator {
-        contentItem: Rectangle { implicitHeight: 1; color: Util.alpha(Color.popups.text, .12) }
+        contentItem: Rectangle { implicitHeight: 1; color: Util.alpha(Commons.Color.popups.text, .12) }
     }
     Entry {
         objectName: "rowMenu_remove"

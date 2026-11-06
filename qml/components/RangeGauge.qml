@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -26,7 +27,7 @@ RowLayout {
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width; height: Style.space(2)
-            color: Util.alpha(Color.foreground, root.validRange ? .3 : .1)
+            color: Util.alpha(Commons.Color.foreground, root.validRange ? .3 : .1)
         }
         Rectangle {
             objectName: "rangePriceDot"
@@ -34,7 +35,7 @@ RowLayout {
             width: Style.space(9); height: width; radius: width / 2
             x: root.fraction * Math.max(0, parent.width - width)
             anchors.verticalCenter: parent.verticalCenter
-            color: Color.foreground
+            color: Commons.Color.foreground
         }
     }
     Label { text: StockStore.price(root.high); font.bold: true }

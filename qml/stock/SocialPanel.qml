@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -95,7 +96,7 @@ ColumnLayout {
                 Accessible.name: modelData.author + ": " + modelData.text
                 background: Rectangle {
                     radius: Style.cornerRadius
-                    color: post.hovered || post.activeFocus ? Util.alpha(Color.foreground, .06) : "transparent"
+                    color: post.hovered || post.activeFocus ? Util.alpha(Commons.Color.foreground, .06) : "transparent"
                 }
                 contentItem: ColumnLayout {
                     spacing: Style.space(6)

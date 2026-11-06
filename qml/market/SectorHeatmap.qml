@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 import "Treemap.js" as Treemap
@@ -23,7 +24,7 @@ ColumnLayout {
         Rectangle {
             anchors.fill: parent
             radius: Style.cornerRadius
-            color: Util.alpha(Color.foreground, .03)
+            color: Util.alpha(Commons.Color.foreground, .03)
             opacity: map.filled ? 0 : 1
             Behavior on opacity { NumberAnimation { duration: 250 } }
             Label {

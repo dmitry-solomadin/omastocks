@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -17,7 +18,7 @@ Item {
     readonly property real plotHeight: height - plotTop - Style.space(30)
     function valueY(value) { return plotTop + (high - value) / span * plotHeight }
     implicitHeight: Style.space(150)
-    Rectangle { x: 0; width: parent.width; y: root.valueY(0); height: 1; color: Util.alpha(Color.foreground, .15) }
+    Rectangle { x: 0; width: parent.width; y: root.valueY(0); height: 1; color: Util.alpha(Commons.Color.foreground, .15) }
     Row {
         anchors.fill: parent
         Repeater {

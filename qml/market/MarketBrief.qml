@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 
 // The day's market brief: what moved markets, then notable movers, each of
@@ -50,7 +51,7 @@ ReportPopup {
                     objectName: "marketBriefMover_" + modelData.symbol
                     text: modelData.symbol
                     hint: "Open " + modelData.symbol
-                    ink: Color.accent
+                    ink: Commons.Color.accent
                     Layout.alignment: Qt.AlignTop
                     Layout.minimumWidth: Style.space(72)
                     onClicked: {

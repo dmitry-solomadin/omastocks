@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -74,7 +75,7 @@ ColumnLayout {
             HoverHandler { cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor }
             Layout.alignment: Qt.AlignTop
             color: Tone.muted
-            linkColor: Color.foreground
+            linkColor: Commons.Color.foreground
             textFormat: Text.StyledText
             font.pixelSize: Style.font.bodySmall
             text: root.lastReport ? '<a href="' + root.reportSearchUrl + '">Last report: ' + dateLabel(root.lastReport.date) + '</a>' : ""
@@ -162,7 +163,7 @@ ColumnLayout {
                 }
                 background: Rectangle {
                     radius: Style.cornerRadius
-                    color: callLink.hovered || callLink.activeFocus ? Util.alpha(Color.foreground, .06) : "transparent"
+                    color: callLink.hovered || callLink.activeFocus ? Util.alpha(Commons.Color.foreground, .06) : "transparent"
                 }
                 Ui.PanelToolTip { visible: callLink.hovered; text: "Open transcript on Yahoo Finance" }
             }

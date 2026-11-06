@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 import "MarketAssets.js" as Assets
@@ -50,7 +51,7 @@ GridLayout {
                     Layout.fillWidth: true
                     implicitHeight: lines.implicitHeight + Style.space(12)
                     radius: Style.cornerRadius
-                    color: rowMouse.containsMouse ? Util.alpha(Color.foreground, .05) : "transparent"
+                    color: rowMouse.containsMouse ? Util.alpha(Commons.Color.foreground, .05) : "transparent"
                     ColumnLayout {
                         id: lines
                         anchors.left: parent.left

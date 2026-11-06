@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import Quickshell.Io
 import "."
@@ -71,12 +72,12 @@ Controls.Popup {
         if (section === "ai") aiTab.forceActiveFocus()
         else generalTab.forceActiveFocus()
     }
-    Controls.Overlay.modal: Rectangle { color: Util.alpha(Color.background, .55) }
+    Controls.Overlay.modal: Rectangle { color: Util.alpha(Commons.Color.background, .55) }
     background: Rectangle {
-        color: Color.background
+        color: Commons.Color.background
         radius: Style.cornerRadius
         border.width: 1
-        border.color: Util.alpha(Color.foreground, .2)
+        border.color: Util.alpha(Commons.Color.foreground, .2)
     }
     contentItem: ColumnLayout {
         id: settingsContent
@@ -96,7 +97,7 @@ Controls.Popup {
                 onClicked: menu.close()
             }
         }
-        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Commons.Color.foreground, .1) }
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -105,7 +106,7 @@ Controls.Popup {
                 objectName: "settingsSidebar"
                 Layout.preferredWidth: Style.space(130)
                 Layout.fillHeight: true
-                color: Util.alpha(Color.foreground, .025)
+                color: Util.alpha(Commons.Color.foreground, .025)
                 radius: Style.cornerRadius
                 ColumnLayout {
                     anchors.fill: parent
@@ -181,7 +182,7 @@ Controls.Popup {
                                 onToggled: menu.saveSetting("showEvents", !checked)
                             }
                         }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Commons.Color.foreground, .1) }
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Style.space(16)
@@ -235,7 +236,7 @@ Controls.Popup {
                                 onClicked: menu.saveSetting("maxWidth", Math.min(800, menu.stripWidth + 40))
                             }
                         }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Commons.Color.foreground, .1) }
                         SectionHeading { text: "WATCHLIST" }
                         Label { text: "Beside each price"; Layout.fillWidth: true }
                         SegmentedControl {
@@ -252,7 +253,7 @@ Controls.Popup {
                             onActivated: value => menu.saveSetting("watchlistDisplay", value)
                             Accessible.name: "Watchlist value beside each price"
                         }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Commons.Color.foreground, .1) }
                         SectionHeading { text: "SHORTCUTS" }
                         GridLayout {
                             objectName: "shortcutList"
@@ -278,7 +279,7 @@ Controls.Popup {
                                             implicitWidth: Math.max(implicitHeight, cap.implicitWidth + Style.space(10))
                                             implicitHeight: cap.implicitHeight + Style.space(4)
                                             radius: Style.space(3)
-                                            color: Util.alpha(Color.foreground, .05)
+                                            color: Util.alpha(Commons.Color.foreground, .05)
                                             border.width: 1
                                             border.color: Tone.border
                                             Label { id: cap; anchors.centerIn: parent; text: parent.modelData; font.pixelSize: Style.font.bodySmall }
@@ -372,7 +373,7 @@ Controls.Popup {
             text: menu.saveError
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
-            color: Color.urgent
+            color: Commons.Color.urgent
         }
         Label {
             objectName: "appVersion"

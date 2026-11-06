@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -21,7 +22,7 @@ Controls.Popup {
     readonly property string paragraph: {
         const links = (report.sources || []).filter(source => /^https?:\/\//.test(source.url || "")).map((source, index) => {
             const host = source.url.replace(/^https?:\/\/(?:www\.)?/, "").split(/[/?#]/)[0]
-            return '<a style="color: ' + Color.accent + '" href="' + escapeHtml(source.url) + '">[' + (index + 1) + '] ' + escapeHtml(host) + '</a>'
+            return '<a style="color: ' + Commons.Color.accent + '" href="' + escapeHtml(source.url) + '">[' + (index + 1) + '] ' + escapeHtml(host) + '</a>'
         })
         return escapeHtml(report.summary) + (links.length ? "<br><br>" + links.join(" &nbsp;·&nbsp; ") : "")
     }
@@ -34,12 +35,12 @@ Controls.Popup {
     focus: true
     closePolicy: Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
     onOpened: closeButton.forceActiveFocus()
-    Controls.Overlay.modal: Rectangle { color: Util.alpha(Color.background, .55) }
+    Controls.Overlay.modal: Rectangle { color: Util.alpha(Commons.Color.background, .55) }
     background: Rectangle {
-        color: Color.background
+        color: Commons.Color.background
         radius: Style.cornerRadius
         border.width: 1
-        border.color: Util.alpha(Color.foreground, .2)
+        border.color: Util.alpha(Commons.Color.foreground, .2)
     }
     Connections {
         target: AnalysisStore
@@ -76,7 +77,7 @@ Controls.Popup {
                     onClicked: root.close()
                 }
             }
-            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
+            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Commons.Color.foreground, .1) }
             MarketLoading {
                 Layout.fillWidth: true
                 active: root.visible && AnalysisStore.working
@@ -86,7 +87,7 @@ Controls.Popup {
                 objectName: "moveAnalysisError"
                 visible: !!AnalysisStore.error
                 text: AnalysisStore.error
-                color: Color.urgent
+                color: Commons.Color.urgent
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 elide: Text.ElideNone
@@ -106,7 +107,7 @@ Controls.Popup {
                 visible: !!root.report.summary
                 text: root.paragraph
                 textFormat: Text.RichText
-                linkColor: Color.accent
+                linkColor: Commons.Color.accent
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 elide: Text.ElideNone

@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 import "../watchlist/WatchlistOrder.js" as Order
 import "../market/MarketAssets.js" as Assets
@@ -646,7 +647,7 @@ QtObject {
     // Searches once typing pauses for a quarter of a second.
     property Timer searchTimer: Timer { interval: 250; onTriggered: root.requestSearch(root.searchQuery) }
     property FileView palette: FileView {
-        path: Color.currentThemePath + "/colors.toml"
+        path: Commons.Color.currentThemePath + "/colors.toml"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {

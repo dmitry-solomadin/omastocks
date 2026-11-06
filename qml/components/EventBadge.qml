@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -13,12 +14,12 @@ Rectangle {
     implicitWidth: Math.max(implicitHeight, label.implicitWidth + Style.space(8))
     implicitHeight: label.implicitHeight + Style.space(2)
     radius: Style.space(3)
-    color: Util.alpha(Color.accent, strong ? .28 : .14)
+    color: Util.alpha(Commons.Color.accent, strong ? .28 : .14)
     Label {
         id: label
         anchors.centerIn: parent
         text: root.text
-        color: Color.accent
+        color: Commons.Color.accent
         font.pixelSize: Style.font.bodySmall
         font.bold: root.strong
     }

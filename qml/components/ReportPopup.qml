@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -41,12 +42,12 @@ Controls.Popup {
     focus: true
     closePolicy: Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
     onOpened: closeButton.forceActiveFocus()
-    Controls.Overlay.modal: Rectangle { color: Util.alpha(Color.background, .55) }
+    Controls.Overlay.modal: Rectangle { color: Util.alpha(Commons.Color.background, .55) }
     background: Rectangle {
-        color: Color.background
+        color: Commons.Color.background
         radius: Style.cornerRadius
         border.width: 1
-        border.color: Util.alpha(Color.foreground, .2)
+        border.color: Util.alpha(Commons.Color.foreground, .2)
     }
     Connections {
         target: root.store
@@ -78,7 +79,7 @@ Controls.Popup {
                 onClicked: root.close()
             }
         }
-        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Commons.Color.foreground, .1) }
         Controls.ScrollView {
             id: scroll
             objectName: root.name + "Report"
@@ -102,7 +103,7 @@ Controls.Popup {
                     objectName: root.name + "Error"
                     visible: !!root.store.error
                     text: root.store.error
-                    color: Color.urgent
+                    color: Commons.Color.urgent
                     Layout.fillWidth: true
                     wrapMode: Text.WordWrap
                     elide: Text.ElideNone
@@ -172,7 +173,7 @@ Controls.Popup {
                             required property var modelData
                             required property int index
                             text: (index + 1) + ".  " + (/^https?:\/\//.test(modelData.url)
-                                ? '<a style="color: ' + Color.accent + '; text-decoration: none" href="' + root.escapeHtml(modelData.url) + '">'
+                                ? '<a style="color: ' + Commons.Color.accent + '; text-decoration: none" href="' + root.escapeHtml(modelData.url) + '">'
                                     + root.escapeHtml(modelData.title) + '</a>' : root.escapeHtml(modelData.title))
                                 + " · " + root.escapeHtml(root.host(modelData.url))
                             textFormat: Text.RichText
@@ -219,7 +220,7 @@ Controls.Popup {
             Label {
                 objectName: root.name + "Saved"
                 text: root.store.exported.error || (root.store.exported.shown ? "Saved to " + root.store.exported.shown : "")
-                color: root.store.exported.error ? Color.urgent : Tone.muted
+                color: root.store.exported.error ? Commons.Color.urgent : Tone.muted
                 font.pixelSize: Style.font.bodySmall
                 elide: Text.ElideMiddle
                 Layout.fillWidth: true

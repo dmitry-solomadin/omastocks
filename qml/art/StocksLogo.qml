@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 
 // Sidebar logo: vector candles beside "Stocks". The candles rise in sequence on
@@ -16,7 +17,7 @@ Row {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         text: "Stocks"
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: "Adwaita Sans"
         font.weight: Font.Bold
         font.pixelSize: root.unit * 1.05

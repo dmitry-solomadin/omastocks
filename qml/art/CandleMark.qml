@@ -1,13 +1,14 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 // Three rising candlesticks, the middle one hollow (a down session). `rise`
 // grows them from their wicks' feet in sequence, 0..1.
 Canvas {
     id: root
     property real unit: Style.space(20)
-    property color color: Color.accent
-    property color hollow: Color.background
+    property color color: Commons.Color.accent
+    property color hollow: Commons.Color.background
     property real rise: 1
     implicitWidth: unit * 1.1
     implicitHeight: unit * 1.2

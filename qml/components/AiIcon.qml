@@ -1,10 +1,11 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 // Two four-point sparkles, shared by AI features and tinted by their control.
 Canvas {
     id: root
-    property color color: Color.accent
+    property color color: Commons.Color.accent
     implicitWidth: Style.space(16)
     implicitHeight: implicitWidth
     antialiasing: true

@@ -3,6 +3,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -60,9 +61,9 @@ ColumnLayout {
             Ui.PanelToolTip { visible: article.hovered; text: article.modelData.title }
             background: Rectangle {
                 radius: Style.cornerRadius
-                color: article.hovered ? Util.alpha(Color.foreground, .06) : "transparent"
+                color: article.hovered ? Util.alpha(Commons.Color.foreground, .06) : "transparent"
                 border.width: article.activeFocus ? 1 : 0
-                border.color: Color.accent
+                border.color: Commons.Color.accent
             }
             contentItem: RowLayout {
                 spacing: Style.space(14)

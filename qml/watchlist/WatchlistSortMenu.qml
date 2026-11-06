@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as Controls
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -18,8 +19,8 @@ Controls.Menu {
         {value:"name", label:"Name"}
     ]
     background: Ui.BorderSurface {
-        color: Color.popups.background
-        borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Style.normalBorderWidth)
+        color: Commons.Color.popups.background
+        borderSpec: Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Style.normalBorderWidth)
         radius: Style.cornerRadius
     }
     Instantiator {
@@ -35,13 +36,13 @@ Controls.Menu {
             onTriggered: StockStore.setSortMode(modelData.value)
             contentItem: Label {
                 text: (StockStore.sortMode === option.modelData.value ? "✓ " : "  ") + option.text
-                color: option.highlighted ? Style.hoverStateColor(Color.popups.text, Color.accent) : Color.popups.text
+                color: option.highlighted ? Style.hoverStateColor(Commons.Color.popups.text, Commons.Color.accent) : Commons.Color.popups.text
                 verticalAlignment: Text.AlignVCenter
                 leftPadding: Style.space(8)
             }
             background: Rectangle {
                 radius: Style.cornerRadius
-                color: option.highlighted ? Style.hoverFillFor(Color.popups.text, Color.accent) : "transparent"
+                color: option.highlighted ? Style.hoverFillFor(Commons.Color.popups.text, Commons.Color.accent) : "transparent"
             }
         }
         onObjectAdded: (index, object) => menu.insertItem(index, object)

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 import "PixelSprites.js" as Sprites
@@ -20,7 +21,7 @@ Item {
         anchors.centerIn: parent
         pixels: !root.known || root.change === 0 ? Sprites.neutral : root.change < 0 ? Sprites.bear : Sprites.bull
         ink: !root.known || root.change === 0 ? Tone.muted : StockStore.direction(root.change)
-        shade: Color.foreground
+        shade: Commons.Color.foreground
         opacity: root.known ? 1 : .35
     }
     HoverHandler { id: hover }

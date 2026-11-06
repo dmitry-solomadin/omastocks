@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -27,26 +28,26 @@ Item {
         + ". Current regular-session price " + money(price)
     Rectangle {
         x: Style.space(6); y: Style.space(14); width: Math.max(0, parent.width - Style.space(12)); height: Style.space(2)
-        color: Util.alpha(Color.foreground, .12)
+        color: Util.alpha(Commons.Color.foreground, .12)
     }
     Rectangle {
         visible: root.validRange
         x: root.validRange ? root.position(root.low) : 0; y: Style.space(13)
         width: root.validRange ? Math.max(1, root.position(root.high) - x) : 0; height: Style.space(4)
-        color: Util.alpha(Color.foreground, .4)
+        color: Util.alpha(Commons.Color.foreground, .4)
     }
     Rectangle {
         objectName: "analystAverageTick"
         visible: root.valid(root.average)
         x: root.valid(root.average) ? root.position(root.average) - width / 2 : 0; y: Style.space(6)
-        width: Style.space(3); height: Style.space(18); color: Color.accent
+        width: Style.space(3); height: Style.space(18); color: Commons.Color.accent
     }
     Rectangle {
         objectName: "analystCurrentDot"
         visible: root.valid(root.price)
         x: root.valid(root.price) ? root.position(root.price) - width / 2 : 0; y: Style.space(15) - height / 2
-        width: Style.space(10); height: width; radius: width / 2; color: Color.foreground
-        border.width: 1; border.color: Color.background
+        width: Style.space(10); height: width; radius: width / 2; color: Commons.Color.foreground
+        border.width: 1; border.color: Commons.Color.background
     }
     Label {
         visible: root.validRange

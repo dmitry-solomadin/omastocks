@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 
 // Explain move, moving averages, extended hours and Compare: occasional tools,
@@ -63,7 +64,7 @@ Row {
         // On at once when clicked; the regular chart stays until extended data arrives.
         enabled: !MarketStore.extendedUnavailable(StockStore.selected)
         selected: MarketStore.showExtended && enabled
-        ink: selected ? Color.accent : Tone.muted
+        ink: selected ? Commons.Color.accent : Tone.muted
         // Only a click that found no data explains the greyed-out button.
         hint: MarketStore.extendedRequest.busy ? "Loading extended hours…"
             : MarketStore.noExtended[StockStore.selected] === true && MarketStore.extendedClicked === StockStore.selected

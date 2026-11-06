@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 import "MarketAssets.js" as Assets
@@ -28,7 +29,7 @@ ColumnLayout {
         : vix < 15 ? "Low expected volatility" : vix < 20 ? "Moderate expected volatility"
         : vix < 30 ? "Elevated expected volatility" : "High expected volatility"
     readonly property color volatilityTone: vix < 0 ? Tone.muted : vix < 15 ? StockStore.gain
-        : vix < 20 ? Color.foreground : StockStore.loss
+        : vix < 20 ? Commons.Color.foreground : StockStore.loss
     spacing: Style.space(14)
 
     function zoneColor(score) {
@@ -84,11 +85,11 @@ ColumnLayout {
                     ctx.globalAlpha = 1
                     if (score < 0) return
                     const angle = Math.PI * (1 + score / 100)
-                    ctx.strokeStyle = Color.foreground
+                    ctx.strokeStyle = Commons.Color.foreground
                     ctx.lineWidth = Math.max(2, Style.space(3))
                     ctx.lineCap = "round"
                     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(angle) * (r - line), cy + Math.sin(angle) * (r - line)); ctx.stroke()
-                    ctx.fillStyle = Color.foreground
+                    ctx.fillStyle = Commons.Color.foreground
                     ctx.beginPath(); ctx.arc(cx, cy, Style.space(4), 0, Math.PI * 2); ctx.fill()
                 }
             }
@@ -114,7 +115,7 @@ ColumnLayout {
                     HoverHandler { cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor }
                     readonly property string url: "https://www.cnn.com/markets/fear-and-greed"
                     textFormat: Text.StyledText
-                    linkColor: Color.foreground
+                    linkColor: Commons.Color.foreground
                     text: '<a href="' + url + '">Fear &amp; Greed · CNN</a>'
                     onLinkActivated: link => Qt.openUrlExternally(link)
                     activeFocusOnTab: true
@@ -250,7 +251,7 @@ ColumnLayout {
                     id: curveCanvas
                     anchors.fill: parent
                     readonly property var values: curveChart.values
-                    readonly property color tone: Color.foreground
+                    readonly property color tone: Commons.Color.foreground
                     onValuesChanged: requestPaint()
                     onToneChanged: requestPaint()
                     onWidthChanged: requestPaint()
@@ -282,7 +283,7 @@ ColumnLayout {
                         required property var modelData
                         required property int index
                         x: curveChart.pointX(index) - width / 2
-                        Caption { anchors.horizontalCenter: parent.horizontalCenter; text: Number.isFinite(modelData.value) ? modelData.value.toFixed(1) : "—"; color: Color.foreground }
+                        Caption { anchors.horizontalCenter: parent.horizontalCenter; text: Number.isFinite(modelData.value) ? modelData.value.toFixed(1) : "—"; color: Commons.Color.foreground }
                         Caption { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.name }
                     }
                 }

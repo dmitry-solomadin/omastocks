@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -23,7 +24,7 @@ Controls.AbstractButton {
     Ui.PanelToolTip { visible: root.hovered && root.hint !== ""; text: root.hint }
     background: Rectangle {
         radius: Style.cornerRadius
-        color: Util.alpha(Color.foreground, root.down ? .12 : root.hovered ? .08 : .04)
+        color: Util.alpha(Commons.Color.foreground, root.down ? .12 : root.hovered ? .08 : .04)
     }
     contentItem: RowLayout {
         spacing: Style.space(8)

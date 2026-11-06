@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -9,7 +10,7 @@ RowLayout {
     id: root
     objectName: "marketStatus"
     required property MarketSession session
-    readonly property color tone: session.opened ? StockStore.gain : session.state === "PRE" || session.state === "POST" ? Color.foreground : Tone.muted
+    readonly property color tone: session.opened ? StockStore.gain : session.state === "PRE" || session.state === "POST" ? Commons.Color.foreground : Tone.muted
     spacing: Style.space(8)
     // Caps have no descenders, so centre the dot on the cap height rather than
     // the line box: sit it on the baseline, raised by half the spare cap height.
@@ -45,7 +46,7 @@ RowLayout {
         Layout.alignment: Qt.AlignBaseline
         text: root.session.countdown ? "· " + root.session.countdown : ""
         // Muted text is too faint over the header's sky scene.
-        color: Util.alpha(Color.foreground, .7)
+        color: Util.alpha(Commons.Color.foreground, .7)
         font.pixelSize: Style.font.bodySmall
     }
     HoverHandler { id: hover }

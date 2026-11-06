@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import "." as Stocks
 
@@ -203,8 +204,8 @@ Ui.BarWidget {
             id: card
             implicitWidth: Style.space(260)
             implicitHeight: details.implicitHeight + Style.space(24)
-            color: Color.tooltip.background
-            borderSpec: Border.surfaceSpec("tooltip", "border", Color.tooltip.border, 1)
+            color: Commons.Color.tooltip.background
+            borderSpec: Border.surfaceSpec("tooltip", "border", Commons.Color.tooltip.border, 1)
             radius: Style.cornerRadius
             ColumnLayout {
                 id: details
@@ -214,9 +215,9 @@ Ui.BarWidget {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Style.space(10)
-                    Stocks.Label { text: preview.symbol; font.bold: true; color: Color.tooltip.text }
+                    Stocks.Label { text: preview.symbol; font.bold: true; color: Commons.Color.tooltip.text }
                     Item { Layout.fillWidth: true }
-                    Stocks.Label { text: Stocks.StockStore.price(preview.entry.price) + (preview.entry.currency ? " " + preview.entry.currency : ""); font.bold: true; color: Color.tooltip.text }
+                    Stocks.Label { text: Stocks.StockStore.price(preview.entry.price) + (preview.entry.currency ? " " + preview.entry.currency : ""); font.bold: true; color: Commons.Color.tooltip.text }
                 }
                 RowLayout {
                     Layout.fillWidth: true

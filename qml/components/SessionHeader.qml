@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 
 // Page header with the market sky behind it. Content goes into a RowLayout;
@@ -25,5 +26,5 @@ Item {
         target: StockStore
         function onWindowOpenChanged() { if (StockStore.windowOpen && root.visible) intro.play(); else if (!StockStore.windowOpen) intro.stop() }
     }
-    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Util.alpha(Color.foreground, .09) }
+    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Util.alpha(Commons.Color.foreground, .09) }
 }

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 
 ColumnLayout {
@@ -135,7 +136,7 @@ ColumnLayout {
                         hoverEnabled: true
                         onClicked: root.selectedMetric = modelData.key
                         Accessible.name: modelData.label + ": show history"
-                        background: Rectangle { color: root.metric && row.modelData.key === root.metric.key ? Util.alpha(Color.accent, .1) : row.hovered ? Util.alpha(Color.foreground, .04) : "transparent" }
+                        background: Rectangle { color: root.metric && row.modelData.key === root.metric.key ? Util.alpha(Commons.Color.accent, .1) : row.hovered ? Util.alpha(Commons.Color.foreground, .04) : "transparent" }
                         contentItem: Row {
                             Label { width: root.nameWidth; height: row.height; verticalAlignment: Text.AlignVCenter; text: row.modelData.label; font.pixelSize: Style.font.bodySmall }
                             Repeater {

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -11,7 +12,7 @@ Item {
     property string period: "1D"
     property int hovered: -1
     readonly property var hoveredEntry: hovered >= 0 && hovered < cells.length ? cells[hovered].entry : null
-    readonly property color foreground: Color.foreground
+    readonly property color foreground: Commons.Color.foreground
     readonly property color gain: StockStore.gain
     readonly property color loss: StockStore.loss
     readonly property color muted: Tone.muted

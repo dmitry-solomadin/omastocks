@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 import "MarginChart.js" as MarginChart
@@ -22,7 +23,7 @@ ColumnLayout {
     readonly property string changeSinceYear: (months.find(row => Number.isFinite(row.change)) || {month: ""}).month.slice(0, 4)
     readonly property string headline: known ? latest.level + " leverage, " + latest.trend.toLowerCase() : ""
     readonly property color tone: ["Low", "Below average"].indexOf(latest.level) >= 0 ? StockStore.gain
-        : ["Above average", "High"].indexOf(latest.level) >= 0 ? StockStore.loss : Color.foreground
+        : ["Above average", "High"].indexOf(latest.level) >= 0 ? StockStore.loss : Commons.Color.foreground
     function monthLabel(month) { return month ? Qt.formatDate(new Date(month + "-15T12:00:00"), "MMM yyyy") : "" }
     function percentText(value) { return Number.isFinite(value) ? Number(value).toFixed(2) + "%" : "—" }
     function valueText(value) {
@@ -38,7 +39,7 @@ ColumnLayout {
         property string value
         property string detail
         property string hint
-        property color tone: Color.foreground
+        property color tone: Commons.Color.foreground
         Layout.fillWidth: true
         Layout.preferredWidth: 1
         Layout.minimumWidth: 0
@@ -174,7 +175,7 @@ ColumnLayout {
             y: chart.pointY(root.latest.shareMedian || 0)
             width: chart.plotWidth
             height: 1
-            color: Color.foreground
+            color: Commons.Color.foreground
             opacity: .55
         }
         Caption {
@@ -197,7 +198,7 @@ ColumnLayout {
             anchors.fill: parent
             readonly property var points: chart.points
             readonly property var bounds: chart.bounds
-            readonly property color lineColor: Color.accent
+            readonly property color lineColor: Commons.Color.accent
             readonly property color fallColor: StockStore.loss
             onPointsChanged: requestPaint()
             onBoundsChanged: requestPaint()
@@ -237,7 +238,7 @@ ColumnLayout {
             x: chart.pointX(chart.hoverIndex)
             width: 1
             height: chart.plotHeight
-            color: Color.foreground
+            color: Commons.Color.foreground
             opacity: .45
         }
         HoverHandler { id: chartHover }

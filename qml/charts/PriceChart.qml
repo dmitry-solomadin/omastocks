@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 import "ChartMath.js" as ChartMath
@@ -185,7 +186,7 @@ Item {
     onComparingChanged: { clearSelection(); canvas.requestPaint() }
     onWidthChanged: canvas.requestPaint()
     onHeightChanged: canvas.requestPaint()
-    Connections { target: Color; function onForegroundChanged() { canvas.requestPaint() } }
+    Connections { target: Commons.Color; function onForegroundChanged() { canvas.requestPaint() } }
     Connections {
         target: StockStore
         function onGainChanged() { canvas.requestPaint() }
@@ -202,7 +203,7 @@ Item {
             if (!root.points.length) return
             if (!root.miniature) {
                 if (!root.comparing && root.timeDomain[1] > root.timeDomain[0]) {
-                    ctx.fillStyle = Util.alpha(Color.foreground, .045)
+                    ctx.fillStyle = Util.alpha(Commons.Color.foreground, .045)
                     for (const session of root.sessions) {
                         if (session.kind === "regular") continue
                         const span = root.timeDomain[1] - root.timeDomain[0]
@@ -211,7 +212,7 @@ Item {
                         ctx.fillRect(root.leftInset + start * root.plotWidth, root.topInset, (end - start) * root.plotWidth, root.plotHeight)
                     }
                 }
-                ctx.strokeStyle = Util.alpha(Color.foreground, .09)
+                ctx.strokeStyle = Util.alpha(Commons.Color.foreground, .09)
                 ctx.lineWidth = 1
                 for (let i = 0; i < 4; i++) {
                     const y = root.topInset + root.plotHeight * i / 3
@@ -221,7 +222,7 @@ Item {
             // Sparklines draw the baseline only when given one (the bar preview).
             if (root.comparing || (root.referencePrice !== null && root.referencePrice !== undefined)) {
                 const y = root.comparing ? root.axisY(0) : root.pointY(root.referencePrice)
-                ctx.strokeStyle = Util.alpha(Color.foreground, .3)
+                ctx.strokeStyle = Util.alpha(Commons.Color.foreground, .3)
                 ctx.lineWidth = 1
                 ctx.setLineDash(root.comparing ? [] : root.miniature ? [3, 3] : [4, 5])
                 ctx.beginPath(); ctx.moveTo(root.leftInset, y); ctx.lineTo(root.leftInset + root.plotWidth, y); ctx.stroke()
@@ -354,7 +355,7 @@ Item {
                 width: Style.spaceReal(10.4); height: width; radius: width / 2
                 color: root.selectionColor
                 border.width: 2
-                border.color: Color.background
+                border.color: Commons.Color.background
             }
         }
     }
@@ -364,7 +365,7 @@ Item {
         y: root.topInset
         width: 1
         height: root.plotHeight
-        color: Util.alpha(Color.foreground, .35)
+        color: Util.alpha(Commons.Color.foreground, .35)
     }
     Rectangle {
         visible: !root.miniature && !root.comparing && root.hoveredPoint !== null
@@ -372,7 +373,7 @@ Item {
         y: root.hoveredPoint ? root.pointY(root.hoveredPoint[1]) - height / 2 : 0
         width: Style.spaceReal(10.4); height: width; radius: width / 2
         color: root.lineColor
-        border.color: Color.background
+        border.color: Commons.Color.background
         border.width: 2
     }
     // One line above the plot: a dragged selection's change and time range,
@@ -492,7 +493,7 @@ Item {
             y: root.axisY(modelData.percent) - height / 2
             width: Style.spaceReal(10.4); height: width; radius: width / 2
             color: modelData.color
-            border.width: 2; border.color: Color.background
+            border.width: 2; border.color: Commons.Color.background
         }
     }
     Rectangle {
@@ -505,8 +506,8 @@ Item {
         y: Math.max(root.topInset, Math.min(root.topInset + root.plotHeight - height, pointer.mouseY - height - Style.space(12)))
         width: hoverContent.implicitWidth + Style.space(24)
         height: hoverContent.implicitHeight + Style.space(20)
-        color: Color.background
-        border.width: 1; border.color: Util.alpha(Color.foreground, .2)
+        color: Commons.Color.background
+        border.width: 1; border.color: Util.alpha(Commons.Color.foreground, .2)
         radius: Style.cornerRadius
         ColumnLayout {
             id: hoverContent

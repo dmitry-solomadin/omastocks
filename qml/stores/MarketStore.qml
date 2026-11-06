@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 import "../charts/ChartMath.js" as ChartMath
 
@@ -64,7 +65,7 @@ QtObject {
     readonly property var comparisons: comparisonRequests.map((request, index) => ({
         symbol: compareSlots[index], color: compareColors[index + 1], data: request.data, busy: request.busy
     })).filter(entry => !!entry.symbol)
-    function averageColor(window) { return StockStore.chartColors[[20, 50, 200].indexOf(window)] || Color.foreground }
+    function averageColor(window) { return StockStore.chartColors[[20, 50, 200].indexOf(window)] || Commons.Color.foreground }
     function toggleAverage(window) {
         averageWindows = averageWindows.indexOf(window) >= 0 ? averageWindows.filter(value => value !== window)
             : averageWindows.concat([window]).sort((a, b) => a - b)

@@ -3,6 +3,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import "."
 import "charts/ChartMath.js" as ChartMath
@@ -15,7 +16,7 @@ FloatingWindow {
         Layout.topMargin: Style.space(6)
         Layout.bottomMargin: Style.space(2)
         height: 1
-        color: Util.alpha(Color.foreground, .1)
+        color: Util.alpha(Commons.Color.foreground, .1)
     }
     property var shell: null
     readonly property bool analysisOpen: moveAnalysisPopup.opened
@@ -29,7 +30,7 @@ FloatingWindow {
     implicitWidth: Style.space(1100)
     implicitHeight: Style.space(740)
     minimumSize: Qt.size(Style.space(720), Style.space(500))
-    color: Color.background
+    color: Commons.Color.background
     // A compositor close must also clear FloatingWindow's requested visibility.
     onClosed: visible = false
     onMinimizedChanged: StockStore.windowMinimized = minimized
@@ -198,8 +199,8 @@ FloatingWindow {
             width: Style.space(window.width < Style.space(900) ? 245 : 300)
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            color: Util.alpha(Color.foreground, .025)
-            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Util.alpha(Color.foreground, .1) }
+            color: Util.alpha(Commons.Color.foreground, .025)
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Util.alpha(Commons.Color.foreground, .1) }
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Style.space(18)
@@ -213,7 +214,7 @@ FloatingWindow {
                         // share their visual centre line.
                         StocksLogo { id: wordmark; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; anchors.verticalCenterOffset: -Style.space(1) }
                     }
-                    IconButton { text: "󰑐"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Color.urgent : Color.foreground; enabled: !StockStore.refreshing; onClicked: window.refresh() }
+                    IconButton { text: "󰑐"; hint: window.warning || "Refresh prices · Ctrl+R"; ink: window.warning ? Commons.Color.urgent : Commons.Color.foreground; enabled: !StockStore.refreshing; onClicked: window.refresh() }
                     IconButton { objectName: "openSettings"; text: "󰒓"; hint: "Settings"; onClicked: settingsMenu.open() }
                 }
                 WatchlistSelector { id: watchlistSelector; Layout.fillWidth: true; onEditRequested: watchlistMenu.open() }
@@ -366,7 +367,7 @@ FloatingWindow {
                         Rectangle {
                             anchors.fill: parent
                             radius: Style.cornerRadius
-                            color: stockRow.modelData.symbol === (list.keyTarget || StockStore.selected) ? Util.alpha(Color.accent, .1) : rowMouse.containsMouse ? Util.alpha(Color.foreground, .05) : "transparent"
+                            color: stockRow.modelData.symbol === (list.keyTarget || StockStore.selected) ? Util.alpha(Commons.Color.accent, .1) : rowMouse.containsMouse ? Util.alpha(Commons.Color.foreground, .05) : "transparent"
                         }
                         MouseArea {
                             id: rowMouse
@@ -401,7 +402,7 @@ FloatingWindow {
                             RowLayout {
                                 width: parent.width
                                 spacing: Style.space(6)
-                                Label { text: "★"; visible: stockRow.modelData.favorite === true; color: Color.accent; font.pixelSize: Style.font.bodySmall }
+                                Label { text: "★"; visible: stockRow.modelData.favorite === true; color: Commons.Color.accent; font.pixelSize: Style.font.bodySmall }
                                 Label { text: stockRow.modelData.symbol; font.bold: true }
                                 EventBadge {
                                     objectName: "earnings_" + stockRow.modelData.symbol
@@ -443,7 +444,7 @@ FloatingWindow {
                             padding: 0
                             text: "+"
                             font.pixelSize: Style.space(24)
-                            ink: Color.accent
+                            ink: Commons.Color.accent
                             hint: "Add " + stockRow.modelData.symbol + " to watchlist"
                             visible: !!StockStore.searchQuery && !stockRow.tracked
                             enabled: !StockStore.adding(stockRow.modelData.symbol)
@@ -462,7 +463,7 @@ FloatingWindow {
                             list.insertionIndex * list.rowStep - (list.contentY - list.originY) - list.spacing / 2))
                         width: list.width - Style.space(8)
                         height: Style.space(2)
-                        color: Color.accent
+                        color: Commons.Color.accent
                     }
                     Rectangle {
                         parent: list
@@ -473,9 +474,9 @@ FloatingWindow {
                         width: list.width - Style.space(16)
                         height: list.rowHeight
                         radius: Style.cornerRadius
-                        color: Color.background
+                        color: Commons.Color.background
                         border.width: 1
-                        border.color: Color.accent
+                        border.color: Commons.Color.accent
                         Column {
                             anchors.fill: parent
                             anchors.margins: Style.space(10)
@@ -522,7 +523,7 @@ FloatingWindow {
                     Layout.fillWidth: true
                     implicitHeight: Style.space(40)
                     radius: Style.cornerRadius
-                    color: Util.alpha(Color.foreground, .06)
+                    color: Util.alpha(Commons.Color.foreground, .06)
                     border.width: 1
                     border.color: Tone.border
                     RowLayout {
@@ -537,7 +538,7 @@ FloatingWindow {
                         ActionButton {
                             objectName: "undoRemove"
                             text: "Undo"
-                            ink: Color.accent
+                            ink: Commons.Color.accent
                             hint: "Put it back · Ctrl+Z"
                             enabled: !StockStore.editing
                             onClicked: StockStore.undoRemove()
@@ -556,7 +557,7 @@ FloatingWindow {
             anchors.top: parent.top
             visible: StockStore.yahooStatus.message !== ""
             height: visible ? yahooMessage.implicitHeight + Style.space(16) : 0
-            color: Util.alpha(Color.urgent, .12)
+            color: Util.alpha(Commons.Color.urgent, .12)
             Label {
                 id: yahooMessage
                 anchors.left: parent.left
@@ -564,7 +565,7 @@ FloatingWindow {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.margins: Style.space(16)
                 text: StockStore.yahooStatus.message
-                color: Color.urgent
+                color: Commons.Color.urgent
             }
         }
         Flow {
@@ -622,7 +623,7 @@ FloatingWindow {
                         Label { text: StockStore.selected; font.pixelSize: Style.space(22); font.bold: true; Layout.fillWidth: true }
                         MarketStatus { session: stockHeader.session }
                     }
-                    ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Color.accent : Color.foreground; backdrop: true; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
+                    ActionButton { text: StockStore.starred ? "★" : "☆"; hint: StockStore.starred ? "Remove from bar favorites" : "Show in bar favorites"; ink: StockStore.starred ? Commons.Color.accent : Commons.Color.foreground; backdrop: true; visible: StockStore.tracked; onClicked: StockStore.request(["favorite", StockStore.selected]) }
                     AiButton {
                         objectName: "bullBearCase"
                         visible: AnalysisStore.enabled && !!StockStore.selected && !StockStore.selectedIsNonCompany

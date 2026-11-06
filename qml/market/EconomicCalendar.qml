@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -67,7 +68,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     implicitHeight: line.implicitHeight + Style.space(10)
                     radius: Style.cornerRadius
-                    color: rowHover.hovered ? Util.alpha(Color.foreground, .04) : "transparent"
+                    color: rowHover.hovered ? Util.alpha(Commons.Color.foreground, .04) : "transparent"
                     RowLayout {
                         id: line
                         anchors.left: parent.left
@@ -78,13 +79,13 @@ ColumnLayout {
                         spacing: Style.space(12)
                         Label {
                             text: Qt.formatTime(new Date(row.modelData.time * 1000), "hh:mm")
-                            color: row.upcoming ? Color.foreground : Tone.muted
+                            color: row.upcoming ? Commons.Color.foreground : Tone.muted
                             font.pixelSize: Style.font.bodySmall
                             Layout.preferredWidth: Style.space(44)
                         }
                         Label {
                             text: row.modelData.title + (row.modelData.period ? "  ·  " + row.modelData.period : "")
-                            color: row.upcoming || row.released ? Color.foreground : Tone.muted
+                            color: row.upcoming || row.released ? Commons.Color.foreground : Tone.muted
                             font.pixelSize: Style.font.bodySmall
                             Layout.fillWidth: true
                         }
@@ -92,7 +93,7 @@ ColumnLayout {
                             visible: row.released
                             text: "Actual " + root.value(row.modelData, row.modelData.actual)
                             color: Number.isFinite(row.modelData.forecast) && row.modelData.actual !== row.modelData.forecast
-                                ? StockStore.direction(row.modelData.actual - row.modelData.forecast) : Color.foreground
+                                ? StockStore.direction(row.modelData.actual - row.modelData.forecast) : Commons.Color.foreground
                             font.pixelSize: Style.font.bodySmall
                             font.bold: true
                         }

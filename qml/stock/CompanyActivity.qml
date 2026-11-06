@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -92,11 +93,11 @@ ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true
                 spacing: Style.space(5)
-                Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground,.09) }
+                Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Commons.Color.foreground,.09) }
                 Label { text: record.modelData.date + " · " + record.modelData.type; Layout.fillWidth: true; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: Tone.muted }
                 Label {
                     text: record.modelData.name + (record.modelData.role ? " · " + record.modelData.role : "")
-                    Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.accent
+                    Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Commons.Color.accent
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: if (record.modelData.url) Qt.openUrlExternally(record.modelData.url) }
                 }
                 Label {

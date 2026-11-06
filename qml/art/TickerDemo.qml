@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 import "PixelSprites.js" as Sprites
 
@@ -70,11 +71,11 @@ Item {
         id: prompt
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: root.pixel * 3
-        PixelArt { pixelSize: root.pixel * 2; ink: Color.accent; pixels: Sprites.text(">") }
+        PixelArt { pixelSize: root.pixel * 2; ink: Commons.Color.accent; pixels: Sprites.text(">") }
         PixelArt { id: word; pixelSize: root.pixel * 2; pixels: root.typed ? Sprites.text(root.typed) : [] }
         Rectangle {
             width: root.pixel * 5; height: root.pixel * 10
-            color: Color.accent
+            color: Commons.Color.accent
             opacity: Math.floor(root.time / 300) % 2 === 0 ? 1 : 0
         }
     }
@@ -101,8 +102,8 @@ Item {
             if (!done.base) {
                 ctx.clearRect(0, 0, width, height)
                 for (let y = 2; y < l.rows; y += 6)
-                    for (let x = 2; x < l.cols; x += 6) dot(x, y, Util.alpha(Color.foreground, .06))
-                for (let x = l.x0; x < l.x0 + l.ys.length; x += 2) dot(x, l.baseline, Util.alpha(Color.foreground, .28))
+                    for (let x = 2; x < l.cols; x += 6) dot(x, y, Util.alpha(Commons.Color.foreground, .06))
+                for (let x = l.x0; x < l.x0 + l.ys.length; x += 2) dot(x, l.baseline, Util.alpha(Commons.Color.foreground, .28))
                 done.base = true
             }
             const lineNow = Math.floor(l.ys.length * root.lineProgress)
@@ -115,7 +116,7 @@ Item {
                     if (on) dot(x, row, Util.alpha(side, k <= 1 ? .4 : .28))
                 }
                 for (let row = Math.min(previous, y); row <= Math.max(previous, y); row++)
-                    dot(x, row, row < l.baseline ? StockStore.gain : row > l.baseline ? StockStore.loss : Color.foreground)
+                    dot(x, row, row < l.baseline ? StockStore.gain : row > l.baseline ? StockStore.loss : Commons.Color.foreground)
             }
             done.line = Math.max(done.line, lineNow)
             if (t >= root.dissolveStart) {
@@ -141,15 +142,15 @@ Item {
             readonly property var l: root.layout
             readonly property int index: l ? Math.min(l.ys.length - 1, Math.floor(l.ys.length * root.lineProgress)) : 0
             readonly property int row: l ? l.ys[index] : 0
-            readonly property color tone: !l || row === l.baseline ? Color.foreground : row < l.baseline ? StockStore.gain : StockStore.loss
+            readonly property color tone: !l || row === l.baseline ? Commons.Color.foreground : row < l.baseline ? StockStore.gain : StockStore.loss
             visible: !!l && root.lineProgress > 0
             opacity: root.dissolving ? 0 : 1
             Behavior on opacity { NumberAnimation { duration: 120 } }
             x: l ? (l.x0 + index) * root.pixel : 0
             y: row * root.pixel
-            Rectangle { x: 0; y: -parent.y; width: root.pixel; height: chart.height; color: Util.alpha(Color.foreground, .05) }
+            Rectangle { x: 0; y: -parent.y; width: root.pixel; height: chart.height; color: Util.alpha(Commons.Color.foreground, .05) }
             Rectangle { x: -root.pixel; y: -root.pixel; width: root.pixel * 3; height: root.pixel * 3; color: Util.alpha(head.tone, .3) }
-            Rectangle { width: root.pixel; height: root.pixel; color: Color.foreground }
+            Rectangle { width: root.pixel; height: root.pixel; color: Commons.Color.foreground }
         }
 
         // The move, pinned where the line ends.
@@ -170,7 +171,7 @@ Item {
                 id: flagText
                 anchors.centerIn: parent
                 pixelSize: root.pixel
-                ink: Color.background
+                ink: Commons.Color.background
                 pixels: Sprites.text((root.demo.rising ? "+" : "-") + root.demo.percent.toFixed(2) + "%")
             }
         }

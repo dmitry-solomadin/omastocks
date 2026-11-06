@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import ".."
 
 // A square toolbar button holding one Nerd Font glyph. Every icon button is the
 // same size whatever its glyph's width, and takes its glyphs from one icon set

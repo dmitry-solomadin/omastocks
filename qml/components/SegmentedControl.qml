@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 
 // A pick-one row of joined buttons in one bordered tray. Selecting a segment
@@ -25,9 +26,9 @@ Rectangle {
     implicitHeight: Style.space(34)
     implicitWidth: row.implicitWidth + Style.space(4)
     radius: Style.cornerRadius
-    color: Util.alpha(Color.foreground, .03)
+    color: Util.alpha(Commons.Color.foreground, .03)
     border.width: 1
-    border.color: activeFocus ? Color.accent : Tone.border
+    border.color: activeFocus ? Commons.Color.accent : Tone.border
     activeFocusOnTab: true
     Keys.onLeftPressed: select(selectedIndex - 1)
     Keys.onRightPressed: select(selectedIndex + 1)

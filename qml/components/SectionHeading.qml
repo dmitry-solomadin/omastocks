@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as Controls
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -32,7 +33,7 @@ Controls.AbstractButton {
             spacing: Style.space(8)
             Label {
                 text: root.text
-                color: root.hovered && root.collapsible ? Color.foreground : Tone.muted
+                color: root.hovered && root.collapsible ? Commons.Color.foreground : Tone.muted
                 font.family: root.font.family
                 font.pixelSize: root.font.pixelSize
                 font.bold: true
@@ -42,7 +43,7 @@ Controls.AbstractButton {
                 visible: root.collapsible
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.open ? "▾" : "▸"
-                color: root.hovered && root.collapsible ? Color.foreground : Tone.muted
+                color: root.hovered && root.collapsible ? Commons.Color.foreground : Tone.muted
                 font.pixelSize: root.font.pixelSize
             }
         }

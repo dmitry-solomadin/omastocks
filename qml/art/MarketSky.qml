@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 import "../market/MarketClock.js" as Clock
 import "PixelSprites.js" as Sprites
@@ -19,7 +20,7 @@ Item {
     objectName: "marketSky"
     required property MarketSession session
     readonly property int cell: 3
-    readonly property bool lightTheme: Color.background.hslLightness > .5
+    readonly property bool lightTheme: Commons.Color.background.hslLightness > .5
     // Kept low so header text stays readable, as in the weather panel.
     property real strength: lightTheme ? .7 : .45
     property real t: 0
@@ -63,11 +64,11 @@ Item {
     Timer { interval: 66; repeat: true; running: root.running; onTriggered: { root.tick++; motion.requestPaint() } }
 
     function blend(base, color, amount) { return Qt.tint(base, Qt.rgba(color.r, color.g, color.b, amount)) }
-    readonly property color ink: lightTheme ? Color.foreground : "#ffffff"
-    readonly property color stone: blend(Color.background, ink, scene === "night" ? .2 : .32)
-    readonly property color stoneLight: blend(Color.background, ink, scene === "night" ? .28 : .46)
-    readonly property color stoneDark: blend(Color.background, ink, scene === "night" ? .1 : .16)
-    readonly property color warm: blend(Color.accent, ink, .3)
+    readonly property color ink: lightTheme ? Commons.Color.foreground : "#ffffff"
+    readonly property color stone: blend(Commons.Color.background, ink, scene === "night" ? .2 : .32)
+    readonly property color stoneLight: blend(Commons.Color.background, ink, scene === "night" ? .28 : .46)
+    readonly property color stoneDark: blend(Commons.Color.background, ink, scene === "night" ? .1 : .16)
+    readonly property color warm: blend(Commons.Color.accent, ink, .3)
     onInkChanged: still.requestPaint()
     onWarmChanged: still.requestPaint()
 
@@ -132,14 +133,14 @@ Item {
             const ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
             const c = root.cell, cols = root.cols, rows = root.rows, scene = root.scene
-            const bg = Color.background, ink = root.ink, accent = Color.accent
+            const bg = Commons.Color.background, ink = root.ink, accent = Commons.Color.accent
             const rect = (i, j, w, h, color) => { ctx.fillStyle = color; ctx.fillRect(i * c, j * c, w * c, h * c) }
             // Sky: flat bands with one dithered row between them.
             const bands = {
                 night: [bg, root.blend(bg, accent, .05), root.blend(bg, accent, .1)],
                 dawn: [bg, root.blend(bg, accent, .12), root.blend(bg, accent, .26), root.blend(bg, accent, .42)],
                 day: [root.blend(bg, ink, .03), root.blend(bg, ink, .06), root.blend(bg, accent, .12)],
-                dusk: [bg, root.blend(bg, Color.urgent, .16), root.blend(bg, accent, .3), root.blend(accent, Color.urgent, .45)]
+                dusk: [bg, root.blend(bg, Commons.Color.urgent, .16), root.blend(bg, accent, .3), root.blend(accent, Commons.Color.urgent, .45)]
             }[scene]
             const band = rows / bands.length
             bands.forEach((color, b) => rect(0, Math.floor(b * band), cols, Math.ceil(band) + 1, color))
@@ -271,7 +272,7 @@ Item {
         onPaint: {
             const ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
-            const c = root.cell, cols = root.cols, rows = root.rows, scene = root.scene, tick = root.tick, bg = Color.background
+            const c = root.cell, cols = root.cols, rows = root.rows, scene = root.scene, tick = root.tick, bg = Commons.Color.background
             const rect = (i, j, w, h, color, alpha) => { ctx.globalAlpha = alpha === undefined ? 1 : alpha; ctx.fillStyle = color; ctx.fillRect(i * c, j * c, w * c, h * c) }
             // Twinkling stars at night, the last few fading at dawn.
             if (scene === "night" || scene === "dawn") {
@@ -288,7 +289,7 @@ Item {
             // Clouds drift west to east.
             if (scene !== "night") {
                 const next = Sprites.random(11)
-                const color = scene === "day" ? root.blend(bg, root.ink, .32) : root.blend(Color.accent, root.ink, .25)
+                const color = scene === "day" ? root.blend(bg, root.ink, .32) : root.blend(Commons.Color.accent, root.ink, .25)
                 for (let k = 0; k < 4; k++) {
                     const w = 10 + Math.floor(next() * 10), y = 3 + Math.floor(next() * Math.max(1, rows * .35))
                     const span = cols + w * 2
@@ -314,7 +315,7 @@ Item {
             if (root.burst >= 0) {
                 const next = Sprites.random(3)
                 const ox = root.facadeX + root.facadeWidth / 2, oy = root.apexY
-                const colors = [StockStore.gain, root.ink, Color.accent]
+                const colors = [StockStore.gain, root.ink, Commons.Color.accent]
                 for (let k = 0; k < 48; k++) {
                     const angle = -Math.PI * (.1 + .8 * next()), speed = 10 + next() * 26
                     const time = root.burst * 2.2

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -110,7 +111,7 @@ ColumnLayout {
             visible: root.available
             Layout.fillWidth: true
             spacing: Style.space(14)
-            Label { text: "Avg. target " + root.money(root.summary.average); font.bold: true; color: Color.accent }
+            Label { text: "Avg. target " + root.money(root.summary.average); font.bold: true; color: Commons.Color.accent }
             Label {
                 text: StockStore.percent(root.upside) + " implied"
                 visible: root.upside !== null

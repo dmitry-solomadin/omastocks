@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 import "MarketAssets.js" as Assets
@@ -33,7 +34,7 @@ Flow {
                 spacing: Style.space(3)
                 RowLayout {
                     spacing: Style.space(6)
-                    Label { text: tile.asset.name; color: Util.alpha(Color.foreground, .75); font.pixelSize: Style.font.bodySmall }
+                    Label { text: tile.asset.name; color: Util.alpha(Commons.Color.foreground, .75); font.pixelSize: Style.font.bodySmall }
                     Rectangle {
                         visible: !!tile.asset.futures
                         implicitWidth: tag.implicitWidth + Style.space(8)
@@ -41,8 +42,8 @@ Flow {
                         radius: Style.cornerRadius
                         color: "transparent"
                         border.width: 1
-                        border.color: Util.alpha(Color.foreground, .35)
-                        Label { id: tag; anchors.centerIn: parent; text: "FUT"; color: Util.alpha(Color.foreground, .75); font.pixelSize: Style.font.bodySmall * .8 }
+                        border.color: Util.alpha(Commons.Color.foreground, .35)
+                        Label { id: tag; anchors.centerIn: parent; text: "FUT"; color: Util.alpha(Commons.Color.foreground, .75); font.pixelSize: Style.font.bodySmall * .8 }
                     }
                 }
                 RowLayout {

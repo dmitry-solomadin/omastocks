@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import ".."
 
 Controls.Popup {
@@ -78,12 +79,12 @@ Controls.Popup {
             menu.cancelEdit()
         }
     }
-    Controls.Overlay.modal: Rectangle { color: Util.alpha(Color.background, .55) }
+    Controls.Overlay.modal: Rectangle { color: Util.alpha(Commons.Color.background, .55) }
     background: Rectangle {
-        color: Color.background
+        color: Commons.Color.background
         radius: Style.cornerRadius
         border.width: 1
-        border.color: Util.alpha(Color.foreground, .2)
+        border.color: Util.alpha(Commons.Color.foreground, .2)
     }
     component NameField: InputField {
         Layout.fillWidth: true
@@ -108,7 +109,7 @@ Controls.Popup {
                 onClicked: menu.close()
             }
         }
-        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Commons.Color.foreground, .1) }
         Controls.ScrollView {
             id: listScroll
             objectName: "watchlistRows"
@@ -153,7 +154,7 @@ Controls.Popup {
                                 background: Rectangle {
                                     objectName: "watchlistRowHighlight_" + row.modelData.id
                                     radius: Style.cornerRadius
-                                    color: rowEdit.hovered || rowEdit.activeFocus ? Util.alpha(Color.foreground, .07) : "transparent"
+                                    color: rowEdit.hovered || rowEdit.activeFocus ? Util.alpha(Commons.Color.foreground, .07) : "transparent"
                                 }
                                 contentItem: Label {
                                     text: row.modelData.name
@@ -193,7 +194,7 @@ Controls.Popup {
                 }
             }
         }
-        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Color.foreground, .1) }
+        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Util.alpha(Commons.Color.foreground, .1) }
         RowLayout {
             id: createRow
             Layout.fillWidth: true
@@ -213,6 +214,6 @@ Controls.Popup {
                 onClicked: menu.save("create")
             }
         }
-        Label { id: errorLabel; visible: !!menu.saveError; text: menu.saveError; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Color.urgent }
+        Label { id: errorLabel; visible: !!menu.saveError; text: menu.saveError; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Commons.Color.urgent }
     }
 }

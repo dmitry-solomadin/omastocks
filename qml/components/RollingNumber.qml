@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 // A number whose changed characters roll to the new value: up when it rises,
 // down when it falls. Characters line up from the right, so the decimals stay
@@ -16,7 +17,7 @@ Item {
     // Rolls only while this stays the same; a new stock just shows its price.
     property string key
     property alias font: metrics.font
-    property color color: Color.foreground
+    property color color: Commons.Color.foreground
     property int duration: 400
 
     // What's on screen: set by settle(), not bound, so a change can be seen

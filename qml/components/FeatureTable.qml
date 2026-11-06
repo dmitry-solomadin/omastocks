@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import ".."
 
@@ -42,11 +43,11 @@ Flickable {
                 required property var modelData
                 width: table.width
                 height: root.rowHeight
-                Rectangle { width: parent.width; height: 1; color: Util.alpha(Color.foreground, .08) }
+                Rectangle { width: parent.width; height: 1; color: Util.alpha(Commons.Color.foreground, .08) }
                 Item {
                     width: root.firstWidth - Style.space(8)
                     height: parent.height
-                    Label { anchors.fill: parent; verticalAlignment: Text.AlignVCenter; text: tableRow.modelData.label; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: Color.foreground }
+                    Label { anchors.fill: parent; verticalAlignment: Text.AlignVCenter; text: tableRow.modelData.label; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall; color: Commons.Color.foreground }
                     MouseArea {
                         id: rowMouse
                         anchors.fill: parent; hoverEnabled: true
@@ -68,7 +69,7 @@ Flickable {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: parent.width - Style.space(8)
                                 spacing: Style.space(3)
-                                Label { width: parent.width; text: cell.modelData.text || "—"; color: cell.modelData.color || Color.foreground; font.pixelSize: Style.font.bodySmall }
+                                Label { width: parent.width; text: cell.modelData.text || "—"; color: cell.modelData.color || Commons.Color.foreground; font.pixelSize: Style.font.bodySmall }
                                 Label { width: parent.width; visible: !!cell.modelData.subtext; text: cell.modelData.subtext || ""; color: Tone.muted; font.pixelSize: Style.font.bodySmall }
                             }
                             MouseArea {
