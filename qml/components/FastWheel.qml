@@ -7,7 +7,10 @@ WheelHandler {
     acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
     onWheel: event => {
         if (!flickable || (!event.angleDelta.y && !event.pixelDelta.y)) { event.accepted = false; return }
-        const delta = event.pixelDelta.y || event.angleDelta.y / 120 * Style.space(96)
+        // Since Qt 6.12 Wayland gives wheel notches a small pixelDelta too. Only touchpads
+        // report scroll phases, so only they follow it; a notch keeps its full step.
+        const delta = event.phase !== Qt.NoScrollPhase && event.pixelDelta.y
+            || event.angleDelta.y / 120 * Style.space(96)
         const start = flickable.originY || 0
         const end = start + Math.max(0, flickable.contentHeight - flickable.height)
         flickable.cancelFlick()
