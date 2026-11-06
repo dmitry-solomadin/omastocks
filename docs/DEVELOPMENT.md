@@ -57,6 +57,11 @@ imports are relative to the component using them. The helper paths in
 Use Omarchy's `qs.Commons` tokens for theme and spacing, and `Ui.PanelToolTip` for
 tooltips. Financial direction stays green (`#4caf50`) or red (`#ef5350`) across themes.
 
+Read theme colors as `Commons.Color`, with `import qs.Commons as Commons` beside the
+plain import. QtQuick has its own `Color` since Qt 6.12 and it wins whatever the import
+order, so a bare `Color.foreground` is undefined and renders black. It still works on
+older Qt, so it can look fine locally; `tests/test_theme_colors.py` catches it.
+
 ## Data flow
 
 - `bin/stocks.py` serializes watchlist mutations and quote storage with a
