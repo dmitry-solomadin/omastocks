@@ -32,7 +32,7 @@ the optional favorites ticker running.
 | View | What's inside |
 |---|---|
 | **Stock** | Six chart ranges, extended hours, volume, moving averages, dividends, ownership and short interest, earnings, financial statements, analyst targets, insider activity, news and social feeds. **Compare** combines charts and fundamentals for up to five symbols. |
-| **Market** | Index benchmarks, futures, commodities, crypto, rates and currencies; Fear & Greed and VIX sentiment; sector/index heatmaps; US economic releases and market news. |
+| **Market** | Index benchmarks, futures, commodities, crypto, rates and currencies; Fear & Greed and VIX sentiment; margin debt against its history; sector/index heatmaps; US economic releases and market news. |
 | **Watchlist** | Performance from 1D through 1Y, a heatmap, and an earnings calendar with EPS/revenue estimates and the latest surprises. |
 
 ### Explain latest move
@@ -152,7 +152,7 @@ Click a thumbnail to view the full-size screenshot.
 
 ## Data and storage
 
-Public feeds from **Yahoo Finance, Nasdaq, NYSE, TradingView, CNN, Google News,
+Public feeds from **Yahoo Finance, Nasdaq, NYSE, TradingView, CNN, FINRA, Google News,
 Stocktwits and ApeWisdom** supply the data. Prices may be delayed, earnings dates
 may be estimates, and coverage varies. Missing values stay **—**; failed refreshes
 retain saved data. Manual refresh respects provider rate limits.

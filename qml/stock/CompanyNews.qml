@@ -15,6 +15,7 @@ ColumnLayout {
     property bool busy: MarketStore.newsRequest.busy
     property string subject: "company"
     readonly property var articles: report.articles || []
+    LocalImages { id: pictures; urls: root.articles.map(article => article.image).filter(image => !!image) }
     Timer { interval: 60000; running: StockStore.windowOpen && root.visible; repeat: true; triggeredOnStart: true; onTriggered: root.now = Date.now() / 1000 }
     function age(timestamp) {
         if (!timestamp) return ""
@@ -84,7 +85,7 @@ ColumnLayout {
                     }
                 }
                 Image {
-                    source: article.modelData.image
+                    source: pictures.local(article.modelData.image)
                     asynchronous: true
                     visible: status === Image.Ready && article.width >= Style.space(300)
                     Layout.preferredWidth: Style.space(88)

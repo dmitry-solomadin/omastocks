@@ -15,6 +15,7 @@ BarWidget 1.0 BarWidget.qml
 DataRequest 1.0 data/DataRequest.qml
 ServerHelper 1.0 data/ServerHelper.qml
 BulkRequest 1.0 data/BulkRequest.qml
+LocalImages 1.0 data/LocalImages.qml
 WatchlistBatch 1.0 data/WatchlistBatch.qml
 
 ActionButton 1.0 components/ActionButton.qml
@@ -68,6 +69,7 @@ DenseHeatmap 1.0 market/DenseHeatmap.qml
 MarketIndexes 1.0 market/MarketIndexes.qml
 CrossAssets 1.0 market/CrossAssets.qml
 MarketSentiment 1.0 market/MarketSentiment.qml
+MarginDebt 1.0 market/MarginDebt.qml
 SectorLeaders 1.0 market/SectorLeaders.qml
 EconomicCalendar 1.0 market/EconomicCalendar.qml
 MarketSession 1.0 market/MarketSession.qml

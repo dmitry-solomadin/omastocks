@@ -102,6 +102,16 @@ class AdapterTests(unittest.TestCase):
         self.assertFalse(parser.failed)
         self.assertIn("--strict-mcp-config", ai_runner.command({"id": "claude", "executable": "claude"}, None, {}))
 
+    def test_effort_override_only_when_a_task_asks(self):
+        claude = {"id": "claude", "executable": "claude"}
+        self.assertNotIn("--effort", ai_runner.command(claude, None, {}))
+        args = ai_runner.command(claude, None, {}, effort="medium")
+        self.assertEqual(args[args.index("--effort") + 1], "medium")
+        with tempfile.TemporaryDirectory() as folder:
+            codex = {"id": "codex", "executable": "codex"}
+            self.assertNotIn('model_reasoning_effort="medium"', ai_runner.command(codex, Path(folder), {}))
+            self.assertIn('model_reasoning_effort="medium"', ai_runner.command(codex, Path(folder), {}, effort="medium"))
+
     def test_opencode_reconciled_final_message_requires_successful_exit(self):
         parser = ai_runner.Output("opencode")
         parser.feed({"type": "tool_use", "part": {"tool": "webfetch", "state": {"status": "completed"}}})

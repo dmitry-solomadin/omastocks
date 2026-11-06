@@ -81,6 +81,7 @@ Item {
     readonly property int apexY: rows - facadeHeight
     // A listing's banner hangs from the entablature over the hall.
     readonly property var banner: MarketStore.banner
+    readonly property string logoFile: MarketStore.bannerLogo
     readonly property int bannerTop: apexY + 9
     readonly property int bannerRows: Math.min(11, rows - 3 - bannerTop)
     property var logo: null
@@ -88,10 +89,14 @@ Item {
     property var logos: ({})
     onBannerChanged: showLogo()
     onBannerRowsChanged: showLogo()
+    onLogoFileChanged: showLogo()
+    function logoKey(url) {
+        return url + " " + bannerRows + " " + facadeWidth
+    }
     function showLogo() {
-        logo = null
-        const url = banner ? banner.logo : ""
-        if (url && banners.available) {
+        const url = logoFile
+        logo = logos[logoKey(url)] || null
+        if (url && !logo && banners.available) {
             if (banners.isImageLoaded(url)) sampleLogo(url)
             else banners.loadImage(url)
         }
@@ -101,12 +106,7 @@ Item {
     // enough for a wordmark to read. A wordmark spans the banner and stands in
     // for the ticker; an emblem sits beside it.
     function sampleLogo(url) {
-        const key = url + " " + bannerRows + " " + facadeWidth
-        if (key in logos) {
-            logo = logos[key]
-            banners.requestPaint()
-            return
-        }
+        const key = logoKey(url)
         try {
             const image = banners.getContext("2d").createImageData(url)
             const box = image && image.width ? Banner.bounds(image.width, image.height, image.data) : null
@@ -116,6 +116,8 @@ Item {
         } catch (error) {
             logo = null
         }
+        // Only the grid is kept: the canvas would hold each decoded logo for good.
+        banners.unloadImage(url)
         if (logo) logos[key] = logo
         banners.requestPaint()
     }
@@ -224,7 +226,7 @@ Item {
         renderStrategy: Canvas.Cooperative
         onAvailableChanged: root.showLogo()
         onImageLoaded: {
-            const url = root.banner ? root.banner.logo : ""
+            const url = root.logoFile
             if (url && isImageLoaded(url)) root.sampleLogo(url)
         }
         onWidthChanged: requestPaint()

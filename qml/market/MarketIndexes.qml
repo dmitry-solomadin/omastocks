@@ -21,6 +21,7 @@ Flow {
             required property var modelData
             readonly property var asset: Assets.benchmark(modelData, root.offHours)
             readonly property var quote: StockStore.marketQuotes[asset.symbol] || {}
+            readonly property var percent: Assets.benchmarkPercent(asset, quote)
             objectName: "benchmark_" + modelData.symbol
             width: lines.implicitWidth + Style.space(20)
             height: lines.implicitHeight + Style.space(12)
@@ -48,7 +49,7 @@ Flow {
                 RowLayout {
                     spacing: Style.space(8)
                     Label { text: StockStore.price(tile.quote.price); font.bold: true }
-                    Label { text: StockStore.percent(tile.quote.percent); color: StockStore.direction(tile.quote.percent); font.bold: true }
+                    Label { text: StockStore.percent(tile.percent); color: StockStore.direction(tile.percent); font.bold: true }
                 }
             }
             MouseArea {
@@ -61,11 +62,12 @@ Flow {
             Ui.PanelToolTip {
                 visible: mouse.containsMouse
                 text: StockStore.marketQuotesRequest.data.error || tile.quote.error
-                    || (tile.asset.futures ? tile.asset.name + " futures (" + tile.asset.symbol + "), shown while the cash index is closed.\n" : "")
+                    || (tile.asset.futures ? tile.asset.name + " futures (" + tile.asset.symbol + "), shown while the cash index is closed. "
+                        + (Number.isFinite(tile.quote.sinceClose) ? "Change since the last close.\n" : "Change since the last settlement.\n") : "")
                     + "Open " + tile.asset.symbol + (tile.quote.updated ? " · " + Qt.formatDateTime(new Date(tile.quote.updated * 1000), "d MMM hh:mm") : "")
             }
             Accessible.role: Accessible.Button
-            Accessible.name: tile.asset.name + (tile.asset.futures ? " futures " : " ") + StockStore.price(tile.quote.price) + " " + StockStore.percent(tile.quote.percent)
+            Accessible.name: tile.asset.name + (tile.asset.futures ? " futures " : " ") + StockStore.price(tile.quote.price) + " " + StockStore.percent(tile.percent)
         }
     }
 }

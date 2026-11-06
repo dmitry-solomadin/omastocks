@@ -110,6 +110,8 @@ QtObject {
         arguments: StockStore.running && StockStore.windowOpen ? ["ipos", StockStore.easternToday] : []
         refreshInterval: 3600000
     }
+    property LocalImages bannerImages: LocalImages { urls: root.listings.map(listing => listing.logo).filter(logo => !!logo) }
+    readonly property string bannerLogo: banner ? bannerImages.local(banner.logo) : ""
     property Timer bannerRotation: Timer {
         interval: 15000; repeat: true
         running: root.listings.length > 1 && StockStore.windowOpen

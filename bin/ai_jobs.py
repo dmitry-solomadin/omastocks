@@ -40,6 +40,7 @@ class Task:
     publish: Callable = lambda path, result: None  # Called under the job lock before the result is saved
     stage: str = "Researching"  # Shown once market context is ready
     steps: int = 16
+    effort: str = ""         # Reasoning effort for the agent; empty keeps the user's own setting
 
 
 class Stopped(Exception):
@@ -218,7 +219,8 @@ def worker(task, ticker, preference, identity):
             folder.mkdir(mode=0o700)
             write_json(folder / "context.json", context)
             document = ai_runner.run(job["agent"], task.prompt(job, context), task.schema, folder,
-                                     timeout=task.timeout - 90, title=task.title, steps=task.steps)
+                                     timeout=task.timeout - 90, title=task.title, steps=task.steps,
+                                     effort=task.effort)
             result = task.validate(document, job, context)
             if task.expired(result, ticker):
                 raise ValueError("A new trading session started during research. Retry for the latest move.")

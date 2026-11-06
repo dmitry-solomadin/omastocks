@@ -20,6 +20,12 @@ assert.equal(assets.benchmark(spx, true).symbol, "ES=F")
 assert.equal(assets.benchmark(spx, true).futures, true)
 assert.equal(assets.benchmark({symbol: "^VIX", name: "VIX"}, true).symbol, "^VIX", "An asset without futures keeps its symbol")
 assert.deepEqual(Array.from(assets.benchmarks, asset => asset.symbol), ["^SPX", "^IXIC", "^DJI"], "VIX lives in the sentiment section")
+// Off-hours a contract shows its move since the close; zero is a real reading.
+const contract = assets.benchmark(spx, true)
+assert.equal(assets.benchmarkPercent(contract, {percent: -6.57, sinceClose: -0.21}), -0.21)
+assert.equal(assets.benchmarkPercent(contract, {percent: -6.57, sinceClose: 0}), 0)
+assert.equal(assets.benchmarkPercent(contract, {percent: -6.57}), -6.57, "Without a baseline it keeps Yahoo's change")
+assert.equal(assets.benchmarkPercent(assets.benchmark(spx, false), {percent: -4.36, sinceClose: -0.21}), -4.36, "The open index keeps its own change")
 // Opening must clear the FUT badge/tooltip without losing the next overnight contract.
 for (const asset of assets.benchmarks) {
     const contract = asset.futures
